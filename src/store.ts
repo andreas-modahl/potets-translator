@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import type { PostMode } from './config.js';
+import type { ExplainMode, PostMode } from './config.js';
 
 export interface ChannelSettings {
   /** English names of the languages every message here is translated into. */
@@ -12,7 +12,7 @@ export interface ChannelSettings {
    */
   mode?: PostMode;
   /** Same rule as `mode`: unset means follow EXPLAIN_TRANSLATIONS. */
-  explain?: boolean;
+  explain?: ExplainMode;
 }
 
 interface StoreShape {

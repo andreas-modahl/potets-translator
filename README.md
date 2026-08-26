@@ -51,14 +51,31 @@ require the Manage Server permission and reply only to you.
 
 ## Explanations
 
-With `EXPLAIN_TRANSLATIONS` on, each translation carries a breakdown pairing it
-back to the original wording, rendered as Discord subtext so it sits quietly
-under the translation:
+Translations can carry an explanation, for channels where the conversation is
+also how people are learning the language. `EXPLAIN_TRANSLATIONS` sets the
+default and `/translator enable … explain:` overrides it per channel.
+
+**`full`** stacks the translation above the original in aligned columns, inside
+a code block so the columns hold:
 
 ```
-🇹🇷 selam. iyi bir gün geçiriyor musun?
-   selam = hei  ·  iyi bir gün = en fin dag  ·  geçiriyor musun = har du
+selam  güzel bir gün  geçiriyor musun
+hei    en fin dag     har du
 ```
+
+Because the breakdown spans the whole sentence, it replaces the translation
+rather than being printed alongside it. Each column is padded to the wider of
+the two languages, so every piece sits directly above its counterpart.
+
+Only one of the two lines can read straight through, since word order differs
+between languages, and it is the translation: it leads and keeps its own order,
+while the original follows piece by piece and so may appear out of order.
+
+Discord wraps long lines inside a code block rather than scrolling them, and a
+wrapped line would destroy the alignment. Rows are therefore kept under 45
+characters and continued as a further stanza underneath. A single pair too wide
+to fit gets a row to itself and overflows, since splitting it would break the
+pairing it exists to show.
 
 The pairing is by meaning, not by word. Languages do not line up one word to one
 word — Turkish `geçiriyor musun` is Norwegian `har du`, and neither splits
@@ -67,11 +84,27 @@ the correspondence true. Pairs where both sides are identical are dropped, since
 a name or a number translating to itself teaches nothing, and the whole gloss is
 skipped for messages too long to break down in twelve pairs.
 
-The bot sorts the pairs by where they appear in the translation rather than
-trusting the order they come back in, so the breakdown always reads left to
-right alongside the text above it.
+**`beginner`** picks out at most three common words worth learning first,
+highlights them in the translation, and explains only those:
 
-Turn it off per channel with `/translator enable … explain: False`.
+```
+eve gelirken **süt** ve **ekmek** alabilir misin? **teşekkürler**!
+süt  (melk)     ekmek  (brød)     teşekkürler  (takk)
+```
+
+The cap matters more than it looks: if most of the sentence is marked, nothing
+stands out and the mode is pointless. So it is limited to three words and to
+about a third of the sentence, prefers single concrete nouns, verbs and
+adjectives, and is told to avoid grammatical constructions — a beginner cannot
+reuse a verb ending as vocabulary, but they can reuse `süt`.
+
+Highlighting skips anything it would corrupt: mentions, custom emoji,
+timestamps, URLs, and inline or fenced code are never marked up, even when a
+highlighted word appears inside one.
+
+In both modes the bot sorts the pairs by where they appear in the translation
+rather than trusting the order they come back in, so the explanation reads left
+to right alongside the text above it.
 
 ## Setup
 
@@ -125,7 +158,7 @@ Everything lives in `.env`; see `.env.example` for the annotated list.
 | `CLAUDE_MODEL` | `claude-sonnet-5` | `claude-haiku-4-5-20251001` is cheaper and fine for short chat. |
 | `MAX_INPUT_CHARS` | `2000` | Longer messages are skipped rather than translated. |
 | `DEFAULT_POST_MODE` | `plain` | `plain`, `reply`, `thread` or `webhook`. |
-| `EXPLAIN_TRANSLATIONS` | `true` | Add the breakdown line under each translation. |
+| `EXPLAIN_TRANSLATIONS` | `full` | `full`, `beginner` or `off`. |
 | `DATA_FILE` | `data/channels.json` | Where per-channel settings persist. |
 
 Per-channel settings are written to `DATA_FILE` and survive restarts. The file
@@ -144,8 +177,9 @@ matter:
   translations in the order the originals were sent.
 - Other bots' prefix commands (`!play`, `.rank`) are ignored.
 
-Explanations roughly double the output tokens per message, so turning
-`EXPLAIN_TRANSLATIONS` off is the single biggest saving after the model choice.
+A `full` explanation roughly doubles the output tokens per message, so moving
+`EXPLAIN_TRANSLATIONS` to `beginner` or `off` is the single biggest saving after
+the model choice.
 
 If cost is the main constraint, set `CLAUDE_MODEL=claude-haiku-4-5-20251001`.
 
@@ -160,6 +194,8 @@ If cost is the main constraint, set `CLAUDE_MODEL=claude-haiku-4-5-20251001`.
 | `src/commands.ts` | The `/translator` slash command |
 | `src/store.ts` | Per-channel settings, persisted as JSON |
 | `src/languages.ts` | Language name normalisation and flag labels |
+| `src/highlight.ts` | Marking beginner words without breaking Discord markup |
+| `src/interlinear.ts` | Laying the original above the translation in columns |
 | `src/limiter.ts` | Concurrency cap |
 
 ## Notes

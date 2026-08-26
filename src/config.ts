@@ -4,6 +4,17 @@ export type PostMode = 'plain' | 'reply' | 'thread' | 'webhook';
 
 const POST_MODES: readonly PostMode[] = ['plain', 'reply', 'thread', 'webhook'];
 
+/**
+ * How much of an explanation rides along with each translation.
+ *
+ * `full` breaks the whole translation down chunk by chunk. `beginner` picks out
+ * only a handful of core words worth learning first, highlights them in the
+ * translation, and explains just those.
+ */
+export type ExplainMode = 'off' | 'full' | 'beginner';
+
+const EXPLAIN_MODES: readonly ExplainMode[] = ['off', 'full', 'beginner'];
+
 function optional(name: string): string | undefined {
   const value = process.env[name]?.trim();
   return value ? value : undefined;
@@ -19,12 +30,16 @@ function positiveInt(name: string, fallback: number): number {
   return parsed;
 }
 
-function flag(name: string, fallback: boolean): boolean {
+function explainMode(name: string, fallback: ExplainMode): ExplainMode {
   const raw = optional(name)?.toLowerCase();
   if (!raw) return fallback;
-  if (['1', 'true', 'yes', 'on'].includes(raw)) return true;
-  if (['0', 'false', 'no', 'off'].includes(raw)) return false;
-  throw new Error(`Environment variable ${name} must be true or false, got "${raw}".`);
+  // The boolean spellings are accepted because this setting used to be one.
+  if (['off', 'false', '0', 'no', 'none'].includes(raw)) return 'off';
+  if (['full', 'true', '1', 'yes', 'on'].includes(raw)) return 'full';
+  if (raw === 'beginner') return 'beginner';
+  throw new Error(
+    `Environment variable ${name} must be one of ${EXPLAIN_MODES.join(', ')}, got "${raw}".`,
+  );
 }
 
 function postMode(name: string, fallback: PostMode): PostMode {
@@ -47,7 +62,7 @@ export const config = {
   model: optional('CLAUDE_MODEL') ?? 'claude-sonnet-5',
   maxInputChars: positiveInt('MAX_INPUT_CHARS', 2000),
   defaultPostMode: postMode('DEFAULT_POST_MODE', 'plain'),
-  explainByDefault: flag('EXPLAIN_TRANSLATIONS', true),
+  explainByDefault: explainMode('EXPLAIN_TRANSLATIONS', 'full'),
   dataFile: optional('DATA_FILE') ?? 'data/channels.json',
 } as const;
 

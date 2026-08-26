@@ -5,7 +5,7 @@ import {
   PermissionFlagsBits,
   SlashCommandBuilder,
 } from 'discord.js';
-import type { PostMode } from './config.js';
+import type { ExplainMode, PostMode } from './config.js';
 import { config } from './config.js';
 import { labelFor, parseTargets } from './languages.js';
 import type { ChannelStore } from './store.js';
@@ -38,10 +38,15 @@ export const commandData = [
               { name: 'Repost under the author name (webhook)', value: 'webhook' },
             ),
         )
-        .addBooleanOption((option) =>
+        .addStringOption((option) =>
           option
             .setName('explain')
-            .setDescription('Add a word-by-word breakdown back to the original wording'),
+            .setDescription('How much explanation rides along with each translation')
+            .addChoices(
+              { name: 'Full breakdown of the whole translation', value: 'full' },
+              { name: 'Beginner: highlight a few words worth learning', value: 'beginner' },
+              { name: 'Off: just the translation', value: 'off' },
+            ),
         ),
     )
     .addSubcommand((sub) =>
@@ -78,11 +83,11 @@ export async function handleCommand(
       // Recorded only when explicitly chosen, so an unspecified channel keeps
       // following DEFAULT_POST_MODE rather than freezing today's default.
       const chosen = interaction.options.getString('mode') as PostMode | null;
-      const explain = interaction.options.getBoolean('explain');
+      const explain = interaction.options.getString('explain') as ExplainMode | null;
       await store.set(channelId, {
         targets,
         ...(chosen ? { mode: chosen } : {}),
-        ...(explain === null ? {} : { explain }),
+        ...(explain ? { explain } : {}),
       });
 
       const effective = chosen ?? config.defaultPostMode;
@@ -91,8 +96,8 @@ export async function handleCommand(
         `Translating every message in this channel into ${targets.map(labelFor).join(', ')}.\n` +
           `Messages already in a target language are left alone. Posting mode: **${effective}**` +
           `${chosen ? '' : ' (following the server default)'}.\n` +
-          `Explanations: **${(explain ?? config.explainByDefault) ? 'on' : 'off'}**` +
-          `${explain === null ? ' (following the server default)' : ''}.`,
+          `Explanations: **${explain ?? config.explainByDefault}**` +
+          `${explain ? '' : ' (following the server default)'}.`,
       );
       return;
     }
@@ -114,8 +119,8 @@ export async function handleCommand(
           ? `Translating into ${settings.targets.map(labelFor).join(', ')} — posting mode ` +
             `**${settings.mode ?? config.defaultPostMode}**` +
             `${settings.mode ? ' (set for this channel)' : ' (following the server default)'}, ` +
-            `explanations **${(settings.explain ?? config.explainByDefault) ? 'on' : 'off'}**` +
-            `${settings.explain === undefined ? ' (following the server default)' : ''}.`
+            `explanations **${settings.explain ?? config.explainByDefault}**` +
+            `${settings.explain ? '' : ' (following the server default)'}.`
           : 'Translation is off in this channel. Turn it on with `/translator enable`.',
       );
       return;

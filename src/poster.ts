@@ -7,11 +7,17 @@ import {
   type Webhook,
 } from 'discord.js';
 import type { PostMode } from './config.js';
+import { highlight } from './highlight.js';
+import { interlinear } from './interlinear.js';
 import { flagFor } from './languages.js';
 import type { Translation } from './translate.js';
 
 const WEBHOOK_NAME = 'Potets Translator';
 const DISCORD_MESSAGE_LIMIT = 2000;
+/** Between a translated chunk and the original it came from. */
+const GAP = '  ';
+/** Between one pair and the next, wider so the pairs read as separate units. */
+const BREAK = '     ';
 /** How many original -> translation links are remembered for edit and delete sync. */
 const MAX_TRACKED = 1000;
 
@@ -30,8 +36,6 @@ interface PostedRef {
   viaWebhook: boolean;
   hostChannelId: string;
   threadId?: string;
-  /** Thread posts drop the language label, so edits have to render the same way. */
-  inThread?: boolean;
 }
 
 /**
@@ -42,19 +46,29 @@ interface PostedRef {
  * flag is enough to say which language this is. Spelling out the name, bolding
  * it, or adding a separator only repeats what the reader can already see.
  */
-function render(translations: Translation[], withLabels = true): string {
+function render(translations: Translation[]): string {
   const body = translations
-    .map(({ language, text, gloss }) => {
-      const flag = flagFor(language);
-      const head = !withLabels ? text : flag ? `${flag} ${text}` : `${language}: ${text}`;
-      if (!gloss?.length) return head;
+    .map(({ text, gloss, glossStyle }) => {
+      // Reads as the translated sentence with the original tucked in after each
+      // piece, rather than as a list of equations to cross-reference. Discord
+      // preserves runs of spaces, so whitespace does the separating that
+      // punctuation and styling were doing before.
+      const pairs = gloss?.length
+        ? gloss.map(({ target, source }) => `${tidy(target)}${GAP}(${tidy(source)})`).join(BREAK)
+        : '';
 
-      // "-#" is Discord's subtext: smaller and dimmed, so the explanation sits
-      // under the translation without competing with it for attention.
-      const pairs = gloss
-        .map(({ target, source }) => `${target} = ${source}`.replace(/\s+/gu, ' '))
-        .join('  ·  ');
-      return `${head}\n-# ${pairs}`;
+      // A full breakdown lays the original above the translation in aligned
+      // columns, which needs a code block to hold the alignment. A beginner one
+      // covers only a few words, so the sentence stays, with those words marked.
+      const stacked = glossStyle === 'full' && gloss?.length ? interlinear(gloss) : '';
+      if (stacked) return fence(stacked);
+
+      const content =
+        glossStyle === 'beginner' && gloss?.length
+          ? highlight(text, gloss.map(({ target }) => target))
+          : text;
+
+      return glossStyle === 'beginner' && pairs ? `${content}\n${pairs}` : content;
     })
     .join('\n');
 
@@ -78,6 +92,20 @@ function threadName(translations: Translation[]): string {
   if (!name) return 'Translation';
   // Discord caps thread names at 100 characters.
   return name.length > 100 ? `${name.slice(0, 99)}…` : name;
+}
+
+/**
+ * Wraps text in a fenced block, which is the only way to get the fixed-width
+ * font the column alignment depends on.
+ */
+function fence(text: string): string {
+  // A fence inside the text would close the block early and spill the rest.
+  return `\`\`\`\n${text.replace(/```/gu, "'''")}\n\`\`\``;
+}
+
+/** Collapses any internal whitespace, so the deliberate spacing is the only spacing. */
+function tidy(value: string): string {
+  return value.replace(/\s+/gu, ' ').trim();
 }
 
 /** Discord rejects webhook usernames containing "discord" or "clyde". */
@@ -157,7 +185,7 @@ export class Poster {
   async update(originalId: string, translations: Translation[]): Promise<boolean> {
     const ref = this.tracked.get(originalId);
     if (!ref) return false;
-    const content = render(translations, !ref.inThread || translations.length > 1);
+    const content = render(translations);
 
     if (ref.viaWebhook) {
       const webhook = this.webhooks.get(ref.hostChannelId);
@@ -247,15 +275,12 @@ export class Poster {
           autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
         }));
 
-      // The thread name already names the language, so a single translation
-      // needs no flag on it. Several still do, to tell the lines apart.
-      const content = render(translations, translations.length > 1);
+      const content = render(translations);
       const sent = await thread.send({ content, allowedMentions: NO_PINGS, flags: SILENT });
       this.track(message.id, {
         postedId: sent.id,
         viaWebhook: false,
         hostChannelId: thread.id,
-        inThread: true,
       });
       return true;
     } catch (error) {

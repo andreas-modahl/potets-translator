@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { config } from './config.js';
+import { config, type ExplainMode } from './config.js';
 
 export interface GlossPair {
   /** A chunk of the translation. */
@@ -13,6 +13,11 @@ export interface Translation {
   text: string;
   /** Present only when an explanation was asked for. */
   gloss?: GlossPair[];
+  /**
+   * Which kind of explanation the gloss is: a full chunk-by-chunk breakdown, or
+   * a beginner's pick of a few words to highlight in the text.
+   */
+  glossStyle?: 'full' | 'beginner';
 }
 
 export interface TranslationResult {
@@ -50,6 +55,27 @@ Rules:
 - If the message is not translatable text at all (only emoji, only a URL, only
   punctuation), return no translations.`;
 
+const BEGINNER_PROMPT = `
+You have also been asked to pick out vocabulary for a complete beginner in the
+target language. Along with each translation, list the few words in it that are
+worth learning first, paired with what they mean in the original.
+
+- At most 3 words, and never more than about a third of the words in the
+  sentence. One or two good picks beat three padded ones. The point is that a
+  few words stand out; if most of the sentence is picked, nothing stands out.
+- Choose the common, reusable, everyday words: the ones that will turn up again
+  in the next hundred conversations. Skip rare or specialised vocabulary, and
+  skip anything that only makes sense in this one sentence.
+- Pick single words. Concrete, high-frequency nouns, verbs and adjectives are
+  what a beginner needs. The only phrase worth picking is a fixed everyday
+  expression learned as one unit, like a greeting or "thank you".
+- Never pick a grammatical construction: verb endings, question forms, auxiliary
+  or modal constructions. A beginner cannot reuse those as vocabulary yet.
+- Give the word exactly as it appears in your translation, so it can be found in
+  the text. Do not give a dictionary or root form that does not appear.
+- Skip names, numbers, URLs, emoji and mentions. There is nothing to learn.
+- If nothing in the message is worth a beginner's attention, give no pairs.`;
+
 const GLOSS_PROMPT = `
 You have also been asked to explain the translation, for someone learning the
 language. Along with each translation, break it into chunks and pair each chunk
@@ -77,7 +103,7 @@ const GLOSS_SCHEMA = {
   required: ['target', 'source'],
 } as const;
 
-function buildTool(explain: boolean): Anthropic.Tool {
+function buildTool(explain: ExplainMode): Anthropic.Tool {
   return {
     name: 'post_translation',
     description: 'Report the detected source language and the requested translations.',
@@ -101,16 +127,18 @@ function buildTool(explain: boolean): Anthropic.Tool {
                 description: 'The target language, spelled exactly as it was requested.',
               },
               text: { type: 'string', description: 'The message translated into that language.' },
-              ...(explain
-                ? {
+              ...(explain === 'off'
+                ? {}
+                : {
                     gloss: {
                       type: 'array',
                       description:
-                        'Chunk-by-chunk pairing of your translation back to the original wording, in order. Omit entirely if the message is too long to gloss in 12 pairs.',
+                        explain === 'beginner'
+                          ? 'The few words in your translation worth learning first, each paired with what it means in the original. At most 3, and fewer for short messages.'
+                          : 'Chunk-by-chunk pairing of your translation back to the original wording, in order. Omit entirely if the message is too long to gloss in 12 pairs.',
                       items: GLOSS_SCHEMA,
                     },
-                  }
-                : {}),
+                  }),
             },
             required: ['language', 'text'],
           },
@@ -127,9 +155,26 @@ interface ToolInput {
 }
 
 /**
- * @param translated the translation the pairs belong to, used to put them back
- *   into reading order. The model is asked for them in order but does not
- *   reliably comply, and a gloss that jumps around is hard to follow.
+ * Finds a chunk in the translation, tolerating punctuation the model attached
+ * to the chunk but did not put in the sentence, which would otherwise leave the
+ * chunk unlocatable and strand it at the end of the gloss.
+ *
+ * @param haystack the translation, already lowercased
+ */
+function locate(haystack: string, chunk: string): number {
+  const needle = chunk.toLowerCase();
+  const direct = haystack.indexOf(needle);
+  if (direct !== -1) return direct;
+
+  const trimmed = needle.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+  return trimmed ? haystack.indexOf(trimmed) : -1;
+}
+
+/**
+ * @param translated the translation the pairs belong to. Pairs are ordered by
+ *   where they appear in it, both because the model does not reliably return
+ *   them in order and because word order differs between languages: only one of
+ *   the two lines can read straight through, and it is the translation.
  */
 function parseGloss(value: unknown, translated: string): GlossPair[] {
   if (!Array.isArray(value)) return [];
@@ -152,7 +197,7 @@ function parseGloss(value: unknown, translated: string): GlossPair[] {
   const haystack = translated.toLowerCase();
   return pairs
     .map((pair, index) => {
-      const at = haystack.indexOf(pair.target.toLowerCase());
+      const at = locate(haystack, pair.target);
       return { pair, index, at: at === -1 ? Number.MAX_SAFE_INTEGER : at };
     })
     .sort((a, b) => a.at - b.at || a.index - b.index)
@@ -168,14 +213,17 @@ function parseGloss(value: unknown, translated: string): GlossPair[] {
 export async function translate(
   text: string,
   targets: string[],
-  explain = false,
+  explain: ExplainMode = 'off',
 ): Promise<TranslationResult> {
   const tool = buildTool(explain);
+  const extra =
+    explain === 'full' ? GLOSS_PROMPT : explain === 'beginner' ? BEGINNER_PROMPT : undefined;
+
   const response = await client().messages.create({
     model: config.model,
-    // A gloss roughly doubles the output, and long messages gloss long.
-    max_tokens: explain ? 4096 : 2048,
-    system: explain ? `${SYSTEM_PROMPT}\n${GLOSS_PROMPT}` : SYSTEM_PROMPT,
+    // A full gloss roughly doubles the output, and long messages gloss long.
+    max_tokens: explain === 'full' ? 4096 : 2048,
+    system: extra ? `${SYSTEM_PROMPT}\n${extra}` : SYSTEM_PROMPT,
     tools: [tool],
     tool_choice: { type: 'tool', name: tool.name },
     messages: [
@@ -201,11 +249,11 @@ export async function translate(
     if (typeof language !== 'string' || typeof translated !== 'string') continue;
     if (!translated.trim()) continue;
 
-    const pairs = parseGloss(gloss, translated);
+    const pairs = explain === 'off' ? [] : parseGloss(gloss, translated);
     translations.push({
       language,
       text: translated.trim(),
-      ...(pairs.length > 0 ? { gloss: pairs } : {}),
+      ...(explain !== 'off' && pairs.length > 0 ? { gloss: pairs, glossStyle: explain } : {}),
     });
   }
 
