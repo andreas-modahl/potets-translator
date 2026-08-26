@@ -27,6 +27,9 @@ client.once(Events.ClientReady, async (ready) => {
     if (config.guildId) {
       const guild = await ready.guilds.fetch(config.guildId);
       await guild.commands.set(commandData);
+      // Guild commands do not replace global ones, so anything registered
+      // globally by an earlier run would show up as a duplicate alongside them.
+      await ready.application.commands.set([]);
       console.log(`Registered slash commands to guild ${guild.name}.`);
     } else {
       await ready.application.commands.set(commandData);
@@ -71,9 +74,9 @@ client.on(Events.MessageCreate, async (message) => {
       if (message.channel.isTextBased() && 'sendTyping' in message.channel) {
         await message.channel.sendTyping().catch(() => undefined);
       }
-      const result = await translate(verdict.text, settings.targets);
+      const result = await translate(verdict.text, settings.targets, settings.explain ?? config.explainByDefault);
       if (result.translations.length === 0) return;
-      await poster.post(message, result.translations, settings.mode);
+      await poster.post(message, result.translations, settings.mode ?? config.defaultPostMode);
     } catch (error) {
       console.error(`Translation failed for message ${message.id}:`, error);
     }
@@ -98,7 +101,7 @@ client.on(Events.MessageUpdate, async (before, updated) => {
       return;
     }
 
-    const result = await limiter.run(() => translate(verdict.text, settings.targets));
+    const result = await limiter.run(() => translate(verdict.text, settings.targets, settings.explain ?? config.explainByDefault));
     if (result.translations.length === 0) {
       await poster.remove(message.id);
       return;

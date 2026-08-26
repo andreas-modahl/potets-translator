@@ -5,7 +5,14 @@ import type { PostMode } from './config.js';
 export interface ChannelSettings {
   /** English names of the languages every message here is translated into. */
   targets: string[];
-  mode: PostMode;
+  /**
+   * Only set when someone explicitly picked a mode for this channel. Left
+   * undefined otherwise, so the channel follows DEFAULT_POST_MODE and changing
+   * that setting actually takes effect on existing channels.
+   */
+  mode?: PostMode;
+  /** Same rule as `mode`: unset means follow EXPLAIN_TRANSLATIONS. */
+  explain?: boolean;
 }
 
 interface StoreShape {

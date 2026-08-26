@@ -32,9 +32,16 @@ export const commandData = [
             .setName('mode')
             .setDescription('How translations are posted')
             .addChoices(
-              { name: 'Repost under the author name (webhook)', value: 'webhook' },
+              { name: 'A plain message in the channel', value: 'plain' },
+              { name: 'In a thread under the message', value: 'thread' },
               { name: 'Reply to the message', value: 'reply' },
+              { name: 'Repost under the author name (webhook)', value: 'webhook' },
             ),
+        )
+        .addBooleanOption((option) =>
+          option
+            .setName('explain')
+            .setDescription('Add a word-by-word breakdown back to the original wording'),
         ),
     )
     .addSubcommand((sub) =>
@@ -68,12 +75,24 @@ export async function handleCommand(
         return;
       }
 
-      const mode = (interaction.options.getString('mode') as PostMode | null) ?? config.defaultPostMode;
-      await store.set(channelId, { targets, mode });
+      // Recorded only when explicitly chosen, so an unspecified channel keeps
+      // following DEFAULT_POST_MODE rather than freezing today's default.
+      const chosen = interaction.options.getString('mode') as PostMode | null;
+      const explain = interaction.options.getBoolean('explain');
+      await store.set(channelId, {
+        targets,
+        ...(chosen ? { mode: chosen } : {}),
+        ...(explain === null ? {} : { explain }),
+      });
+
+      const effective = chosen ?? config.defaultPostMode;
       await reply(
         interaction,
         `Translating every message in this channel into ${targets.map(labelFor).join(', ')}.\n` +
-          `Messages already in a target language are left alone. Posting mode: **${mode}**.`,
+          `Messages already in a target language are left alone. Posting mode: **${effective}**` +
+          `${chosen ? '' : ' (following the server default)'}.\n` +
+          `Explanations: **${(explain ?? config.explainByDefault) ? 'on' : 'off'}**` +
+          `${explain === null ? ' (following the server default)' : ''}.`,
       );
       return;
     }
@@ -92,7 +111,11 @@ export async function handleCommand(
       await reply(
         interaction,
         settings
-          ? `Translating into ${settings.targets.map(labelFor).join(', ')} — posting mode **${settings.mode}**.`
+          ? `Translating into ${settings.targets.map(labelFor).join(', ')} — posting mode ` +
+            `**${settings.mode ?? config.defaultPostMode}**` +
+            `${settings.mode ? ' (set for this channel)' : ' (following the server default)'}, ` +
+            `explanations **${(settings.explain ?? config.explainByDefault) ? 'on' : 'off'}**` +
+            `${settings.explain === undefined ? ' (following the server default)' : ''}.`
           : 'Translation is off in this channel. Turn it on with `/translator enable`.',
       );
       return;

@@ -1,9 +1,18 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from './config.js';
 
+export interface GlossPair {
+  /** A chunk of the translation. */
+  target: string;
+  /** The chunk of the original it came from. */
+  source: string;
+}
+
 export interface Translation {
   language: string;
   text: string;
+  /** Present only when an explanation was asked for. */
+  gloss?: GlossPair[];
 }
 
 export interface TranslationResult {
@@ -41,41 +50,113 @@ Rules:
 - If the message is not translatable text at all (only emoji, only a URL, only
   punctuation), return no translations.`;
 
-const TOOL: Anthropic.Tool = {
-  name: 'post_translation',
-  description: 'Report the detected source language and the requested translations.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      source_language: {
-        type: 'string',
-        description:
-          'English name of the language the original message is written in, e.g. "Norwegian". Use "unknown" if it cannot be determined.',
-      },
-      translations: {
-        type: 'array',
-        description:
-          'One entry per requested target language, excluding any target that is the same language as the source.',
-        items: {
-          type: 'object',
-          properties: {
-            language: {
-              type: 'string',
-              description: 'The target language, spelled exactly as it was requested.',
+const GLOSS_PROMPT = `
+You have also been asked to explain the translation, for someone learning the
+language. Along with each translation, break it into chunks and pair each chunk
+with the part of the original it came from.
+
+- Split on meaning, not on words. Languages do not line up one word to one word:
+  a single word in one language is often several in another, and vice versa.
+  Pair "geçiriyor musun" with "har du", rather than inventing a word each.
+- Work through the translation in order, left to right, and cover all of it.
+- Do not overlap. Each part of the translation belongs to at most one pair, so
+  never pair a suffix separately from the word it is attached to.
+- Skip pairs where both sides are the same text anyway: names, numbers, URLs,
+  emoji, and mentions teach the reader nothing.
+- Keep each chunk short. Prefer more small pairs over a few long ones, but never
+  split a chunk so small that the pairing becomes wrong.
+- At most 12 pairs. If the message is long enough that it would need more, give
+  no gloss at all rather than a truncated one.`;
+
+const GLOSS_SCHEMA = {
+  type: 'object',
+  properties: {
+    target: { type: 'string', description: 'A chunk of your translation.' },
+    source: { type: 'string', description: 'The chunk of the original it came from.' },
+  },
+  required: ['target', 'source'],
+} as const;
+
+function buildTool(explain: boolean): Anthropic.Tool {
+  return {
+    name: 'post_translation',
+    description: 'Report the detected source language and the requested translations.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        source_language: {
+          type: 'string',
+          description:
+            'English name of the language the original message is written in, e.g. "Norwegian". Use "unknown" if it cannot be determined.',
+        },
+        translations: {
+          type: 'array',
+          description:
+            'One entry per requested target language, excluding any target that is the same language as the source.',
+          items: {
+            type: 'object',
+            properties: {
+              language: {
+                type: 'string',
+                description: 'The target language, spelled exactly as it was requested.',
+              },
+              text: { type: 'string', description: 'The message translated into that language.' },
+              ...(explain
+                ? {
+                    gloss: {
+                      type: 'array',
+                      description:
+                        'Chunk-by-chunk pairing of your translation back to the original wording, in order. Omit entirely if the message is too long to gloss in 12 pairs.',
+                      items: GLOSS_SCHEMA,
+                    },
+                  }
+                : {}),
             },
-            text: { type: 'string', description: 'The message translated into that language.' },
+            required: ['language', 'text'],
           },
-          required: ['language', 'text'],
         },
       },
+      required: ['source_language', 'translations'],
     },
-    required: ['source_language', 'translations'],
-  },
-};
+  };
+}
 
 interface ToolInput {
   source_language?: unknown;
   translations?: unknown;
+}
+
+/**
+ * @param translated the translation the pairs belong to, used to put them back
+ *   into reading order. The model is asked for them in order but does not
+ *   reliably comply, and a gloss that jumps around is hard to follow.
+ */
+function parseGloss(value: unknown, translated: string): GlossPair[] {
+  if (!Array.isArray(value)) return [];
+  const pairs: GlossPair[] = [];
+
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') continue;
+    const { target, source } = entry as Record<string, unknown>;
+    if (typeof target !== 'string' || typeof source !== 'string') continue;
+    const cleanTarget = target.trim();
+    const cleanSource = source.trim();
+    if (!cleanTarget || !cleanSource) continue;
+    // A pair that says a chunk translates to itself teaches nothing.
+    if (cleanTarget.toLowerCase() === cleanSource.toLowerCase()) continue;
+    pairs.push({ target: cleanTarget, source: cleanSource });
+  }
+
+  // Sort by where each chunk appears in the translation. Anything that cannot
+  // be located keeps its original position relative to the rest.
+  const haystack = translated.toLowerCase();
+  return pairs
+    .map((pair, index) => {
+      const at = haystack.indexOf(pair.target.toLowerCase());
+      return { pair, index, at: at === -1 ? Number.MAX_SAFE_INTEGER : at };
+    })
+    .sort((a, b) => a.at - b.at || a.index - b.index)
+    .map(({ pair }) => pair);
 }
 
 /**
@@ -84,13 +165,19 @@ interface ToolInput {
  * Returns an empty `translations` array when the message is already in all of
  * the target languages, or when there is nothing translatable in it.
  */
-export async function translate(text: string, targets: string[]): Promise<TranslationResult> {
+export async function translate(
+  text: string,
+  targets: string[],
+  explain = false,
+): Promise<TranslationResult> {
+  const tool = buildTool(explain);
   const response = await client().messages.create({
     model: config.model,
-    max_tokens: 2048,
-    system: SYSTEM_PROMPT,
-    tools: [TOOL],
-    tool_choice: { type: 'tool', name: TOOL.name },
+    // A gloss roughly doubles the output, and long messages gloss long.
+    max_tokens: explain ? 4096 : 2048,
+    system: explain ? `${SYSTEM_PROMPT}\n${GLOSS_PROMPT}` : SYSTEM_PROMPT,
+    tools: [tool],
+    tool_choice: { type: 'tool', name: tool.name },
     messages: [
       {
         role: 'user',
@@ -110,10 +197,16 @@ export async function translate(text: string, targets: string[]): Promise<Transl
 
   for (const entry of raw) {
     if (!entry || typeof entry !== 'object') continue;
-    const { language, text: translated } = entry as Record<string, unknown>;
+    const { language, text: translated, gloss } = entry as Record<string, unknown>;
     if (typeof language !== 'string' || typeof translated !== 'string') continue;
     if (!translated.trim()) continue;
-    translations.push({ language, text: translated.trim() });
+
+    const pairs = parseGloss(gloss, translated);
+    translations.push({
+      language,
+      text: translated.trim(),
+      ...(pairs.length > 0 ? { gloss: pairs } : {}),
+    });
   }
 
   return {

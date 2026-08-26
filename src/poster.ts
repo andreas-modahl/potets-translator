@@ -1,6 +1,13 @@
-import { type Client, type Message, PermissionFlagsBits, type Webhook } from 'discord.js';
+import {
+  type Client,
+  type Message,
+  MessageFlags,
+  PermissionFlagsBits,
+  ThreadAutoArchiveDuration,
+  type Webhook,
+} from 'discord.js';
 import type { PostMode } from './config.js';
-import { labelFor } from './languages.js';
+import { flagFor } from './languages.js';
 import type { Translation } from './translate.js';
 
 const WEBHOOK_NAME = 'Potets Translator';
@@ -11,30 +18,66 @@ const MAX_TRACKED = 1000;
 /** Never let a translation ping anyone: the original message already did. */
 const NO_PINGS = { parse: [] as never[], repliedUser: false };
 
+/**
+ * Sends translations the way an "@silent" message goes out: no push notification
+ * and no unread badge bump. The message being translated already notified
+ * everyone, and notifying a second time for the same content is pure noise.
+ */
+const SILENT = MessageFlags.SuppressNotifications;
+
 interface PostedRef {
   postedId: string;
   viaWebhook: boolean;
   hostChannelId: string;
   threadId?: string;
+  /** Thread posts drop the language label, so edits have to render the same way. */
+  inThread?: boolean;
 }
 
 /**
  * Renders translations as a single message, one line per language, so a channel
  * with three targets does not get three separate posts per message.
+ *
+ * Kept deliberately bare: the reply already quotes the original above it, so a
+ * flag is enough to say which language this is. Spelling out the name, bolding
+ * it, or adding a separator only repeats what the reader can already see.
  */
-function render(translations: Translation[]): string {
+function render(translations: Translation[], withLabels = true): string {
   const body = translations
-    .map(({ language, text }) => {
-      const label = labelFor(language);
-      // Multi-line translations get the label on its own line so the text keeps
-      // its original shape.
-      return text.includes('\n') ? `**${label}**\n${text}` : `${label} — ${text}`;
+    .map(({ language, text, gloss }) => {
+      const flag = flagFor(language);
+      const head = !withLabels ? text : flag ? `${flag} ${text}` : `${language}: ${text}`;
+      if (!gloss?.length) return head;
+
+      // "-#" is Discord's subtext: smaller and dimmed, so the explanation sits
+      // under the translation without competing with it for attention.
+      const pairs = gloss
+        .map(({ target, source }) => `${target} = ${source}`.replace(/\s+/gu, ' '))
+        .join('  ·  ');
+      return `${head}\n-# ${pairs}`;
     })
     .join('\n');
 
   return body.length > DISCORD_MESSAGE_LIMIT
     ? `${body.slice(0, DISCORD_MESSAGE_LIMIT - 1)}…`
     : body;
+}
+
+/**
+ * Names the thread with just the target language's flag.
+ *
+ * Discord's thread box already previews the newest message inside the thread,
+ * so anything more in the name only repeats what is shown directly below it.
+ * A language with no flag falls back to its name, since a nameless thread is
+ * worse than a wordy one.
+ */
+function threadName(translations: Translation[]): string {
+  const name = translations
+    .map(({ language }) => flagFor(language) ?? language)
+    .join(' ');
+  if (!name) return 'Translation';
+  // Discord caps thread names at 100 characters.
+  return name.length > 100 ? `${name.slice(0, 99)}…` : name;
 }
 
 /** Discord rejects webhook usernames containing "discord" or "clyde". */
@@ -56,7 +99,28 @@ export class Poster {
 
   async post(message: Message, translations: Translation[], mode: PostMode): Promise<void> {
     if (translations.length === 0) return;
+
+    if (mode === 'thread') {
+      if (await this.postInThread(message, translations)) return;
+      // Threads are unavailable here — no permission, or already inside one.
+      // A reply is the closest thing that always works.
+    }
+
     const content = render(translations);
+
+    if (mode === 'plain' && message.channel.isSendable()) {
+      const sent = await message.channel.send({
+        content,
+        allowedMentions: NO_PINGS,
+        flags: SILENT,
+      });
+      this.track(message.id, {
+        postedId: sent.id,
+        viaWebhook: false,
+        hostChannelId: message.channelId,
+      });
+      return;
+    }
 
     if (mode === 'webhook') {
       const target = await this.resolveWebhook(message).catch(() => null);
@@ -66,6 +130,7 @@ export class Poster {
           username: safeUsername(message),
           avatarURL: message.author.displayAvatarURL(),
           allowedMentions: NO_PINGS,
+          flags: SILENT,
           ...(target.threadId ? { threadId: target.threadId } : {}),
         });
         this.track(message.id, {
@@ -80,7 +145,7 @@ export class Poster {
       // less pretty but always available.
     }
 
-    const sent = await message.reply({ content, allowedMentions: NO_PINGS });
+    const sent = await message.reply({ content, allowedMentions: NO_PINGS, flags: SILENT });
     this.track(message.id, {
       postedId: sent.id,
       viaWebhook: false,
@@ -92,7 +157,7 @@ export class Poster {
   async update(originalId: string, translations: Translation[]): Promise<boolean> {
     const ref = this.tracked.get(originalId);
     if (!ref) return false;
-    const content = render(translations);
+    const content = render(translations, !ref.inThread || translations.length > 1);
 
     if (ref.viaWebhook) {
       const webhook = this.webhooks.get(ref.hostChannelId);
@@ -112,21 +177,31 @@ export class Poster {
     return true;
   }
 
-  /** Removes a translation whose original message was deleted. */
+  /**
+   * Removes a translation whose original message was deleted.
+   *
+   * Failures are swallowed: in thread mode Discord deletes the thread along
+   * with the message it hangs off, so the translation is usually already gone
+   * by the time this runs.
+   */
   async remove(originalId: string): Promise<void> {
     const ref = this.tracked.get(originalId);
     if (!ref) return;
     this.tracked.delete(originalId);
 
-    if (ref.viaWebhook) {
-      const webhook = this.webhooks.get(ref.hostChannelId);
-      await webhook?.deleteMessage(ref.postedId, ref.threadId);
-      return;
-    }
+    try {
+      if (ref.viaWebhook) {
+        const webhook = this.webhooks.get(ref.hostChannelId);
+        await webhook?.deleteMessage(ref.postedId, ref.threadId);
+        return;
+      }
 
-    const channel = await this.client.channels.fetch(ref.threadId ?? ref.hostChannelId);
-    if (!channel?.isTextBased()) return;
-    await channel.messages.delete(ref.postedId);
+      const channel = await this.client.channels.fetch(ref.threadId ?? ref.hostChannelId);
+      if (!channel?.isTextBased()) return;
+      await channel.messages.delete(ref.postedId);
+    } catch {
+      // Already gone, which is the desired end state anyway.
+    }
   }
 
   knows(originalId: string): boolean {
@@ -139,6 +214,53 @@ export class Poster {
       const oldest = this.tracked.keys().next();
       if (oldest.done) break;
       this.tracked.delete(oldest.value);
+    }
+  }
+
+  /**
+   * Posts the translation into a thread hanging off the original message.
+   * Returns false when that is not possible, so the caller can fall back.
+   */
+  private async postInThread(message: Message, translations: Translation[]): Promise<boolean> {
+    // Threads exist only in guilds, and Discord has no nested threads, so a
+    // message already inside one cannot start another.
+    if (!message.inGuild() || message.channel.isThread()) return false;
+
+    const me = message.guild.members.me;
+    const permissions = me && message.channel.permissionsFor(me);
+    if (
+      !permissions?.has(PermissionFlagsBits.CreatePublicThreads) ||
+      !permissions.has(PermissionFlagsBits.SendMessagesInThreads)
+    ) {
+      return false;
+    }
+
+    try {
+      const thread =
+        message.thread ??
+        (await message.startThread({
+          name: threadName(translations),
+          // Translations get read straight away. Archiving them quickly keeps
+          // the active thread list clean and stays well clear of the per-guild
+          // active thread cap; an archived thread is still readable, and any
+          // reply in it brings it back.
+          autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
+        }));
+
+      // The thread name already names the language, so a single translation
+      // needs no flag on it. Several still do, to tell the lines apart.
+      const content = render(translations, translations.length > 1);
+      const sent = await thread.send({ content, allowedMentions: NO_PINGS, flags: SILENT });
+      this.track(message.id, {
+        postedId: sent.id,
+        viaWebhook: false,
+        hostChannelId: thread.id,
+        inThread: true,
+      });
+      return true;
+    } catch (error) {
+      console.error(`Could not post translation in a thread for ${message.id}:`, error);
+      return false;
     }
   }
 
