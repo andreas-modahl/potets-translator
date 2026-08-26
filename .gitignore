@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+
+# Runtime state: per-channel configuration written by the bot.
+data/
