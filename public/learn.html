@@ -211,26 +211,21 @@
       .topic-wrap {
         position: relative;
       }
-      /* The topic is a setting, not the work, so it is written on the page
-         rather than boxed: a dashed line to write on, and the card below
-         is the one thing with an edge and a shadow. */
+      /* The topic is a setting, not the work, so its field is sunk into the
+         page with a thin edge and no shadow; the card below is the one
+         thing that lifts off it. */
       .topic-wrap input {
-        padding: 0.5rem 0.5rem 0.45rem 8.4rem;
-        background: transparent;
-        border: 0;
-        border-bottom: 2px dashed var(--faint);
-        border-radius: 0;
+        padding: 0.5rem 0.75rem 0.5rem 8.6rem;
+        background: var(--sunk);
+        border: 1.5px solid var(--faint);
         box-shadow: none;
       }
       .topic-wrap input:focus {
         outline: none;
-        border-bottom-color: var(--accent);
+        border-color: var(--accent);
       }
       .topic-wrap input::placeholder {
         color: var(--faint);
-      }
-      .level {
-        left: 0;
       }
       /* The level: a painted tag stuck inside the field. */
       .level {
