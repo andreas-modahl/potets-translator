@@ -85,23 +85,13 @@
         }
       }
 
-      /* The top bar: the name on the left, the theme and login on the right. */
+      /* The top bar: the name on the left; the direction and the menu on
+         the right. */
       .topbar {
         display: flex;
         align-items: center;
         gap: 0.5rem;
         margin-bottom: 1.25rem;
-      }
-      /* Under it, the direction and the topic on one row, so the top bar
-         has room on a phone. */
-      .settings {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-      }
-      .settings form {
-        flex: 1 1 auto;
-        min-width: 0;
       }
       /* Which way round the lesson goes: the two balls with the swap between. */
       .direction {
@@ -109,6 +99,7 @@
         flex: 0 0 auto;
         align-items: center;
         gap: 0.15rem;
+        margin-right: 0.5rem;
       }
       .topbar .wordmark {
         margin-right: auto;
@@ -140,31 +131,88 @@
         font-family: var(--hand);
         font-size: 1.05rem;
       }
-      /* Login: a small painted button, or the learner's picture once in. */
-      .login {
-        margin-left: 0.5rem;
-        padding: 0.35rem 0.8rem;
-        font-size: 0.95rem;
-        white-space: nowrap;
+      /* The menu: a round button that is a burger, or the learner's picture
+         once signed in, and a small painted panel under it. */
+      .menu-wrap {
+        position: relative;
+        flex: 0 0 auto;
       }
-      .account {
-        margin-left: 0.5rem;
-        padding: 0;
+      .menu {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         width: 2.3rem;
         height: 2.3rem;
+        padding: 0;
+        font-size: 1.1rem;
+        line-height: 1;
         border-radius: 50%;
         overflow: hidden;
-        background: var(--panel);
       }
-      .account img {
-        display: block;
+      .menu img {
+        display: none;
         width: 100%;
         height: 100%;
         object-fit: cover;
       }
-      .account img:not([src]),
-      .account img[src=''] {
+      .menu.signed-in img {
+        display: block;
+      }
+      .menu.signed-in .burger {
         display: none;
+      }
+      .menu-panel {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        right: 0;
+        z-index: 5;
+        display: grid;
+        min-width: 11rem;
+        padding: 0.35rem;
+        background: var(--panel);
+        border: 2px solid var(--line);
+        border-radius: var(--wobble-small);
+        box-shadow: 3px 3px 0 var(--shadow);
+      }
+      .menu-panel[hidden] {
+        display: none;
+      }
+      .menu-panel button {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        width: 100%;
+        padding: 0.5rem 0.7rem;
+        font-size: 1rem;
+        text-align: left;
+        white-space: nowrap;
+        color: var(--ink);
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+      }
+      .menu-panel button[hidden] {
+        display: none;
+      }
+      .menu-panel button:hover {
+        background: var(--sunk);
+        transform: none;
+        box-shadow: none;
+      }
+      .menu-panel button:active {
+        transform: none;
+        box-shadow: none;
+      }
+      .menu-panel .icon {
+        width: 1.2rem;
+        text-align: center;
+        color: var(--muted);
+      }
+      .menu-panel .who {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 400;
+        color: var(--muted);
       }
       .flag {
         display: inline-flex;
@@ -215,11 +263,11 @@
         gap: 0.6rem;
       }
       .topic-wrap input {
-        flex: 1 1 0;
-        width: 0;
-        min-width: 4rem;
-        max-width: 15rem;
-        padding: 0.25rem 0.6rem;
+        flex: 0 1 auto;
+        width: 7.4rem;
+        min-width: 0;
+        height: 2.1rem;
+        padding: 0 0.6rem;
         font-family: var(--hand);
         font-size: 0.95rem;
         font-weight: 700;
@@ -243,7 +291,8 @@
         flex: 0 0 auto;
         transform: rotate(-1.5deg);
         width: 7.4rem;
-        padding: 0.25rem 0.6rem;
+        height: 2.1rem;
+        padding: 0 0.6rem;
         font-size: 0.95rem;
         letter-spacing: 0.01em;
         color: var(--ink);
@@ -912,14 +961,40 @@
            one on the right is the language you are learning. -->
       <div class="topbar">
         <span class="wordmark" aria-hidden="true">Languageballs<small class="build" id="build"></small></span>
-        <!-- Light or dark, by hand; otherwise the page follows the system. -->
-        <button type="button" id="theme" class="flip ghost" aria-label="Mørk modus" title="Mørk modus">☾</button>
-        <!-- Sign in with Google, so the chest follows the learner between
-             devices. Shown only when the server has a Google client. -->
-        <button type="button" id="login" class="login ghost" hidden>Logg inn</button>
-        <button type="button" id="account" class="account" hidden>
-          <img id="avatar" alt="" referrerpolicy="no-referrer" />
-        </button>
+        <!-- The direction: the ball on the left is the language you know, the
+             one on the right the one you are learning, and the flip between
+             them swaps the two. -->
+        <div class="direction">
+          <span class="flag" id="flag-from" aria-hidden="true"></span>
+          <button type="button" id="flip" class="flip ghost" aria-label="Bytt retning" title="Bytt retning">⇄</button>
+          <span class="flag" id="flag-to" aria-hidden="true"></span>
+          <span class="direction-label" id="direction-label"></span>
+        </div>
+        <!-- The menu: theme, and login or logout. Once signed in the button
+             wears the learner's picture. -->
+        <div class="menu-wrap">
+          <button type="button" id="menu" class="menu ghost" aria-label="Meny" title="Meny" aria-haspopup="true" aria-expanded="false" aria-controls="menu-panel">
+            <span class="burger" aria-hidden="true">☰</span>
+            <img id="avatar" alt="" referrerpolicy="no-referrer" />
+          </button>
+          <div class="menu-panel" id="menu-panel" role="menu" hidden>
+            <!-- Light or dark, by hand; otherwise the page follows the system. -->
+            <button type="button" id="theme" role="menuitem">
+              <span class="icon" id="theme-icon" aria-hidden="true">☾</span>
+              <span id="theme-label">Mørk modus</span>
+            </button>
+            <!-- Sign in with Google, so the chest follows the learner between
+                 devices. Shown only when the server has a Google client. -->
+            <button type="button" id="login" role="menuitem" hidden>
+              <span class="icon" aria-hidden="true">→</span>
+              <span id="login-label">Logg inn</span>
+            </button>
+            <button type="button" id="account" role="menuitem" hidden>
+              <span class="icon" aria-hidden="true">←</span>
+              <span id="account-label">Logg ut</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Norwayball and Turkeyball: the flags as countryballs, drawn rather
@@ -952,16 +1027,6 @@
         </symbol>
       </svg>
 
-      <!-- The direction and the topic share a row: the ball on the left is
-           the language you know, the one on the right the one you are
-           learning, and the flip between them swaps the two. -->
-      <div class="settings">
-        <div class="direction">
-          <span class="flag" id="flag-from" aria-hidden="true"></span>
-          <button type="button" id="flip" class="flip ghost" aria-label="Bytt retning" title="Bytt retning">⇄</button>
-          <span class="flag" id="flag-to" aria-hidden="true"></span>
-          <span class="direction-label" id="direction-label"></span>
-        </div>
       <form id="form">
         <div class="topic-wrap">
           <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
@@ -974,7 +1039,6 @@
           <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" />
         </div>
       </form>
-      </div>
 
       <p id="status" class="status" hidden></p>
 
@@ -1142,8 +1206,12 @@
       const directionLabel = document.querySelector('#direction-label');
       const flipButton = document.querySelector('#flip');
       const loginButton = document.querySelector('#login');
+      const loginLabel = document.querySelector('#login-label');
       const accountButton = document.querySelector('#account');
+      const accountLabel = document.querySelector('#account-label');
       const avatar = document.querySelector('#avatar');
+      const menuButton = document.querySelector('#menu');
+      const menuPanel = document.querySelector('#menu-panel');
       /** The logged-in learner, or null. Set before storage is touched. */
       let account = null;
 
@@ -1198,6 +1266,7 @@
           fullChests: (n) => (n === 1 ? '1 full kiste' : `${n} fulle kister`),
           login: 'Logg inn',
           logout: 'Logg ut',
+          menu: 'Meny',
           loginFailed: 'Innloggingen gikk ikke. Prøv igjen.',
           inBank: 'Ligger i ordbanken',
           tally: 'Ganger skrevet riktig uten hjelp',
@@ -1252,6 +1321,7 @@
           fullChests: (n) => `${n} dolu sandık`,
           login: 'Giriş yap',
           logout: 'Çıkış yap',
+          menu: 'Menü',
           loginFailed: 'Giriş yapılamadı. Tekrar dene.',
           inBank: 'Sandıkta var',
           tally: 'Yardımsız doğru yazma sayısı',
@@ -2294,10 +2364,10 @@
         directionLabel.textContent = D.label;
         flipButton.title = D.flip;
         renderTheme();
-        loginButton.textContent = D.login;
-        loginButton.title = D.login;
-        accountButton.title = account ? `${account.name} · ${D.logout}` : D.logout;
-        accountButton.setAttribute('aria-label', accountButton.title);
+        loginLabel.textContent = D.login;
+        renderAccount();
+        menuButton.title = D.menu;
+        menuButton.setAttribute('aria-label', D.menu);
         flipButton.setAttribute('aria-label', D.flip);
         levelButton.title = D.switchLevel;
         topicField.placeholder = D.topicPlaceholder;
@@ -2393,6 +2463,8 @@
 
       const THEME_KEY = 'potets.tema';
       const themeButton = document.querySelector('#theme');
+      const themeIcon = document.querySelector('#theme-icon');
+      const themeLabel = document.querySelector('#theme-label');
       const systemDark = matchMedia('(prefers-color-scheme: dark)');
 
       function currentTheme() {
@@ -2401,13 +2473,11 @@
         return systemDark.matches ? 'dark' : 'light';
       }
 
-      /** The button shows the theme it switches to: a moon by day, a sun by night. */
+      /** The entry names the theme it switches to: a moon by day, a sun by night. */
       function renderTheme() {
         const dark = currentTheme() === 'dark';
-        themeButton.textContent = dark ? '☀' : '☾';
-        const label = dark ? D.themeLight : D.themeDark;
-        themeButton.title = label;
-        themeButton.setAttribute('aria-label', label);
+        themeIcon.textContent = dark ? '☀' : '☾';
+        themeLabel.textContent = dark ? D.themeLight : D.themeDark;
       }
 
       themeButton.addEventListener('click', () => {
@@ -2415,6 +2485,7 @@
         document.documentElement.dataset.theme = next;
         remember(THEME_KEY, next);
         renderTheme();
+        closeMenu();
       });
       systemDark.addEventListener('change', renderTheme);
 
@@ -2543,8 +2614,19 @@
         loginButton.hidden = Boolean(user);
         accountButton.hidden = !user;
         avatar.src = user?.picture ?? '';
-        accountButton.title = user ? `${user.name} · ${D.logout}` : D.logout;
-        accountButton.setAttribute('aria-label', accountButton.title);
+        menuButton.classList.toggle('signed-in', Boolean(user?.picture));
+        renderAccount();
+      }
+
+      /** The logout entry names who is signed in. */
+      function renderAccount() {
+        accountLabel.replaceChildren(D.logout);
+        if (account?.name) {
+          const who = document.createElement('span');
+          who.className = 'who';
+          who.textContent = account.name;
+          accountLabel.append(who);
+        }
       }
 
       loginButton.addEventListener('click', () => {
@@ -2552,8 +2634,29 @@
       });
 
       accountButton.addEventListener('click', async () => {
+        closeMenu();
         await fetch('/auth/logout', { method: 'POST' }).catch(() => {});
         showAccount(null);
+      });
+
+      /* The menu opens on its button and closes on a choice, a click
+         elsewhere, or Escape. */
+      function openMenu(open) {
+        menuPanel.hidden = !open;
+        menuButton.setAttribute('aria-expanded', String(open));
+      }
+      function closeMenu() {
+        openMenu(false);
+      }
+      menuButton.addEventListener('click', () => openMenu(menuPanel.hidden));
+      document.addEventListener('click', (event) => {
+        if (!menuPanel.hidden && !event.target.closest('.menu-wrap')) closeMenu();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !menuPanel.hidden) {
+          closeMenu();
+          menuButton.focus();
+        }
       });
 
       fetch('/api/me')
