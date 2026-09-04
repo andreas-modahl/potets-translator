@@ -24,6 +24,7 @@
   --accent-soft: #f6d9c4;
   --mark: #f3d98a;
   --bad: #a83a2a;
+  --good: #3f8a4b;
   --teal: #2f6f73;
   --ochre: #d9a441;
   /* Colours the drawings use, here so the dark set can swap them too. */
@@ -64,6 +65,7 @@
     --accent-soft: #55352a;
     --mark: #7a6224;
     --bad: #f08a7a;
+    --good: #7fc98a;
     --teal: #74b8bc;
     --ochre: #e6b85a;
     --grain: 0.25;
@@ -95,6 +97,7 @@
   --accent-soft: #55352a;
   --mark: #7a6224;
   --bad: #f08a7a;
+  --good: #7fc98a;
   --teal: #74b8bc;
   --ochre: #e6b85a;
   --grain: 0.25;

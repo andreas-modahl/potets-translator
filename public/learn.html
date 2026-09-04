@@ -447,8 +447,16 @@
       .chunk .tr:focus {
         border-bottom-color: var(--teal);
       }
+      /* While typing, the line says how it is going: green as long as what
+         is there is a right start of the word, red once it is not. */
       .chunk.filled .tr {
         border-bottom-color: var(--bad);
+      }
+      .chunk.filled.ontrack .tr {
+        border-bottom-color: var(--good);
+      }
+      .chunk.filled.ontrack.correct .tr {
+        border-bottom-color: var(--accent);
       }
       .chunk.correct .tr {
         border-bottom-color: var(--accent);
@@ -1765,6 +1773,7 @@
         const wasSolved = box.classList.contains('correct');
         box.classList.toggle('correct', sameWord(typed, chunk.target));
         box.classList.toggle('filled', typed.trim().length > 0);
+        box.classList.toggle('ontrack', fold(chunk.target).startsWith(fold(typed)));
         const solvedNow = box.classList.contains('correct');
         if (solvedNow === wasSolved) return;
 
