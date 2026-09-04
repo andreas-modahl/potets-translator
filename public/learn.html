@@ -19,52 +19,36 @@
       /* The small Norwegian word is a fiddly target on a touch screen, so a
          proper button gives the same one-letter hint for the word in focus.
          On a keyboard it doubles as the place the shortcut is written down. */
-      /* Tucked behind a ⋯ in the corner, so the card is only the sentence
-         until something more is asked for. */
-      #lesson {
-        position: relative;
-      }
-      .more {
-        position: absolute;
-        top: 0.5rem;
-        right: 0.5rem;
-        width: 2rem;
-        height: 2rem;
-        padding: 0;
-        font-size: 1.1rem;
-        line-height: 1;
-        border-color: transparent;
-      }
-      .more[aria-expanded='true'] {
-        color: var(--ink);
-        background: var(--sunk);
-      }
       .hint-row {
         margin-top: 1rem;
       }
       .hint-row button {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.6rem;
         padding: 0.5rem 1rem;
       }
-      .hint-row kbd {
+      @media (hover: none), (pointer: coarse) {
+        .hint-row button {
+          width: 100%;
+          padding: 0.7rem 1rem;
+        }
+      }
+      /* The one keyboard shortcut, written beside the speaker it belongs with. */
+      .key-help {
+        font-size: 0.8rem;
+        color: var(--faint);
+        white-space: nowrap;
+      }
+      .key-help kbd {
         padding: 0.05rem 0.4rem;
         font: inherit;
         font-size: 0.72rem;
-        color: var(--faint);
+        color: var(--muted);
         background: var(--sunk);
         border: 1px solid var(--line);
         border-bottom-width: 2px;
         border-radius: 4px;
       }
       @media (hover: none), (pointer: coarse) {
-        .hint-row button {
-          width: 100%;
-          justify-content: center;
-          padding: 0.7rem 1rem;
-        }
-        .hint-row kbd {
+        .key-help {
           display: none;
         }
       }
@@ -154,8 +138,6 @@
         align-items: flex-end;
         gap: 0.75rem 0.6rem;
         padding: 0.5rem 0;
-        /* Room for the ⋯ in the corner. */
-        margin-right: 2rem;
       }
       .chunk {
         display: grid;
@@ -454,23 +436,19 @@
 
       <div class="natural" id="natural-row" hidden>
         <p id="natural" lang="nb"></p>
-        <button type="button" id="speak" class="speak ghost" aria-label="Les opp på tyrkisk" title="Les opp på tyrkisk">
+        <button type="button" id="speak" class="speak ghost" aria-label="Les opp setningen på tyrkisk" title="Les opp setningen på tyrkisk">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
             <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" />
             <path d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
           </svg>
         </button>
+        <span class="key-help"><kbd>|</kbd> leser ordet du står i</span>
       </div>
 
       <article id="lesson" class="card" hidden>
-        <button type="button" id="more" class="more ghost" aria-label="Mer" aria-expanded="false" aria-controls="more-panel">
-          ⋯
-        </button>
         <div class="comparator" id="comparator"></div>
-        <div class="hint-row" id="more-panel" hidden>
-          <button type="button" id="hint" class="ghost" title="Tasten |">
-            Hint: én bokstav <kbd>|</kbd>
-          </button>
+        <div class="hint-row">
+          <button type="button" id="hint" class="ghost">Hint: én bokstav</button>
         </div>
         <div id="detail"></div>
       </article>
@@ -525,14 +503,6 @@
       const lessonCard = document.querySelector('#lesson');
       const comparator = document.querySelector('#comparator');
       const hintButton = document.querySelector('#hint');
-      const moreButton = document.querySelector('#more');
-      const morePanel = document.querySelector('#more-panel');
-
-      moreButton.addEventListener('click', () => {
-        const open = morePanel.hidden;
-        morePanel.hidden = !open;
-        moreButton.setAttribute('aria-expanded', String(open));
-      });
       const naturalRow = document.querySelector('#natural-row');
       const naturalLine = document.querySelector('#natural');
       const speakButton = document.querySelector('#speak');
@@ -654,7 +624,7 @@
         while (
           right < typed.length &&
           right < answer.length &&
-          typed[right].toLocaleLowerCase('tr') === answer[right].toLocaleLowerCase('tr')
+          fold(typed[right]) === fold(answer[right])
         ) {
           right += 1;
         }
@@ -700,10 +670,22 @@
       }
 
 
-      /** Turkish spelling compared loosely: case and stray spaces do not count,
-          but ı/i and the other letters do — that is the thing being learned. */
+      /** Turkish letters folded to their plain Latin base, so ş and s, ı and
+          i, ğ and g, ö and o, ü and u, ç and c all count the same. The point
+          is the word and its order, not fighting the keyboard. */
+      function fold(text) {
+        return text
+          .trim()
+          .toLocaleLowerCase('tr')
+          .replace(/ı/g, 'i')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[’'`´]/g, '')
+          .replace(/\s+/g, ' ');
+      }
+
       function sameWord(typed, answer) {
-        return typed.trim().toLocaleLowerCase('tr') === answer.trim().toLocaleLowerCase('tr');
+        return fold(typed) === fold(answer);
       }
 
       function checkField(field, chunk) {
@@ -912,22 +894,12 @@
       chest.addEventListener('animationend', () => chest.classList.remove('hop'));
 
       document.addEventListener('keydown', (event) => {
-        // The | key does three things, none of which a Turkish word needs, so
-        // it can be swallowed even while the caret sits in a blank:
-        //   |          one letter of the word in focus
-        //   Ctrl + |   read the word in focus aloud
-        //   Shift + |  read the whole sentence aloud (§ on a Nordic keyboard)
-        const pipe = event.key === '|' || event.key === '§';
-        if (!pipe || event.altKey || event.metaKey || lessonCard.hidden) return;
+        // The | key reads the word in focus aloud. No Turkish word needs it,
+        // so it can be swallowed even while the caret sits in a blank.
+        if (event.key !== '|' || event.ctrlKey || event.altKey || event.metaKey || lessonCard.hidden) return;
         event.preventDefault();
-        if (event.ctrlKey) {
-          const word = current.chunks[selected]?.turkish;
-          if (word) speak(word);
-        } else if (event.shiftKey || event.key === '§') {
-          speak(current.turkish);
-        } else {
-          hintButton.click();
-        }
+        const word = current.chunks[selected]?.turkish;
+        if (word) speak(word);
       });
 
       function renderLesson(result) {
