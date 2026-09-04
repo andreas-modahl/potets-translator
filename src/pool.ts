@@ -118,7 +118,14 @@ export class LessonPool {
     }
     if (fresh.length === 0) return undefined;
     const row = fresh[Math.floor(Math.random() * fresh.length)]!;
-    return JSON.parse(row.lesson) as Lesson;
+    const lesson = JSON.parse(row.lesson) as Lesson;
+    // A lesson shelved before word classes were asked for is short of what
+    // the page shows now; it leaves the shelf, and the caller asks afresh.
+    if (lesson.chunks.some((chunk) => !chunk.pos)) {
+      this.db.prepare('DELETE FROM lessons WHERE target = ? AND learning = ?').run(row.target, request.learning);
+      return undefined;
+    }
+    return lesson;
   }
 
   /**

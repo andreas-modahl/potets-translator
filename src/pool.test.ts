@@ -8,7 +8,7 @@ function sample(target: string, chunks = 1): Lesson {
     learning: 'tr',
     target,
     native: 'Hunden min er søt.',
-    chunks: Array.from({ length: chunks }, (_, i) => ({ target: `p${i}`, native: `n${i}` })),
+    chunks: Array.from({ length: chunks }, (_, i) => ({ target: `p${i}`, native: `n${i}`, pos: 'noun' })),
   };
 }
 
@@ -74,6 +74,17 @@ describe('LessonPool', () => {
     assert.equal(pool.pick({ ...ask, review: ['köpek'] })?.target, 'Köpeğim sevimli.');
     assert.equal(pool.pick({ ...ask, review: ['KEDİ'] })?.target, 'Kedi uyuyor.');
     assert.equal(pool.pick({ ...ask, review: ['araba'] }), undefined, 'nothing on the shelf has it');
+    pool.close();
+  });
+
+  it('drops a lesson shelved before word classes were asked for', () => {
+    const pool = new LessonPool(':memory:');
+    const stale = sample('Kedi uyuyor.');
+    stale.chunks = [{ target: 'Kedi', native: 'katten' }];
+    pool.store(ask, stale);
+    assert.equal(pool.count(ask), 1);
+    assert.equal(pool.pick(ask), undefined, 'not handed out');
+    assert.equal(pool.count(ask), 0, 'and gone from the shelf');
     pool.close();
   });
 

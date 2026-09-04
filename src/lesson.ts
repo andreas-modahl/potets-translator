@@ -19,11 +19,41 @@ export interface Morpheme {
   means: string;
 }
 
+/** The word class of a piece's main word, named the same way in every direction. */
+export type WordClass =
+  | 'noun'
+  | 'verb'
+  | 'adjective'
+  | 'adverb'
+  | 'pronoun'
+  | 'adposition'
+  | 'conjunction'
+  | 'numeral'
+  | 'determiner'
+  | 'interjection'
+  | 'particle';
+
+export const WORD_CLASSES: readonly WordClass[] = [
+  'noun',
+  'verb',
+  'adjective',
+  'adverb',
+  'pronoun',
+  'adposition',
+  'conjunction',
+  'numeral',
+  'determiner',
+  'interjection',
+  'particle',
+];
+
 export interface LessonChunk {
   /** A slice of the target sentence, exactly as it is spelled there. */
   target: string;
   /** What this piece means on its own, in the learner's language. */
   native: string;
+  /** The word class of the piece's main word. */
+  pos?: WordClass;
   /**
    * A grammar note in the learner's language, present only when the piece has
    * something to teach: a case ending, a tense, a word order that surprises.
@@ -142,6 +172,10 @@ For each piece:
 - "morphemes" splits the ${d.target} word into its root and each ending, in
   the order they are spelled, with what each one does in ${d.native}.
   ${d.morphology}
+- "pos" is the word class of the piece's main word: noun, verb, adjective,
+  adverb, pronoun, adposition, conjunction, numeral, determiner, interjection
+  or particle. For a word plus its postposition or particle, give the class of
+  the word.
 - "note" is one sentence of ${d.native} explaining the grammar, and only when
   there is something real to say: ${d.notes}. Leave it out entirely for a plain
   word. A note that only repeats the translation is worse than no note.
@@ -185,6 +219,11 @@ function tool(learning: Learning): Anthropic.Tool {
                 description: `A contiguous slice of the ${d.target} sentence, spelled exactly as it is there.`,
               },
               native: { type: 'string', description: `What this piece contributes, in ${d.native}.` },
+              pos: {
+                type: 'string',
+                enum: [...WORD_CLASSES],
+                description: "The word class of the piece's main word.",
+              },
               note: {
                 type: 'string',
                 description: `One sentence of grammar explanation in ${d.native}. Omit when the piece has nothing to teach.`,
@@ -209,7 +248,7 @@ function tool(learning: Learning): Anthropic.Tool {
                 },
               },
             },
-            required: ['target', 'native'],
+            required: ['target', 'native', 'pos'],
           },
         },
       },
@@ -360,8 +399,13 @@ function devoice(word: string): string {
 interface RawChunk {
   target: string;
   native: string;
+  pos?: WordClass;
   note?: string;
   morphemes?: unknown;
+}
+
+function wordClass(value: unknown): WordClass | undefined {
+  return WORD_CLASSES.find((candidate) => candidate === value);
 }
 
 /** Keeps the breakdown entries that have both sides filled in. */
@@ -371,12 +415,14 @@ function parseRawChunks(value: unknown): RawChunk[] {
   const chunks: RawChunk[] = [];
   for (const entry of value) {
     if (!entry || typeof entry !== 'object') continue;
-    const { target, native, note, morphemes } = entry as Record<string, unknown>;
+    const { target, native, pos, note, morphemes } = entry as Record<string, unknown>;
     if (typeof target !== 'string' || typeof native !== 'string') continue;
     if (!target.trim() || !native.trim()) continue;
+    const kind = wordClass(pos);
     chunks.push({
       target: target.trim(),
       native: native.trim(),
+      ...(kind ? { pos: kind } : {}),
       ...(typeof note === 'string' && note.trim() ? { note: note.trim() } : {}),
       morphemes,
     });
@@ -417,6 +463,7 @@ function alignChunks(chunks: RawChunk[], sentence: string): LessonChunk[] {
     return {
       target: exact,
       native: chunk.native,
+      ...(chunk.pos ? { pos: chunk.pos } : {}),
       ...(chunk.note ? { note: chunk.note } : {}),
       ...(morphemes ? { morphemes } : {}),
     };

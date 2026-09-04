@@ -314,6 +314,35 @@
         justify-content: space-between;
         gap: 0.3rem;
       }
+      /* A tag that is a checkbox: the same paint, a small box that ticks. */
+      .level.toggle {
+        width: auto;
+        justify-content: flex-start;
+        transform: rotate(1deg);
+      }
+      .level.toggle:hover {
+        transform: rotate(0deg);
+      }
+      .level.toggle .box {
+        flex: 0 0 auto;
+        width: 0.85rem;
+        height: 0.85rem;
+        border: 2px solid var(--line);
+        border-radius: 3px;
+        background: var(--panel);
+      }
+      .level.toggle[aria-pressed='true'] .box {
+        background: var(--accent);
+        box-shadow: inset 0 0 0 2px var(--panel);
+      }
+      /* The word class, in the caption row above the blank, in outline. */
+      .chunk .parts .pos {
+        padding: 0.05rem 0.35rem;
+        border: 1px solid var(--faint);
+        border-radius: 4px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
       .level .cycle {
         flex: 0 0 auto;
         opacity: 0.6;
@@ -1112,6 +1141,11 @@
             </svg>
           </button>
           <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" />
+          <!-- Whether each blank says what kind of word it wants. -->
+          <button type="button" id="classes" class="level toggle" aria-pressed="false" title="Vis om ordet er substantiv, verb, adjektiv …">
+            <span class="box" aria-hidden="true"></span>
+            <span id="classes-name">Ordklasser</span>
+          </button>
         </div>
       </form>
 
@@ -1199,6 +1233,8 @@
       const levelName = document.querySelector('#level-name');
       const bankEmpty = document.querySelector('#bank-empty');
       const topicField = document.querySelector('#topic');
+      const classesButton = document.querySelector('#classes');
+      const classesName = document.querySelector('#classes-name');
       const submitButton = document.querySelector('#submit');
       const backButton = document.querySelector('#back');
       const stepLabel = document.querySelector('#step-label');
@@ -1312,6 +1348,21 @@
           ],
           levelLabel: 'Nivå',
           switchLevel: 'Bytt nivå',
+          wordClasses: 'Ordklasser',
+          wordClassesHelp: 'Vis om ordet er substantiv, verb, adjektiv …',
+          pos: {
+            noun: 'substantiv',
+            verb: 'verb',
+            adjective: 'adjektiv',
+            adverb: 'adverb',
+            pronoun: 'pronomen',
+            adposition: 'postposisjon',
+            conjunction: 'konjunksjon',
+            numeral: 'tallord',
+            determiner: 'determinativ',
+            interjection: 'interjeksjon',
+            particle: 'partikkel',
+          },
           topic: 'Tema',
           topicPlaceholder: 'Tema: på kafé, familie, å reise…',
           defaultTopic: 'hunder',
@@ -1367,6 +1418,21 @@
           ],
           levelLabel: 'Seviye',
           switchLevel: 'Seviyeyi değiştir',
+          wordClasses: 'Sözcük türleri',
+          wordClassesHelp: 'Kelimenin isim, fiil, sıfat … olduğunu göster',
+          pos: {
+            noun: 'isim',
+            verb: 'fiil',
+            adjective: 'sıfat',
+            adverb: 'zarf',
+            pronoun: 'zamir',
+            adposition: 'edat',
+            conjunction: 'bağlaç',
+            numeral: 'sayı',
+            determiner: 'belirleyici',
+            interjection: 'ünlem',
+            particle: 'edat',
+          },
           topic: 'Konu',
           topicPlaceholder: 'Konu: kafede, aile, seyahat…',
           defaultTopic: 'köpekler',
@@ -1678,7 +1744,7 @@
         // is the real spelling: ş where s was typed, ø where o was.
         if (solvedNow && typed.trim() !== chunk.target) field.textContent = chunk.target;
         if (solvedNow) paintWord(box, field, chunk);
-        else box.querySelector('.parts').replaceChildren();
+        else renderCaption(box, chunk, []);
 
         // Earned outright — no hint, not shown — so it goes in the bank, and
         // the list jumps to the chest it landed in.
@@ -1735,13 +1801,56 @@
         return joined.toLocaleLowerCase(D.target) === chunk.target.toLocaleLowerCase(D.target) ? parts : null;
       }
 
+      /* Word classes ------------------------------------------------------
+         Off by default; on, every blank says what kind of word it wants,
+         in the caption row above it, before the painted pieces. */
+
+      const CLASSES_KEY = 'potets.ordklasser';
+      let showClasses = recall(CLASSES_KEY) === 'on';
+
+      function renderClassesToggle() {
+        classesButton.setAttribute('aria-pressed', String(showClasses));
+      }
+
+      classesButton.addEventListener('click', () => {
+        showClasses = !showClasses;
+        remember(CLASSES_KEY, showClasses ? 'on' : 'off');
+        renderClassesToggle();
+        refreshCaptions();
+      });
+
+      /** The caption row above a blank: the word class, then whatever tags follow. */
+      function renderCaption(box, chunk, tags) {
+        const caption = box.querySelector('.parts');
+        caption.replaceChildren();
+        if (showClasses && chunk.pos && D.pos[chunk.pos]) {
+          const kind = document.createElement('span');
+          kind.className = 'pos';
+          kind.lang = D.native;
+          kind.textContent = D.pos[chunk.pos];
+          caption.append(kind);
+        }
+        caption.append(...tags);
+      }
+
+      /** Redraws every caption, for when the word-class setting changes. */
+      function refreshCaptions() {
+        for (const [index, box] of [...comparator.children].entries()) {
+          const chunk = current.chunks[index];
+          if (!chunk || !box.querySelector('.parts')) continue;
+          if (isSolved(index)) paintWord(box, box.querySelector('.tr'), chunk);
+          else renderCaption(box, chunk, []);
+        }
+      }
+
       /** Paints a solved word piece by piece and writes each piece's meaning
           in the same tint above the blank. */
       function paintWord(box, field, chunk) {
-        const caption = box.querySelector('.parts');
         const parts = piecesOf(chunk);
-        caption.replaceChildren();
-        if (!parts) return;
+        if (!parts) {
+          renderCaption(box, chunk, []);
+          return;
+        }
         let at = 0;
         const painted = parts.map((part, index) => {
           const span = document.createElement('span');
@@ -1752,8 +1861,10 @@
           return span;
         });
         field.replaceChildren(...painted);
-        caption.replaceChildren(
-          ...parts.map((part, index) => {
+        renderCaption(
+          box,
+          chunk,
+          parts.map((part, index) => {
             const tag = document.createElement('span');
             tag.className = 'm';
             tag.dataset.m = String(index % 4);
@@ -1886,6 +1997,7 @@
         parts.className = 'parts';
 
         box.append(parts, field, under);
+        renderCaption(box, chunk, []);
         return box;
       }
 
@@ -2516,6 +2628,10 @@
         menuButton.setAttribute('aria-label', D.menu);
         flipButton.setAttribute('aria-label', D.flip);
         levelButton.title = D.switchLevel;
+        classesName.textContent = D.wordClasses;
+        classesButton.title = D.wordClassesHelp;
+        classesButton.setAttribute('aria-label', D.wordClasses);
+        renderClassesToggle();
         topicField.placeholder = D.topicPlaceholder;
         topicField.setAttribute('aria-label', D.topic);
         // Start on the default theme, and carry it over when flipping, but
