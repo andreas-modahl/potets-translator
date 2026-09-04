@@ -474,8 +474,74 @@
       }
       #bank header {
         display: flex;
-        gap: 0.75rem;
+        gap: 1rem;
         align-items: center;
+      }
+      /* The bar: an ink-edged trough with a painted fill, in 25 steps. */
+      .progress {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: grid;
+        gap: 0.3rem;
+      }
+      .progress-bar {
+        position: relative;
+        height: 1.1rem;
+        background: var(--panel);
+        border: 2px solid var(--line);
+        border-radius: var(--wobble-small);
+        box-shadow: 3px 3px 0 var(--line);
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        width: 0;
+        background: var(--ochre);
+        border-right: 2px solid var(--line);
+        transition: width 0.5s cubic-bezier(0.2, 1.2, 0.4, 1);
+      }
+      /* Tick marks every five words. */
+      .progress-bar::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent 0,
+          transparent calc(20% - 1px),
+          var(--faint) calc(20% - 1px),
+          var(--faint) 20%
+        );
+        opacity: 0.5;
+        pointer-events: none;
+      }
+      .progress-text {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        font-family: var(--hand);
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+      #bank h2 {
+        flex: 0 0 auto;
+      }
+      .group {
+        flex: 0 0 auto;
+        width: auto;
+        padding: 0.35rem 0.6rem;
+        font-family: var(--hand);
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      @media (max-width: 40rem) {
+        #bank header {
+          flex-wrap: wrap;
+        }
+        .group {
+          flex: 1 0 100%;
+        }
       }
       #bank h2 {
         --chest-line: var(--line);
@@ -737,6 +803,17 @@
             <span class="sr-only">Ordbank</span>
             <span class="bank-count" id="bank-count"></span>
           </h2>
+          <!-- Progress towards the next 25 words. Each full 25 is a chest
+               filled, and the bar starts over. -->
+          <div class="progress" id="progress">
+            <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="25" aria-valuenow="0" id="progress-bar">
+              <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-text" id="progress-text"></div>
+          </div>
+          <!-- Which chest's words are listed below. Only shown once there is
+               more than one chest to choose from. -->
+          <select id="group" class="group" aria-label="Kiste" hidden></select>
         </header>
         <ul class="bank-list" id="bank-list"></ul>
       </section>
@@ -764,6 +841,14 @@
       const bank = document.querySelector('#bank');
       const bankList = document.querySelector('#bank-list');
       const bankCount = document.querySelector('#bank-count');
+      const progressBar = document.querySelector('#progress-bar');
+      const progressFill = document.querySelector('#progress-fill');
+      const progressText = document.querySelector('#progress-text');
+      const groupSelect = document.querySelector('#group');
+      /** Which chest is listed; -1 means the one being filled. */
+      let viewGroup = -1;
+      /** Words per chest: the bar fills to here and starts over. */
+      const CHEST_SIZE = 25;
       const chest = document.querySelector('#chest');
       const fireworksBox = document.querySelector('#fireworks');
       const flagFrom = document.querySelector('#flag-from');
@@ -805,6 +890,8 @@
           fresh: 'Ny setning',
           browse: 'Bla i setninger',
           bank: 'Ordbank',
+          chest: 'Kiste',
+          chestsFull: (n) => (n === 1 ? '1 kiste full' : `${n} kister fulle`),
           inBank: 'Ligger i ordbanken',
           tally: 'Ganger skrevet riktig uten hjelp',
           remove: (word) => `Fjern ${word}`,
@@ -841,6 +928,8 @@
           fresh: 'Yeni cümle',
           browse: 'Cümleler arasında gez',
           bank: 'Kelime sandığı',
+          chest: 'Sandık',
+          chestsFull: (n) => `${n} sandık dolu`,
           inBank: 'Sandıkta var',
           tally: 'Yardımsız doğru yazma sayısı',
           remove: (word) => `${word} kelimesini kaldır`,
@@ -1060,8 +1149,12 @@
         // is the real spelling: ş where s was typed, ø where o was.
         if (solvedNow && typed.trim() !== chunk.target) field.textContent = chunk.target;
 
-        // Earned outright — no hint, not shown — so it goes in the bank.
-        if (solvedNow && !box.classList.contains('helped')) bankEarned(chunk);
+        // Earned outright — no hint, not shown — so it goes in the bank, and
+        // the list jumps to the chest it landed in.
+        if (solvedNow && !box.classList.contains('helped')) {
+          viewGroup = -1;
+          bankEarned(chunk);
+        }
         // Getting it right unmasks the word in the panel underneath.
         if (current.chunks[selected] === chunk) renderDetail(chunk);
         // The last word in opens up the whole sentence.
@@ -1248,7 +1341,8 @@
             ...(chunk.note ? { note: chunk.note } : {}),
           },
         ]);
-        fireworks(chunk);
+        // A chest filled to 25 gets a bigger show.
+        fireworks(chunk, (words.length + 1) % CHEST_SIZE === 0 ? 3 : 1);
       }
 
       /* Fireworks -------------------------------------------------------- */
@@ -1257,8 +1351,8 @@
 
       /** A burst of emoji and little balls out of the chest; more pieces for
           a longer word. Every third piece is the ball of the language learned. */
-      function fireworks(chunk) {
-        const count = 10 + Math.min(10, (chunk.morphemes?.length ?? 0) * 3);
+      function fireworks(chunk, scale = 1) {
+        const count = (10 + Math.min(10, (chunk.morphemes?.length ?? 0) * 3)) * scale;
         for (let at = 0; at < count; at += 1) {
           const spark = document.createElement('span');
           if (at % 3 === 0) spark.append(flag(D.flagTo));
@@ -1441,13 +1535,59 @@
 
       /* Word bank -------------------------------------------------------- */
 
+      /** How far into the current chest of 25 the bank is, and how many
+          chests are already full. A bank of exactly 25 shows as a full bar,
+          not an empty one. */
+      function renderProgress(total) {
+        const full = total > 0 && total % CHEST_SIZE === 0 ? total / CHEST_SIZE - 1 : Math.floor(total / CHEST_SIZE);
+        const inChest = total - full * CHEST_SIZE;
+        progressFill.style.width = `${(inChest / CHEST_SIZE) * 100}%`;
+        progressBar.setAttribute('aria-valuenow', String(inChest));
+        progressText.replaceChildren();
+        const count = document.createElement('span');
+        count.textContent = `${inChest} / ${CHEST_SIZE}`;
+        const chests = document.createElement('span');
+        chests.textContent = full > 0 ? D.chestsFull(full) : '';
+        progressText.append(count, chests);
+      }
+
+      /** The chest picker: one entry per 25 words, the newest chest last. */
+      function renderGroups(total) {
+        const groups = Math.max(1, Math.ceil(total / CHEST_SIZE));
+        groupSelect.hidden = groups < 2;
+        groupSelect.setAttribute('aria-label', D.chest);
+        groupSelect.replaceChildren();
+        for (let at = 0; at < groups; at += 1) {
+          const option = document.createElement('option');
+          option.value = String(at);
+          const from = at * CHEST_SIZE + 1;
+          const to = Math.min(total, (at + 1) * CHEST_SIZE);
+          option.textContent = `${D.chest} ${at + 1} · ${from}–${to}`;
+          groupSelect.append(option);
+        }
+        if (viewGroup < 0 || viewGroup >= groups) viewGroup = groups - 1;
+        groupSelect.value = String(viewGroup);
+        return viewGroup;
+      }
+
+      groupSelect.addEventListener('change', () => {
+        viewGroup = Number(groupSelect.value);
+        renderBank(loadBank());
+      });
+
       function renderBank(words) {
         bankList.replaceChildren();
         bankCount.textContent = words.length ? String(words.length) : '';
         // No chest until there is something in it.
         bank.hidden = words.length === 0;
+        renderProgress(words.length);
+        const group = renderGroups(words.length);
+        const start = group * CHEST_SIZE;
+        const shown = words
+          .map((word, index) => [index, word])
+          .slice(start, start + CHEST_SIZE);
 
-        for (const [index, word] of words.entries()) {
+        for (const [index, word] of shown) {
           const item = document.createElement('li');
 
           const target = document.createElement('span');
