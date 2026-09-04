@@ -86,7 +86,7 @@ export const config = {
   azureSpeechVoiceNb: optional('AZURE_SPEECH_VOICE_NB') ?? 'nb-NO-PernilleNeural',
   speechCacheDir: optional('SPEECH_CACHE_DIR') ?? 'data/speech',
   /** SSML prosody for the ball voice: pitch and rate as Azure accepts them. */
-  speechPitch: optional('SPEECH_PITCH') ?? '+6%',
+  speechPitch: optional('SPEECH_PITCH') ?? '+0%',
   speechRate: optional('SPEECH_RATE') ?? '-15%',
 } as const;
 

@@ -262,7 +262,7 @@
         font-size: 1.4rem;
         letter-spacing: -0.01em;
         line-height: 1.2;
-        white-space: nowrap;
+        white-space: pre; /* so a space given as a hint stays visible */
         border-bottom: 3px solid var(--faint);
         border-radius: 0 0 40% 60% / 0 0 6px 4px;
         outline: none;
@@ -1225,13 +1225,12 @@
         const field = box.querySelector('.tr');
         box.classList.add('helped');
         const answer = chunk.target;
-        const typed = field.textContent.trim();
+        // Keep a trailing space: in a multi-word chunk it is the letter that
+        // was just given, and trimming it would hand out the same space again.
+        const typed = field.textContent.replace(/\u00a0/g, ' ').trimStart();
+        const same = (a, b) => (/\s/.test(a) ? /\s/.test(b) : fold(a) === fold(b));
         let right = 0;
-        while (
-          right < typed.length &&
-          right < answer.length &&
-          fold(typed[right]) === fold(answer[right])
-        ) {
+        while (right < typed.length && right < answer.length && same(typed[right], answer[right])) {
           right += 1;
         }
         field.textContent = answer.slice(0, Math.min(answer.length, right + 1));
