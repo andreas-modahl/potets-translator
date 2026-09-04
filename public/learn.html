@@ -425,6 +425,44 @@
         border-bottom-color: var(--accent);
         color: var(--accent);
       }
+      /* A solved word is painted piece by piece: the root and each suffix
+         in its own tint, and the same tints above the blank carry what each
+         piece means. The row above is always there, so nothing shifts. */
+      .chunk .parts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.15rem 0.2rem;
+        min-height: 1.05rem;
+        max-width: 14rem;
+        font-size: 0.7rem;
+        line-height: 1.25;
+        color: var(--ink);
+      }
+      .chunk .parts .m {
+        padding: 0.05rem 0.35rem;
+        border-radius: 4px;
+        white-space: nowrap;
+      }
+      .chunk .tr .m {
+        padding: 0 0.02em;
+        border-radius: 3px;
+      }
+      .m[data-m='0'],
+      .morpheme[data-m='0'] {
+        background: var(--m0);
+      }
+      .m[data-m='1'],
+      .morpheme[data-m='1'] {
+        background: var(--m1);
+      }
+      .m[data-m='2'],
+      .morpheme[data-m='2'] {
+        background: var(--m2);
+      }
+      .m[data-m='3'],
+      .morpheme[data-m='3'] {
+        background: var(--m3);
+      }
       /* Under the blank: the native word, and for the blank in focus a tiny
          speaker ball that reads the target word. */
       .chunk .under {
@@ -1639,6 +1677,8 @@
         // A near-miss on the letters still counts, but the word left on screen
         // is the real spelling: ş where s was typed, ø where o was.
         if (solvedNow && typed.trim() !== chunk.target) field.textContent = chunk.target;
+        if (solvedNow) paintWord(box, field, chunk);
+        else box.querySelector('.parts').replaceChildren();
 
         // Earned outright — no hint, not shown — so it goes in the bank, and
         // the list jumps to the chest it landed in.
@@ -1685,6 +1725,43 @@
           void streakPill.offsetWidth;
           streakPill.classList.add('bump');
         }
+      }
+
+      /** The pieces of a word, if they spell it exactly; else nothing to paint. */
+      function piecesOf(chunk) {
+        const parts = chunk.morphemes ?? [];
+        if (parts.length < 2) return null;
+        const joined = parts.map((part) => part.form ?? '').join('');
+        return joined.toLocaleLowerCase(D.target) === chunk.target.toLocaleLowerCase(D.target) ? parts : null;
+      }
+
+      /** Paints a solved word piece by piece and writes each piece's meaning
+          in the same tint above the blank. */
+      function paintWord(box, field, chunk) {
+        const caption = box.querySelector('.parts');
+        const parts = piecesOf(chunk);
+        caption.replaceChildren();
+        if (!parts) return;
+        let at = 0;
+        const painted = parts.map((part, index) => {
+          const span = document.createElement('span');
+          span.className = 'm';
+          span.dataset.m = String(index % 4);
+          span.textContent = chunk.target.slice(at, at + part.form.length);
+          at += part.form.length;
+          return span;
+        });
+        field.replaceChildren(...painted);
+        caption.replaceChildren(
+          ...parts.map((part, index) => {
+            const tag = document.createElement('span');
+            tag.className = 'm';
+            tag.dataset.m = String(index % 4);
+            tag.lang = D.native;
+            tag.textContent = part.means;
+            return tag;
+          }),
+        );
       }
 
       function setReady(ready, filledChest = false) {
@@ -1805,13 +1882,18 @@
         under.className = 'under';
         under.append(native, say);
 
-        box.append(field, under);
+        const parts = document.createElement('span');
+        parts.className = 'parts';
+
+        box.append(parts, field, under);
         return box;
       }
 
-      function morphemeNode({ form, means }, solved) {
+      function morphemeNode({ form, means }, solved, index = 0) {
         const piece = document.createElement('span');
         piece.className = 'morpheme';
+        // The same tint as the piece wears in the blank.
+        if (solved) piece.dataset.m = String(index % 4);
 
         const formNode = document.createElement('span');
         formNode.className = 'form';
@@ -1864,7 +1946,7 @@
               joint.textContent = '+';
               strip.append(joint);
             }
-            strip.append(morphemeNode(morpheme, solved));
+            strip.append(morphemeNode(morpheme, solved, index));
           });
           block.append(strip);
         }
@@ -2028,10 +2110,12 @@
           field.className = 'tr';
           field.style.minWidth = `${width}ch`;
           field.textContent = ' ';
+          const parts = document.createElement('span');
+          parts.className = 'parts';
           const under = document.createElement('span');
           under.className = 'no';
           under.append(bone(`${width + 1}ch`));
-          box.append(field, under);
+          box.append(parts, field, under);
           comparator.append(box);
         }
 

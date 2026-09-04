@@ -33,6 +33,11 @@
   --chest-lid: #b8743f;
   --chest-light: #d9a06a;
   --chest-body: #8c4f2b;
+  /* Tints for the pieces of a word: root, then each suffix in turn. */
+  --m0: #cfe3f5;
+  --m1: #d4ecca;
+  --m2: #f8e6b0;
+  --m3: #f4d2dc;
   --radius: 10px;
   /* The wobble: two radius pairs that never quite match. */
   --wobble: 255px 14px 225px 16px / 16px 225px 14px 255px;
@@ -67,6 +72,10 @@
     --chest-lid: #c48450;
     --chest-light: #e2b17e;
     --chest-body: #9a5a32;
+    --m0: #2f4b63;
+    --m1: #315234;
+    --m2: #5e4f22;
+    --m3: #5f3443;
   }
 }
 
@@ -94,6 +103,10 @@
   --chest-lid: #c48450;
   --chest-light: #e2b17e;
   --chest-body: #9a5a32;
+  --m0: #2f4b63;
+  --m1: #315234;
+  --m2: #5e4f22;
+  --m3: #5f3443;
 }
 
 :root[data-theme='light'] {
