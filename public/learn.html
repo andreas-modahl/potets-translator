@@ -874,8 +874,9 @@
             <svg class="waves" viewBox="0 0 12 16" width="9" height="12" aria-hidden="true" focusable="false">
               <path d="M2 5.5a4 4 0 0 1 0 5M5.5 3a8 8 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
             </svg>
+            <kbd class="key">|</kbd>
           </button>
-          <button type="button" id="hint" class="ghost">Hint: én bokstav <kbd class="key">.</kbd></button>
+          <button type="button" id="hint" class="ghost">Hint <kbd class="key">.</kbd></button>
           <div class="special-keys" id="special-keys" role="group"></div>
         </div>
         <div id="detail"></div>
@@ -1050,7 +1051,7 @@
           flip: 'Bytt retning: lær norsk fra tyrkisk',
           speak: 'Les opp setningen',
           keyHelp: ['leser ordet du står i', 'hele setningen'],
-          hint: 'Hint: én bokstav',
+          hint: 'Hint',
           specials: ['ç', 'ğ', 'ı', 'ö', 'ş', 'ü'],
           typeLetter: (letter) => `Skriv ${letter}`,
           hearWord: 'Hør ordet',
@@ -1098,7 +1099,7 @@
           flip: 'Yönü değiştir: Norveççeden Türkçe öğren',
           speak: 'Cümleyi seslendir',
           keyHelp: ['bulunduğun kelimeyi okur', 'tüm cümleyi'],
-          hint: 'İpucu: bir harf',
+          hint: 'İpucu',
           specials: ['æ', 'ø', 'å'],
           typeLetter: (letter) => `${letter} yaz`,
           hearWord: 'Kelimeyi dinle',
