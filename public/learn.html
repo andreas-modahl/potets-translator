@@ -85,16 +85,32 @@
         }
       }
 
-      /* Which way round the lesson goes, with a button to swap it. */
-      .direction {
+      /* The top bar: the name on the left, the theme and login on the right. */
+      .topbar {
         display: flex;
         align-items: center;
         gap: 0.5rem;
         margin-bottom: 1.25rem;
       }
-      /* The name leads on the left; the balls and the flip sit on the right. */
-      .direction .wordmark {
-        order: -1;
+      /* Under it, the direction and the topic on one row, so the top bar
+         has room on a phone. */
+      .settings {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .settings form {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      /* Which way round the lesson goes: the two balls with the swap between. */
+      .direction {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 0.15rem;
+      }
+      .topbar .wordmark {
         margin-right: auto;
         font-family: var(--hand);
         font-size: 1.7rem;
@@ -164,12 +180,8 @@
       .direction:hover #flag-to svg {
         transform: rotate(8deg);
       }
-      .direction-arrow {
-        font-size: 1.1rem;
-        color: var(--faint);
-      }
       .direction-label {
-        margin-left: 0.25rem;
+        margin-left: 0.35rem;
         color: var(--muted);
       }
       @media (max-width: 40rem) {
@@ -199,8 +211,26 @@
       .topic-wrap {
         position: relative;
       }
+      /* The topic is a setting, not the work, so it is written on the page
+         rather than boxed: a dashed line to write on, and the card below
+         is the one thing with an edge and a shadow. */
       .topic-wrap input {
-        padding-left: 8.6rem;
+        padding: 0.5rem 0.5rem 0.45rem 8.4rem;
+        background: transparent;
+        border: 0;
+        border-bottom: 2px dashed var(--faint);
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .topic-wrap input:focus {
+        outline: none;
+        border-bottom-color: var(--accent);
+      }
+      .topic-wrap input::placeholder {
+        color: var(--faint);
+      }
+      .level {
+        left: 0;
       }
       /* The level: a painted tag stuck inside the field. */
       .level {
@@ -876,12 +906,8 @@
     <main>
       <!-- Which way round: the flag on the left is the language you know, the
            one on the right is the language you are learning. -->
-      <div class="direction">
-        <span class="flag" id="flag-from" aria-hidden="true"></span>
-        <span class="direction-arrow" aria-hidden="true">→</span>
-        <span class="flag" id="flag-to" aria-hidden="true"></span>
-        <span class="direction-label" id="direction-label"></span>
-        <button type="button" id="flip" class="flip ghost" aria-label="Bytt retning" title="Bytt retning">⇄</button>
+      <div class="topbar">
+        <span class="wordmark" aria-hidden="true">Languageballs<small class="build" id="build"></small></span>
         <!-- Light or dark, by hand; otherwise the page follows the system. -->
         <button type="button" id="theme" class="flip ghost" aria-label="Mørk modus" title="Mørk modus">☾</button>
         <!-- Sign in with Google, so the chest follows the learner between
@@ -890,7 +916,6 @@
         <button type="button" id="account" class="account" hidden>
           <img id="avatar" alt="" referrerpolicy="no-referrer" />
         </button>
-        <span class="wordmark" aria-hidden="true">Languageballs<small class="build" id="build"></small></span>
       </div>
 
       <!-- Norwayball and Turkeyball: the flags as countryballs, drawn rather
@@ -923,6 +948,16 @@
         </symbol>
       </svg>
 
+      <!-- The direction and the topic share a row: the ball on the left is
+           the language you know, the one on the right the one you are
+           learning, and the flip between them swaps the two. -->
+      <div class="settings">
+        <div class="direction">
+          <span class="flag" id="flag-from" aria-hidden="true"></span>
+          <button type="button" id="flip" class="flip ghost" aria-label="Bytt retning" title="Bytt retning">⇄</button>
+          <span class="flag" id="flag-to" aria-hidden="true"></span>
+          <span class="direction-label" id="direction-label"></span>
+        </div>
       <form id="form">
         <div class="topic-wrap">
           <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
@@ -935,6 +970,7 @@
           <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" />
         </div>
       </form>
+      </div>
 
       <p id="status" class="status" hidden></p>
 
