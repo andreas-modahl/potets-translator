@@ -912,10 +912,20 @@
       chest.addEventListener('animationend', () => chest.classList.remove('hop'));
 
       document.addEventListener('keydown', (event) => {
-        // The | key is the hint. No Turkish word contains it, so it can be
-        // swallowed even while the caret sits in a blank.
-        if (event.key === '|' && !event.ctrlKey && !event.altKey && !event.metaKey && !lessonCard.hidden) {
-          event.preventDefault();
+        // The | key does three things, none of which a Turkish word needs, so
+        // it can be swallowed even while the caret sits in a blank:
+        //   |          one letter of the word in focus
+        //   Ctrl + |   read the word in focus aloud
+        //   Shift + |  read the whole sentence aloud (§ on a Nordic keyboard)
+        const pipe = event.key === '|' || event.key === '§';
+        if (!pipe || event.altKey || event.metaKey || lessonCard.hidden) return;
+        event.preventDefault();
+        if (event.ctrlKey) {
+          const word = current.chunks[selected]?.turkish;
+          if (word) speak(word);
+        } else if (event.shiftKey || event.key === '§') {
+          speak(current.turkish);
+        } else {
           hintButton.click();
         }
       });
@@ -1128,10 +1138,15 @@
       setLevel(recall(LEVEL_KEY) ?? level);
       renderBank(loadBank());
 
-      // Come back to the sentence that was last on screen, not a blank page.
+      // Come back to the sentence that was last on screen. A first visit has
+      // nothing to come back to, so it fetches one rather than sit empty.
       history = loadHistory();
-      if (history.length) showAt(history.length - 1);
-      else updateSteps();
+      if (history.length) {
+        showAt(history.length - 1);
+      } else {
+        updateSteps();
+        form.requestSubmit();
+      }
     </script>
   </body>
 </html>
