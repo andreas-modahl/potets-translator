@@ -1032,6 +1032,7 @@
           switchLevel: 'Bytt nivå',
           topic: 'Tema',
           topicPlaceholder: 'Tema: på kafé, familie, å reise…',
+          defaultTopic: 'hunder',
           flip: 'Bytt retning: lær norsk fra tyrkisk',
           speak: 'Les opp setningen',
           keyHelp: ['leser ordet du står i', 'hele setningen'],
@@ -1073,6 +1074,7 @@
           switchLevel: 'Seviyeyi değiştir',
           topic: 'Konu',
           topicPlaceholder: 'Konu: kafede, aile, seyahat…',
+          defaultTopic: 'köpekler',
           flip: 'Yönü değiştir: Norveççeden Türkçe öğren',
           speak: 'Cümleyi seslendir',
           keyHelp: ['bulunduğun kelimeyi okur', 'tüm cümleyi'],
@@ -1919,6 +1921,12 @@
         levelButton.title = D.switchLevel;
         topicField.placeholder = D.topicPlaceholder;
         topicField.setAttribute('aria-label', D.topic);
+        // Start on the default theme, and carry it over when flipping, but
+        // leave a theme the learner typed themselves alone.
+        const defaults = Object.values(DIRECTIONS).map((d) => d.defaultTopic);
+        if (!topicField.value.trim() || defaults.includes(topicField.value.trim())) {
+          topicField.value = D.defaultTopic;
+        }
         speakButton.title = D.speak;
         speakButton.setAttribute('aria-label', D.speak);
         keyHelp.replaceChildren();
