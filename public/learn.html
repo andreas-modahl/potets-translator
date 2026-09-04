@@ -425,6 +425,48 @@
         border-bottom-color: var(--accent);
         color: var(--accent);
       }
+      /* Under the blank: the native word, and for the blank in focus a tiny
+         speaker ball that reads the target word. */
+      .chunk .under {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .chunk .say {
+        display: none;
+        align-items: center;
+        gap: 0.05rem;
+        padding: 0.1rem 0.15rem;
+        color: var(--muted);
+        background: transparent;
+        border: 0;
+        border-radius: 999px;
+        box-shadow: none;
+        line-height: 0;
+      }
+      .chunk.open .say {
+        display: inline-flex;
+      }
+      .chunk .say svg:first-child {
+        width: 1.15rem;
+        height: 1.15rem;
+        overflow: visible;
+      }
+      .chunk .say .waves {
+        width: 0.5rem;
+        height: 0.7rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+      }
+      .chunk .say:hover,
+      .chunk .say:active {
+        color: var(--ink);
+        background: var(--sunk);
+        transform: none;
+        box-shadow: none;
+      }
       .chunk .no {
         padding: 0;
         font: inherit;
@@ -1738,7 +1780,30 @@
           speak(chunk.target);
         });
 
-        box.append(field, native);
+        // A tiny speaker ball beside the word, shown for the blank in focus.
+        const say = document.createElement('button');
+        say.type = 'button';
+        say.className = 'say';
+        say.title = D.hearWord;
+        say.setAttribute('aria-label', `${D.hearWord}: ${chunk.native}`);
+        say.tabIndex = -1;
+        say.append(flag(D.flagTo));
+        const waves = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        waves.setAttribute('viewBox', '0 0 12 16');
+        waves.setAttribute('aria-hidden', 'true');
+        waves.classList.add('waves');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M2 5.5a4 4 0 0 1 0 5M5.5 3a8 8 0 0 1 0 10');
+        waves.append(path);
+        say.append(waves);
+        say.addEventListener('mousedown', (event) => event.preventDefault());
+        say.addEventListener('click', () => speak(chunk.target));
+
+        const under = document.createElement('span');
+        under.className = 'under';
+        under.append(native, say);
+
+        box.append(field, under);
         return box;
       }
 
