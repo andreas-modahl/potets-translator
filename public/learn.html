@@ -96,14 +96,17 @@
       }
       /* The git hash, small and faint after the name, so a tester can see
          which build they are on. */
+      /* The build hash sits under the wordmark rather than beside it, so the
+         name keeps its room on a narrow screen. */
       .wordmark .build {
-        margin-left: 0.5rem;
+        display: block;
+        margin-top: 0.2rem;
         font-family: ui-monospace, Consolas, monospace;
         font-size: 0.7rem;
         font-weight: 400;
         letter-spacing: 0;
+        line-height: 1;
         color: var(--muted);
-        vertical-align: 0.15em;
       }
       .wordmark .build:empty {
         display: none;
