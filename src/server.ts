@@ -279,7 +279,7 @@ function parseLesson(raw: string): {
     learning: LEARNINGS.find((candidate) => candidate === learning) ?? 'tr',
     ...(sentence ? { text: sentence } : {}),
     ...(typeof topic === 'string' && topic.trim() ? { topic: topic.trim().slice(0, 200) } : {}),
-    level: LEVELS.find((candidate) => candidate === level) ?? 'nybegynner',
+    level: LEVELS.find((candidate) => candidate === level) ?? 'start',
     ...(seen.length ? { avoid: seen } : {}),
     ...(comeback.length ? { review: comeback } : {}),
   };

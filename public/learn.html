@@ -2612,7 +2612,7 @@
 
       /* Level ------------------------------------------------------------ */
 
-      let level = 'nybegynner';
+      let level = 'start';
 
       function setLevel(value) {
         const [key, label] = D.levels.find(([candidate]) => candidate === value) ?? D.levels[0];
@@ -2744,7 +2744,7 @@
         setStatus('');
 
         applyDirection();
-        setLevel(recall(keyFor('niva')) ?? 'nybegynner');
+        setLevel(recall(keyFor('niva')) ?? 'start');
         renderBank(loadBank());
         streak = 0;
         renderStreak();
