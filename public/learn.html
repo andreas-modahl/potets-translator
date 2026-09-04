@@ -967,6 +967,10 @@
         const solvedNow = box.classList.contains('correct');
         if (solvedNow === wasSolved) return;
 
+        // A near-miss on the letters still counts, but the word left on screen
+        // is the real spelling: ş where s was typed, ø where o was.
+        if (solvedNow && typed.trim() !== chunk.target) field.textContent = chunk.target;
+
         // Earned outright — no hint, not shown — so it goes in the bank.
         if (solvedNow && !box.classList.contains('helped')) bankEarned(chunk);
         // Getting it right unmasks the word in the panel underneath.
