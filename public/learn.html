@@ -669,6 +669,11 @@
       .hint-row .speak .key {
         margin-left: 0.2rem;
       }
+      /* Muted, the speakers fade: still there, saying nothing. */
+      body.muted .hint-row .speak,
+      body.muted .chunk .say {
+        opacity: 0.4;
+      }
       /* The sentence to translate: the one thing on the page to read, so
          it is set bold. */
       .natural p {
@@ -1095,6 +1100,11 @@
               <span class="icon" id="theme-icon" aria-hidden="true">☾</span>
               <span id="theme-label">Mørk modus</span>
             </button>
+            <!-- Silence: no word or sentence is read out until it is lifted. -->
+            <button type="button" id="mute" role="menuitem" aria-pressed="false">
+              <span class="icon" id="mute-icon" aria-hidden="true">🔇</span>
+              <span id="mute-label">Lyd av</span>
+            </button>
             <!-- Sign in with Google, so the chest follows the learner between
                  devices. Shown only when the server has a Google client. -->
             <button type="button" id="login" role="menuitem" hidden>
@@ -1390,6 +1400,8 @@
           flip: 'Bytt retning: lær norsk fra tyrkisk',
           themeDark: 'Mørk modus',
           themeLight: 'Lys modus',
+          soundOff: 'Lyd av',
+          soundOn: 'Lyd på',
           speak: 'Les opp setningen',
           keyHelp: ['leser ordet du står i', 'hele setningen'],
           hint: 'Hint',
@@ -1473,6 +1485,8 @@
           flip: 'Yönü değiştir: Norveççeden Türkçe öğren',
           themeDark: 'Koyu tema',
           themeLight: 'Açık tema',
+          soundOff: 'Sesi kapat',
+          soundOn: 'Sesi aç',
           speak: 'Cümleyi seslendir',
           keyHelp: ['bulunduğun kelimeyi okur', 'tüm cümleyi'],
           hint: 'İpucu',
@@ -2358,12 +2372,28 @@
         return matching.find((voice) => voice.localService) ?? matching[0] ?? null;
       }
 
-      function speakLocally(text) {
+      /* Asking for the same thing again and again is a sign it went by too
+         fast: from the third play on, each replay comes a little slower,
+         down to a floor. Another word or sentence starts at full speed. */
+      const SLOW_FROM = 3;
+      const SLOW_STEP = 0.15;
+      const SLOWEST = 0.55;
+      let lastSpoken = '';
+      let plays = 0;
+
+      function tempoFor(text) {
+        const key = fold(text);
+        plays = key === lastSpoken ? plays + 1 : 1;
+        lastSpoken = key;
+        return Math.max(SLOWEST, 1 - Math.max(0, plays - SLOW_FROM + 1) * SLOW_STEP);
+      }
+
+      function speakLocally(text, tempo = 1) {
         if (!canSpeakLocally) return;
         speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = D.targetLocale;
-        utterance.rate = 0.9;
+        utterance.rate = 0.9 * tempo;
         const voice = localVoice();
         if (voice) utterance.voice = voice;
         speechSynthesis.speak(utterance);
@@ -2386,8 +2416,9 @@
       }
 
       async function speak(text) {
-        if (!text) return;
+        if (!text || muted) return;
         if (fold(text) === focusedWord()) heardInFocus = true;
+        const tempo = tempoFor(text);
         player.pause();
         if (canSpeakLocally) speechSynthesis.cancel();
 
@@ -2401,6 +2432,8 @@
             } else if (response.ok) {
               const blob = await response.blob();
               player.src = URL.createObjectURL(blob);
+              player.preservesPitch = true;
+              player.playbackRate = tempo;
               await player.play();
               return;
             } else {
@@ -2410,7 +2443,7 @@
             // Fall through to the local voice for this one sentence.
           }
         }
-        speakLocally(text);
+        speakLocally(text, tempo);
       }
 
       speakButton.addEventListener('click', () => speak(current.target));
@@ -2703,6 +2736,7 @@
         directionLabel.textContent = D.label;
         flipButton.title = D.flip;
         renderTheme();
+        renderMute();
         loginLabel.textContent = D.login;
         renderAccount();
         menuButton.title = D.menu;
@@ -2831,6 +2865,35 @@
         closeMenu();
       });
       systemDark.addEventListener('change', renderTheme);
+
+      /* Mute ---------------------------------------------------------------
+         With the sound off nothing is read out, neither by itself nor on a
+         click, and the speaker balls fade to say so. Kept across visits. */
+
+      const MUTE_KEY = 'potets.stille';
+      const muteButton = document.querySelector('#mute');
+      const muteIcon = document.querySelector('#mute-icon');
+      const muteLabel = document.querySelector('#mute-label');
+      let muted = recall(MUTE_KEY) === 'true';
+
+      /** The entry names what it does next: silence while sound is on, and back. */
+      function renderMute() {
+        muteIcon.textContent = muted ? '🔊' : '🔇';
+        muteLabel.textContent = muted ? D.soundOn : D.soundOff;
+        muteButton.setAttribute('aria-pressed', String(muted));
+        document.body.classList.toggle('muted', muted);
+      }
+
+      muteButton.addEventListener('click', () => {
+        muted = !muted;
+        remember(MUTE_KEY, String(muted));
+        if (muted) {
+          player.pause();
+          if (canSpeakLocally) speechSynthesis.cancel();
+        }
+        renderMute();
+        closeMenu();
+      });
 
       /* Login and sync ------------------------------------------------------
          Logged in, the chest, the history, the hinted words and the level for
