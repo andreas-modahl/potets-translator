@@ -62,14 +62,40 @@ main {
   padding-bottom: 0.75rem;
 }
 
+/* The brand: a drawn potato and a lowercase wordmark, in the same hand as
+   the chest on the learn page. */
 .site-nav .brand {
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  --spud: #d9a566;
+  --spud-line: #7c4a2d;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-right: auto;
+  color: var(--ink);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-decoration: none;
   /* On a narrow screen the brand gives way; the links never wrap. */
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+}
+
+.site-nav .brand .mark {
+  flex: 0 0 auto;
+  transition: transform 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.site-nav .brand:hover .mark {
+  transform: rotate(-12deg) scale(1.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .site-nav .brand {
+    --spud: #c98f55;
+    --spud-line: #3a2617;
+  }
 }
 
 .site-nav a {
@@ -77,6 +103,10 @@ main {
   text-decoration: none;
   font-size: 0.92rem;
   white-space: nowrap;
+}
+
+.site-nav a:hover {
+  color: var(--ink);
 }
 
 .site-nav a:hover {

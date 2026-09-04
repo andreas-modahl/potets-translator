@@ -65,10 +65,14 @@
         line-height: 0;
       }
       .flag svg {
-        width: 1.75rem;
-        height: 1.25rem;
-        border-radius: 3px;
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+        width: 2.1rem;
+        height: 2.1rem;
+        overflow: visible;
+        transition: transform 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
+      }
+      /* The ball you are learning from leans in when the direction is swapped. */
+      .direction:hover #flag-to svg {
+        transform: rotate(8deg);
       }
       .direction-arrow {
         font-size: 1.1rem;
@@ -407,20 +411,19 @@
         align-items: center;
       }
       #bank h2 {
-        display: flex;
-        gap: 0.6rem;
-        align-items: center;
-        margin: 0 auto 0 0;
-      }
-      .chest {
         --chest-line: #5a3a22;
         --chest-lid: #a0673c;
         --chest-body: #7c4a2d;
         --chest-latch: #e9c46a;
+        display: inline-flex;
+        align-items: center;
+        margin: 0 auto 0 0;
+      }
+      .chest {
         display: block;
       }
       @media (prefers-color-scheme: dark) {
-        .chest {
+        #bank h2 {
           --chest-line: #3a2617;
           --chest-lid: #b8784a;
           --chest-body: #8f5535;
@@ -434,11 +437,19 @@
         clip: rect(0 0 0 0);
         white-space: nowrap;
       }
+      /* The tally, painted on the chest's front in the latch's gold. */
       .bank-count {
-        font-size: 1.1rem;
-        font-weight: 600;
+        position: absolute;
+        left: 50%;
+        top: 68%;
+        transform: translate(-50%, -50%);
+        font-size: 1.05rem;
+        font-weight: 800;
         font-variant-numeric: tabular-nums;
-        color: var(--muted);
+        letter-spacing: -0.02em;
+        color: var(--chest-latch, #e9c46a);
+        text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+        pointer-events: none;
       }
       .bank-list {
         display: grid;
@@ -532,11 +543,6 @@
     </style>
   </head>
   <body>
-    <nav class="site-nav">
-      <span class="brand" aria-label="Potets Translator">🥔🥔🥔🥔🥔🥔🥔</span>
-      <a href="/" aria-current="page" id="nav-learn">Lær tyrkisk</a>
-    </nav>
-
     <main>
       <!-- Which way round: the flag on the left is the language you know, the
            one on the right is the language you are learning. -->
@@ -548,19 +554,33 @@
         <button type="button" id="flip" class="flip ghost" aria-label="Bytt retning" title="Bytt retning">⇄</button>
       </div>
 
-      <!-- Flags drawn rather than typed: Windows has no flag emoji, and shows
-           the country letters instead. -->
-      <svg style="display: none" aria-hidden="true">
-        <symbol id="flag-no" viewBox="0 0 22 16">
-          <rect width="22" height="16" fill="#ba0c2f" />
-          <path d="M6 0h4v16H6zM0 6h22v4H0z" fill="#fff" />
-          <path d="M7 0h2v16H7zM0 7h22v2H0z" fill="#00205b" />
+      <!-- Norwayball and Turkeyball: the flags as countryballs, drawn rather
+           than typed since Windows has no flag emoji. Both share one set of
+           eyes, so they look like the same two characters. -->
+      <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+        <clipPath id="ball-clip"><circle cx="20" cy="20" r="18" /></clipPath>
+        <g id="ball-eyes">
+          <ellipse cx="14.5" cy="17" rx="4.2" ry="5" fill="#fff" stroke="#111" stroke-width="1.6" />
+          <ellipse cx="26.5" cy="17" rx="4.2" ry="5" fill="#fff" stroke="#111" stroke-width="1.6" />
+        </g>
+        <symbol id="flag-no" viewBox="0 0 40 40">
+          <g clip-path="url(#ball-clip)">
+            <rect width="40" height="40" fill="#ba0c2f" />
+            <path d="M9 0h9v40H9zM0 16h40v8H0z" fill="#fff" />
+            <path d="M11.5 0h4v40h-4zM0 18h40v4H0z" fill="#00205b" />
+          </g>
+          <circle cx="20" cy="20" r="18" fill="none" stroke="#111" stroke-width="2.2" />
+          <use href="#ball-eyes" />
         </symbol>
-        <symbol id="flag-tr" viewBox="0 0 24 16">
-          <rect width="24" height="16" fill="#e30a17" />
-          <circle cx="9" cy="8" r="4" fill="#fff" />
-          <circle cx="10" cy="8" r="3.2" fill="#e30a17" />
-          <path d="M13.2 8l2.6-.85-1.6 2.2V6.65l1.6 2.2z" fill="#fff" />
+        <symbol id="flag-tr" viewBox="0 0 40 40">
+          <g clip-path="url(#ball-clip)">
+            <rect width="40" height="40" fill="#e30a17" />
+            <circle cx="15" cy="27" r="7" fill="#fff" />
+            <circle cx="17" cy="27" r="5.6" fill="#e30a17" />
+            <path d="M24.5 27l4.6-1.5-2.9 3.9v-4.8l2.9 3.9z" fill="#fff" />
+          </g>
+          <circle cx="20" cy="20" r="18" fill="none" stroke="#111" stroke-width="2.2" />
+          <use href="#ball-eyes" />
         </symbol>
       </svg>
 
@@ -614,16 +634,17 @@
         <header>
           <h2 class="chest-wrap">
             <span class="fireworks" id="fireworks" aria-hidden="true"></span>
-            <svg class="chest" id="chest" viewBox="0 0 48 40" width="44" height="37" aria-hidden="true" focusable="false">
+            <!-- The tally sits on the front of the chest, so the body is kept
+                 clear: bands only on the lid, and a small latch at its edge. -->
+            <svg class="chest" id="chest" viewBox="0 0 56 46" width="64" height="53" aria-hidden="true" focusable="false">
               <!-- lid -->
-              <path d="M4 16 C4 7 12 3 24 3 S44 7 44 16 V18 H4 Z" fill="var(--chest-lid)" stroke="var(--chest-line)" stroke-width="2" stroke-linejoin="round" />
-              <path d="M16 3.6 V18 M32 3.6 V18" stroke="var(--chest-line)" stroke-width="2" />
+              <path d="M3 17 C3 6 13 2 28 2 S53 6 53 17 V19 H3 Z" fill="var(--chest-lid)" stroke="var(--chest-line)" stroke-width="2" stroke-linejoin="round" />
+              <path d="M17 2.8 V19 M39 2.8 V19" stroke="var(--chest-line)" stroke-width="2" />
               <!-- body -->
-              <rect x="4" y="18" width="40" height="19" rx="2" fill="var(--chest-body)" stroke="var(--chest-line)" stroke-width="2" />
-              <path d="M16 18 V37 M32 18 V37" stroke="var(--chest-line)" stroke-width="2" />
-              <!-- latch -->
-              <rect x="20" y="15" width="8" height="9" rx="1.5" fill="var(--chest-latch)" stroke="var(--chest-line)" stroke-width="2" />
-              <circle cx="24" cy="20" r="1.4" fill="var(--chest-line)" />
+              <rect x="3" y="19" width="50" height="24" rx="2.5" fill="var(--chest-body)" stroke="var(--chest-line)" stroke-width="2" />
+              <!-- latch, on the lid's edge -->
+              <rect x="24" y="15.5" width="8" height="7" rx="1.5" fill="var(--chest-latch)" stroke="var(--chest-line)" stroke-width="1.8" />
+              <circle cx="28" cy="19.5" r="1.2" fill="var(--chest-line)" />
             </svg>
             <span class="sr-only">Ordbank</span>
             <span class="bank-count" id="bank-count"></span>
@@ -660,7 +681,6 @@
       const flagTo = document.querySelector('#flag-to');
       const directionLabel = document.querySelector('#direction-label');
       const flipButton = document.querySelector('#flip');
-      const navLearn = document.querySelector('#nav-learn');
 
       /* Direction ---------------------------------------------------------
          "tr": a Norwegian speaker learning Turkish. "nb": a Turkish speaker
@@ -675,7 +695,6 @@
           flagFrom: 'flag-no',
           flagTo: 'flag-tr',
           label: 'Jeg lærer tyrkisk',
-          nav: 'Lær tyrkisk',
           title: 'Lær tyrkisk — Potets Translator',
           levels: [
             ['nybegynner', 'Nybegynner'],
@@ -712,7 +731,6 @@
           flagFrom: 'flag-tr',
           flagTo: 'flag-no',
           label: 'Norveççe öğreniyorum',
-          nav: 'Norveççe öğren',
           title: 'Norveççe öğren — Potets Translator',
           levels: [
             ['nybegynner', 'Başlangıç'],
@@ -1331,6 +1349,8 @@
       function renderBank(words) {
         bankList.replaceChildren();
         bankCount.textContent = words.length ? String(words.length) : '';
+        // No chest until there is something in it.
+        bank.hidden = words.length === 0;
 
         for (const [index, word] of words.entries()) {
           const item = document.createElement('li');
@@ -1439,7 +1459,6 @@
         D = DIRECTIONS[learning];
         document.documentElement.lang = D.native;
         document.title = D.title;
-        navLearn.textContent = D.nav;
         flagFrom.replaceChildren(flag(D.flagFrom));
         flagTo.replaceChildren(flag(D.flagTo));
         directionLabel.textContent = D.label;
