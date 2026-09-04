@@ -41,14 +41,14 @@
         white-space: nowrap;
       }
       .key-help kbd {
-        padding: 0.05rem 0.4rem;
+        padding: 0 0.4rem;
         font: inherit;
         font-size: 0.72rem;
-        color: var(--muted);
-        background: var(--sunk);
-        border: 1px solid var(--line);
-        border-bottom-width: 2px;
-        border-radius: 4px;
+        color: var(--ink);
+        background: var(--panel);
+        border: 1.5px solid var(--line);
+        border-radius: var(--wobble-small);
+        box-shadow: 1px 1px 0 var(--line);
       }
       @media (hover: none), (pointer: coarse) {
         .key-help {
@@ -61,7 +61,22 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        margin-bottom: 1rem;
+        margin-bottom: 1.25rem;
+      }
+      /* The name leads on the left; the balls and the flip sit on the right. */
+      .direction .wordmark {
+        order: -1;
+        margin-right: auto;
+        font-family: var(--hand);
+        font-size: 1.7rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+        line-height: 1;
+      }
+      .direction-label {
+        font-family: var(--hand);
+        font-size: 1.05rem;
       }
       .flag {
         display: inline-flex;
@@ -83,24 +98,28 @@
       }
       .direction-label {
         margin-left: 0.25rem;
-        font-size: 0.9rem;
         color: var(--muted);
       }
+      @media (max-width: 40rem) {
+        .direction-label {
+          display: none;
+        }
+      }
       .flip {
-        width: 2rem;
-        height: 2rem;
+        width: 2.1rem;
+        height: 2.1rem;
         padding: 0;
         font-size: 1.1rem;
         line-height: 1;
         border-color: transparent;
       }
-      /* The name, small and out of the way at the end of the direction row. */
-      .direction .wordmark {
-        margin-left: auto;
-        font-size: 0.85rem;
-        font-weight: 800;
-        letter-spacing: -0.03em;
-        color: var(--faint);
+      .flip {
+        box-shadow: none;
+        background: transparent;
+      }
+      .flip:hover {
+        box-shadow: none;
+        background: var(--sunk);
       }
 
       /* One field for both: the level is a small toggle that lives inside the
@@ -109,26 +128,29 @@
         position: relative;
       }
       .topic-wrap input {
-        padding-left: 8.25rem;
+        padding-left: 8.6rem;
       }
+      /* The level: a painted tag stuck inside the field. */
       .level {
         position: absolute;
         top: 50%;
-        left: 0.4rem;
-        transform: translateY(-50%);
+        left: 0.5rem;
+        transform: translateY(-50%) rotate(-1.5deg);
         width: 7.4rem;
-        padding: 0.3rem 0.6rem;
-        font-size: 0.78rem;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        color: var(--accent);
-        background: var(--accent-soft);
-        border-color: transparent;
-        border-radius: 7px;
+        padding: 0.25rem 0.6rem;
+        font-size: 0.95rem;
+        letter-spacing: 0.01em;
+        color: var(--ink);
+        background: var(--mark);
+        box-shadow: 2px 2px 0 var(--line);
       }
       .level:hover {
-        border-color: var(--accent);
+        transform: translateY(-50%) rotate(0deg);
+        box-shadow: 2px 2px 0 var(--line);
+      }
+      .level:active {
+        transform: translateY(-50%) translate(1px, 1px);
+        box-shadow: 1px 1px 0 var(--line);
       }
 
       /* The word itself stays hidden in the detail panel until it has been
@@ -194,27 +216,29 @@
         gap: 0.15rem;
         justify-items: start;
         padding: 0.4rem 0.5rem;
-        border: 1px solid transparent;
-        border-radius: 8px;
+        border: 2px solid transparent;
+        border-radius: var(--wobble-small);
       }
       .chunk.open {
         background: var(--accent-soft);
-        border-color: var(--accent);
+        border-color: var(--line);
+        box-shadow: 2px 2px 0 var(--line);
       }
-      /* The blank to type the Turkish into. A line underneath rather than a
-         box, so the row still reads as a sentence and not as a form. */
+      /* The blank to type into: a brush stroke underneath rather than a box,
+         so the row still reads as a sentence and not as a form. */
       .chunk .tr {
         display: block;
-        padding: 0 0.1rem;
+        padding: 0 0.1rem 0.1rem;
         font-size: 1.4rem;
         letter-spacing: -0.01em;
         line-height: 1.2;
         white-space: nowrap;
-        border-bottom: 2px solid var(--line);
+        border-bottom: 3px solid var(--faint);
+        border-radius: 0 0 40% 60% / 0 0 6px 4px;
         outline: none;
       }
       .chunk .tr:focus {
-        border-bottom-color: var(--accent);
+        border-bottom-color: var(--teal);
       }
       .chunk.filled .tr {
         border-bottom-color: var(--bad);
@@ -226,16 +250,24 @@
       .chunk .no {
         padding: 0;
         font: inherit;
-        font-size: 0.85rem;
+        font-family: var(--hand);
+        font-size: 0.95rem;
         color: var(--muted);
         background: transparent;
         border: 0;
         border-radius: 0;
+        box-shadow: none;
         cursor: pointer;
       }
       .chunk .no:hover {
         color: var(--ink);
         text-decoration: underline;
+        transform: none;
+        box-shadow: none;
+      }
+      .chunk .no:active {
+        transform: none;
+        box-shadow: none;
       }
       /* A word carrying suffixes is marked with a dotted line under its
          Norwegian, so it is visible at a glance which words have something
@@ -304,6 +336,12 @@
         background: transparent;
         border-color: transparent;
         border-radius: 999px;
+        box-shadow: none;
+      }
+      .speak:hover,
+      .speak:active {
+        box-shadow: none;
+        transform: none;
       }
       .speak .flag svg {
         width: 1.7rem;
@@ -341,10 +379,10 @@
          it is opened up underneath: root plus suffixes, and the grammar note. */
       #explanations {
         display: grid;
-        gap: 1rem;
+        gap: 1.25rem;
         margin-top: 1.25rem;
         padding-top: 1.25rem;
-        border-top: 1px solid var(--line);
+        border-top: 2px dashed var(--faint);
       }
       #explanations[hidden] {
         display: none;
@@ -397,9 +435,11 @@
       .morpheme {
         display: grid;
         gap: 0.1rem;
-        padding: 0.35rem 0.5rem;
+        padding: 0.35rem 0.6rem;
         background: var(--sunk);
-        border-radius: 7px;
+        border: 2px solid var(--line);
+        border-radius: var(--wobble-small);
+        box-shadow: 2px 2px 0 var(--line);
       }
       .morpheme .form {
         font-weight: 600;
@@ -416,7 +456,8 @@
       .note {
         margin: 0.9rem 0 0;
         padding-left: 0.85rem;
-        border-left: 3px solid var(--accent);
+        border-left: 4px solid var(--ochre);
+        border-radius: 3px 0 0 3px;
       }
 
       .detail-actions {
@@ -437,22 +478,24 @@
         align-items: center;
       }
       #bank h2 {
-        --chest-line: #5a3a22;
-        --chest-lid: #a0673c;
-        --chest-body: #7c4a2d;
-        --chest-latch: #e9c46a;
+        --chest-line: var(--line);
+        --chest-lid: #b8743f;
+        --chest-light: #d9a06a;
+        --chest-body: #8c4f2b;
+        --chest-latch: var(--ochre);
         display: inline-flex;
         align-items: center;
         margin: 0 auto 0 0;
       }
       .chest {
         display: block;
+        filter: drop-shadow(3px 3px 0 var(--line));
       }
       @media (prefers-color-scheme: dark) {
         #bank h2 {
-          --chest-line: #3a2617;
-          --chest-lid: #b8784a;
-          --chest-body: #8f5535;
+          --chest-lid: #c48450;
+          --chest-light: #e2b17e;
+          --chest-body: #9a5a32;
         }
       }
       .sr-only {
@@ -467,8 +510,9 @@
       .bank-count {
         position: absolute;
         left: 50%;
-        top: 68%;
+        top: 70%;
         transform: translate(-50%, -50%);
+        font-family: ui-sans-serif, system-ui, sans-serif;
         font-size: 1.05rem;
         font-weight: 800;
         font-variant-numeric: tabular-nums;
@@ -488,10 +532,11 @@
         display: flex;
         gap: 0.4rem 0.75rem;
         align-items: baseline;
-        padding: 0.5rem 0.75rem;
+        padding: 0.5rem 0.85rem;
         background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 8px;
+        border: 2px solid var(--line);
+        border-radius: var(--wobble-small);
+        box-shadow: 3px 3px 0 var(--line);
       }
       .bank-list .tr {
         flex: 0 0 auto;
@@ -589,7 +634,7 @@
         <span class="flag" id="flag-to" aria-hidden="true"></span>
         <span class="direction-label" id="direction-label"></span>
         <button type="button" id="flip" class="flip ghost" aria-label="Bytt retning" title="Bytt retning">⇄</button>
-        <span class="wordmark" aria-hidden="true">languageballs</span>
+        <span class="wordmark" aria-hidden="true">Languageballs</span>
       </div>
 
       <!-- Norwayball and Turkeyball: the flags as countryballs, drawn rather
@@ -675,15 +720,19 @@
             <span class="fireworks" id="fireworks" aria-hidden="true"></span>
             <!-- The tally sits on the front of the chest, so the body is kept
                  clear: bands only on the lid, and a small latch at its edge. -->
-            <svg class="chest" id="chest" viewBox="0 0 56 46" width="64" height="53" aria-hidden="true" focusable="false">
-              <!-- lid -->
-              <path d="M3 17 C3 6 13 2 28 2 S53 6 53 17 V19 H3 Z" fill="var(--chest-lid)" stroke="var(--chest-line)" stroke-width="2" stroke-linejoin="round" />
-              <path d="M17 2.8 V19 M39 2.8 V19" stroke="var(--chest-line)" stroke-width="2" />
+            <!-- Painted like the rest: ink outline with a little wobble, flat
+                 gouache fills, and a hard cut-out shadow from CSS. -->
+            <svg class="chest" id="chest" viewBox="0 0 60 50" width="66" height="55" aria-hidden="true" focusable="false">
               <!-- body -->
-              <rect x="3" y="19" width="50" height="24" rx="2.5" fill="var(--chest-body)" stroke="var(--chest-line)" stroke-width="2" />
+              <path d="M5 21 Q3.5 32 5.5 45 Q30 47.5 54.5 45 Q56.5 32 55 21 Z" fill="var(--chest-body)" stroke="var(--chest-line)" stroke-width="2.4" stroke-linejoin="round" />
+              <!-- lid -->
+              <path d="M4.5 21.5 C3 9 14 2.5 30 2.5 S57 9 55.5 21.5 Q30 23.5 4.5 21.5 Z" fill="var(--chest-lid)" stroke="var(--chest-line)" stroke-width="2.4" stroke-linejoin="round" />
+              <path d="M18.5 4.2 Q17.3 12.5 18.2 21.6 M41.5 4.2 Q42.7 12.5 41.8 21.6" fill="none" stroke="var(--chest-line)" stroke-width="2" stroke-linecap="round" />
+              <!-- a lighter brush stroke along the lid's top -->
+              <path d="M12 10 Q30 5 48 10" fill="none" stroke="var(--chest-light)" stroke-width="2.2" stroke-linecap="round" />
               <!-- latch, on the lid's edge -->
-              <rect x="24" y="15.5" width="8" height="7" rx="1.5" fill="var(--chest-latch)" stroke="var(--chest-line)" stroke-width="1.8" />
-              <circle cx="28" cy="19.5" r="1.2" fill="var(--chest-line)" />
+              <path d="M24.5 17.5 h11 q1.5 0 1.5 1.5 v5.5 q0 1.5 -1.5 1.5 h-11 q-1.5 0 -1.5 -1.5 v-5.5 q0 -1.5 1.5 -1.5 z" fill="var(--chest-latch)" stroke="var(--chest-line)" stroke-width="2" stroke-linejoin="round" />
+              <circle cx="30" cy="21.5" r="1.3" fill="var(--chest-line)" />
             </svg>
             <span class="sr-only">Ordbank</span>
             <span class="bank-count" id="bank-count"></span>

@@ -1,35 +1,51 @@
 /* Shared chrome for both pages: colour tokens, form controls, cards, nav.
-   Anything specific to one page stays in that page's own <style>. */
+   Anything specific to one page stays in that page's own <style>.
+
+   The look is painted: gouache on cream paper. Boxes have a brush-ink edge
+   with the slight wobble of a hand-drawn line (uneven border radii), a hard
+   offset shadow like a paper cut-out, and a handwritten face for labels and
+   buttons. The sentence itself stays in a plain face, since that is the
+   thing being read. */
+
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap');
 
 :root {
   color-scheme: light dark;
-  --bg: #fbfaf7;
-  --panel: #ffffff;
-  --sunk: #f4f1ea;
-  --ink: #1b1a17;
-  --muted: #6d6a62;
-  --faint: #97928a;
-  --line: #e4e0d6;
-  --accent: #7c4a2d;
-  --accent-soft: #f0e3d8;
-  --mark: #f6e3b8;
-  --bad: #b03a2b;
+  --bg: #f3e9d6;
+  --panel: #fbf5e8;
+  --sunk: #ecdfc6;
+  --ink: #2b2118;
+  --muted: #6b5a49;
+  --faint: #9c8a75;
+  --line: #2b2118;
+  --accent: #c1552f;
+  --accent-soft: #f6d9c4;
+  --mark: #f3d98a;
+  --bad: #a83a2a;
+  --teal: #2f6f73;
+  --ochre: #d9a441;
   --radius: 10px;
+  /* The wobble: two radius pairs that never quite match. */
+  --wobble: 255px 14px 225px 16px / 16px 225px 14px 255px;
+  --wobble-small: 120px 8px 110px 9px / 9px 110px 8px 120px;
+  --hand: 'Kalam', 'Segoe Print', 'Comic Sans MS', cursive;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #17161a;
-    --panel: #201f24;
-    --sunk: #1b1a1f;
-    --ink: #eceae4;
-    --muted: #9b968c;
-    --faint: #7c776f;
-    --line: #34323a;
-    --accent: #e0a878;
-    --accent-soft: #33291f;
-    --mark: #4a3a1c;
+    --bg: #1f1a16;
+    --panel: #2a231d;
+    --sunk: #241e19;
+    --ink: #f1e6d2;
+    --muted: #b7a48c;
+    --faint: #8a7962;
+    --line: #f1e6d2;
+    --accent: #e8865f;
+    --accent-soft: #4a2f22;
+    --mark: #5a4a22;
     --bad: #f08a7a;
+    --teal: #6fb2b6;
+    --ochre: #e6b85a;
   }
 }
 
@@ -45,6 +61,23 @@ body {
   font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
+/* Paper grain over everything, light enough to feel rather than see. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.28 0 0 0 0 0.2 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+  body::before {
+    opacity: 0.25;
+  }
+}
+
 main {
   max-width: 46rem;
   margin: 0 auto;
@@ -58,7 +91,7 @@ main {
   display: flex;
   gap: 1.25rem;
   align-items: baseline;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 2px solid var(--line);
   padding-bottom: 0.75rem;
 }
 
@@ -109,10 +142,6 @@ main {
   color: var(--ink);
 }
 
-.site-nav a:hover {
-  color: var(--ink);
-}
-
 .site-nav a[aria-current='page'] {
   color: var(--accent);
   font-weight: 600;
@@ -150,12 +179,13 @@ textarea,
 input,
 select {
   width: 100%;
-  padding: 0.65rem 0.75rem;
+  padding: 0.65rem 0.85rem;
   font: inherit;
   color: inherit;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border: 2px solid var(--line);
+  border-radius: var(--wobble);
+  box-shadow: 3px 3px 0 var(--line);
 }
 
 textarea {
@@ -167,8 +197,8 @@ textarea:focus,
 input:focus,
 select:focus,
 button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .row {
@@ -188,32 +218,52 @@ button:focus-visible {
   flex-wrap: wrap;
 }
 
+/* Buttons are paper cut-outs: ink edge, hard shadow, and they press down. */
 button {
-  padding: 0.6rem 1.4rem;
+  padding: 0.55rem 1.3rem;
   font: inherit;
-  font-weight: 600;
-  color: var(--bg);
+  font-family: var(--hand);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--panel);
   background: var(--accent);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
+  border: 2px solid var(--line);
+  border-radius: var(--wobble-small);
+  box-shadow: 3px 3px 0 var(--line);
   cursor: pointer;
+  transition:
+    transform 0.08s ease-out,
+    box-shadow 0.08s ease-out;
+}
+
+button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--line);
+}
+
+button:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--line);
 }
 
 button.ghost {
-  color: var(--muted);
-  background: transparent;
-  border-color: var(--line);
-  font-weight: 500;
+  color: var(--ink);
+  background: var(--panel);
+  font-weight: 700;
 }
 
 button.ghost:hover {
   color: var(--ink);
-  border-color: var(--muted);
+  background: var(--sunk);
 }
 
-button:disabled {
-  opacity: 0.55;
+button:disabled,
+button:disabled:hover {
+  opacity: 0.45;
   cursor: default;
+  transform: none;
+  box-shadow: 3px 3px 0 var(--line);
 }
 
 .hint {
@@ -224,10 +274,23 @@ button:disabled {
 /* Shared blocks ---------------------------------------------------------- */
 
 .card {
-  padding: 1rem 1.1rem;
+  padding: 1.1rem 1.25rem;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border: 2px solid var(--line);
+  border-radius: var(--wobble);
+  box-shadow: 5px 5px 0 var(--line);
+}
+
+label,
+h1,
+h2,
+.lede {
+  font-family: var(--hand);
+}
+
+h1 {
+  font-size: 1.9rem;
+  font-weight: 700;
 }
 
 .status {
