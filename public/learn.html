@@ -178,9 +178,24 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 2.9rem;
+        gap: 0.5rem;
+        min-width: 2.9rem;
         height: 2.9rem;
         padding: 0;
+      }
+      /* Once the sentence is done, the next button grows a word of praise and
+         takes the focus, so Enter moves on. */
+      .step.ready {
+        padding: 0 0.6rem 0 1rem;
+        animation: nudge 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+      }
+      .step-label {
+        white-space: nowrap;
+      }
+      @keyframes nudge {
+        40% {
+          transform: translate(-1px, -1px) scale(1.06);
+        }
       }
       /* While a sentence is being made, the play icon gives way to a ring. */
       .spinner {
@@ -788,6 +803,7 @@
         </button>
         <span class="step-count" id="step-count" aria-live="polite"></span>
         <button id="submit" type="submit" form="form" class="step" aria-label="Neste setning" title="Neste setning">
+          <span class="step-label" id="step-label" hidden></span>
           <svg class="play-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
             <path d="M8 4.5v15l12-7.5z" fill="currentColor" />
           </svg>
@@ -842,6 +858,7 @@
       const submitButton = document.querySelector('#submit');
       const backButton = document.querySelector('#back');
       const stepCount = document.querySelector('#step-count');
+      const stepLabel = document.querySelector('#step-label');
       const statusLine = document.querySelector('#status');
       const lessonCard = document.querySelector('#lesson');
       const comparator = document.querySelector('#comparator');
@@ -902,6 +919,7 @@
           blankFor: (native) => `Tyrkisk for «${native}»`,
           prev: 'Forrige setning',
           next: 'Neste setning',
+          done: 'Flott! Neste',
           fresh: 'Ny setning',
           browse: 'Bla i setninger',
           bank: 'Ordbank',
@@ -940,6 +958,7 @@
           blankFor: (native) => `«${native}» için Norveççe`,
           prev: 'Önceki cümle',
           next: 'Sonraki cümle',
+          done: 'Harika! Sıradaki',
           fresh: 'Yeni cümle',
           browse: 'Cümleler arasında gez',
           bank: 'Kelime sandığı',
@@ -1175,9 +1194,22 @@
         }
         // Getting it right unmasks the word in the panel underneath.
         if (current.chunks[selected] === chunk) renderDetail(chunk);
-        // The last word in opens up the whole sentence.
-        if (sentenceDone()) renderExplanations();
-        else explanations.hidden = true;
+        // The last word in opens up the whole sentence and hands the focus to
+        // the next button, so Enter carries on.
+        if (sentenceDone()) {
+          renderExplanations();
+          setReady(true);
+          submitButton.focus();
+        } else {
+          explanations.hidden = true;
+          setReady(false);
+        }
+      }
+
+      function setReady(ready) {
+        submitButton.classList.toggle('ready', ready);
+        stepLabel.hidden = !ready;
+        stepLabel.textContent = ready ? D.done : '';
       }
 
       /** The chunk: a blank field to type the target word into, standing over
@@ -1468,6 +1500,7 @@
         detail.replaceChildren();
         explanations.replaceChildren();
         explanations.hidden = true;
+        setReady(false);
 
         naturalLine.textContent = result.native;
         naturalLine.lang = D.native;
