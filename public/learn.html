@@ -218,6 +218,33 @@
         font-size: 1.05rem;
       }
 
+      /* Once the whole sentence is in, every word that has something inside
+         it is opened up underneath: root plus suffixes, and the grammar note. */
+      #explanations {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--line);
+      }
+      #explanations[hidden] {
+        display: none;
+      }
+      .explanation .detail-head {
+        gap: 0.2rem 0.6rem;
+      }
+      .explanation .detail-head .tr {
+        font-size: 1.15rem;
+        font-weight: 600;
+      }
+      .explanation .morphemes {
+        margin-top: 0.5rem;
+      }
+      .explanation .note {
+        margin-top: 0.6rem;
+        font-size: 0.95rem;
+      }
+
       /* The detail panel for whichever word is selected ------------------- */
       /* Hidden for now: the breakdown is still rendered, so bringing it back
          is a matter of dropping this rule. */
@@ -451,6 +478,7 @@
           <button type="button" id="hint" class="ghost">Hint: én bokstav</button>
         </div>
         <div id="detail"></div>
+        <div id="explanations" hidden></div>
       </article>
 
       <div class="steps" role="group" aria-label="Bla i setninger">
@@ -507,6 +535,7 @@
       const naturalLine = document.querySelector('#natural');
       const speakButton = document.querySelector('#speak');
       const detail = document.querySelector('#detail');
+      const explanations = document.querySelector('#explanations');
       const bank = document.querySelector('#bank');
       const bankList = document.querySelector('#bank-list');
       const bankCount = document.querySelector('#bank-count');
@@ -701,6 +730,9 @@
         if (solvedNow && !box.classList.contains('helped')) bankEarned(chunk);
         // Getting it right unmasks the word in the panel underneath.
         if (current.chunks[selected] === chunk) renderDetail(chunk);
+        // The last word in opens up the whole sentence.
+        if (sentenceDone()) renderExplanations();
+        else explanations.hidden = true;
       }
 
       /** The chunk: a blank field to type the Turkish into, standing over the
@@ -836,6 +868,61 @@
         }
       }
 
+      /** Every word with a breakdown or a note, opened up in sentence order. */
+      function renderExplanations() {
+        explanations.replaceChildren();
+        for (const chunk of current.chunks) {
+          if (!chunk.morphemes?.length && !chunk.note) continue;
+
+          const block = document.createElement('div');
+          block.className = 'explanation';
+
+          const head = document.createElement('div');
+          head.className = 'detail-head';
+          const turkish = document.createElement('span');
+          turkish.className = 'tr';
+          turkish.lang = 'tr';
+          turkish.textContent = chunk.turkish;
+          const norwegian = document.createElement('span');
+          norwegian.className = 'no';
+          norwegian.textContent = chunk.norwegian;
+          head.append(turkish, norwegian);
+          block.append(head);
+
+          if (chunk.morphemes?.length) {
+            const strip = document.createElement('div');
+            strip.className = 'morphemes';
+            chunk.morphemes.forEach((morpheme, index) => {
+              if (index > 0) {
+                const joint = document.createElement('span');
+                joint.className = 'joint';
+                joint.textContent = '+';
+                strip.append(joint);
+              }
+              strip.append(morphemeNode(morpheme, true));
+            });
+            block.append(strip);
+          }
+
+          if (chunk.note) {
+            const note = document.createElement('p');
+            note.className = 'note';
+            note.textContent = chunk.note;
+            block.append(note);
+          }
+
+          explanations.append(block);
+        }
+        explanations.hidden = explanations.childElementCount === 0;
+      }
+
+      function sentenceDone() {
+        return (
+          current.chunks.length > 0 &&
+          [...comparator.children].every((box) => box.classList.contains('correct'))
+        );
+      }
+
       /** A word typed right with no hint goes into the bank, or if it is
           there already, has its tally bumped. Only the first time is a drop. */
       function bankEarned(chunk) {
@@ -907,6 +994,8 @@
         selected = -1;
         comparator.replaceChildren();
         detail.replaceChildren();
+        explanations.replaceChildren();
+        explanations.hidden = true;
 
         naturalLine.textContent = result.norwegian;
         naturalRow.hidden = false;
