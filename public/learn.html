@@ -206,33 +206,42 @@
         background: var(--sunk);
       }
 
-      /* One field for both: the level is a small toggle that lives inside the
-         topic input, and cycles through the levels on click. */
+      /* Two painted tags side by side: the level, which cycles on click,
+         and the topic, which is written on. Settings, not the work, so
+         they are small; the card below is what fills the page. */
       .topic-wrap {
-        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
       }
-      /* The topic is a setting, not the work, so its field is sunk into the
-         page with a thin edge and no shadow; the card below is the one
-         thing that lifts off it. */
       .topic-wrap input {
-        padding: 0.5rem 0.75rem 0.5rem 8.6rem;
-        background: var(--sunk);
-        border: 1.5px solid var(--faint);
-        box-shadow: none;
+        flex: 1 1 0;
+        width: 0;
+        min-width: 4rem;
+        max-width: 15rem;
+        padding: 0.25rem 0.6rem;
+        font-family: var(--hand);
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        color: var(--ink);
+        background: var(--mark);
+        border: 2px solid var(--line);
+        border-radius: var(--wobble-small);
+        box-shadow: 2px 2px 0 var(--shadow);
+        transform: rotate(1deg);
       }
       .topic-wrap input:focus {
-        outline: none;
-        border-color: var(--accent);
+        transform: rotate(0deg);
       }
       .topic-wrap input::placeholder {
-        color: var(--faint);
+        font-weight: 400;
+        color: var(--muted);
       }
-      /* The level: a painted tag stuck inside the field. */
+      /* The level: a painted tag, slightly askew. */
       .level {
-        position: absolute;
-        top: 50%;
-        left: 0.5rem;
-        transform: translateY(-50%) rotate(-1.5deg);
+        flex: 0 0 auto;
+        transform: rotate(-1.5deg);
         width: 7.4rem;
         padding: 0.25rem 0.6rem;
         font-size: 0.95rem;
@@ -242,11 +251,11 @@
         box-shadow: 2px 2px 0 var(--shadow);
       }
       .level:hover {
-        transform: translateY(-50%) rotate(0deg);
+        transform: rotate(0deg);
         box-shadow: 2px 2px 0 var(--shadow);
       }
       .level:active {
-        transform: translateY(-50%) translate(1px, 1px);
+        transform: translate(1px, 1px);
         box-shadow: 1px 1px 0 var(--shadow);
       }
       /* A small turning arrow says the tag cycles when clicked. */
