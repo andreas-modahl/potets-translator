@@ -217,6 +217,7 @@ async function handleAsset(response: ServerResponse, asset: Asset): Promise<void
  */
 /** How many earlier sentences the prompt is told to steer clear of. */
 const MAX_AVOID = 30;
+const MAX_REVIEW = 5;
 
 function parseLesson(raw: string): {
   learning: Learning;
@@ -224,6 +225,7 @@ function parseLesson(raw: string): {
   topic?: string;
   level: Level;
   avoid?: string[];
+  review?: string[];
 } {
   let parsed: unknown;
   try {
@@ -233,7 +235,7 @@ function parseLesson(raw: string): {
   }
   if (!parsed || typeof parsed !== 'object') throw new BadRequest('Expected a JSON object.');
 
-  const { learning, text, topic, level, avoid } = parsed as Record<string, unknown>;
+  const { learning, text, topic, level, avoid, review } = parsed as Record<string, unknown>;
   const sentence = typeof text === 'string' ? text.trim() : '';
   if (sentence.length > config.maxInputChars) {
     throw new BadRequest(`Setningen er lengre enn grensen på ${config.maxInputChars} tegn.`);
@@ -244,6 +246,12 @@ function parseLesson(raw: string): {
         .map((entry) => entry.trim().slice(0, 300))
         .slice(-MAX_AVOID)
     : [];
+  const comeback = Array.isArray(review)
+    ? review
+        .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+        .map((entry) => entry.trim().slice(0, 60))
+        .slice(0, MAX_REVIEW)
+    : [];
 
   return {
     learning: LEARNINGS.find((candidate) => candidate === learning) ?? 'tr',
@@ -251,6 +259,7 @@ function parseLesson(raw: string): {
     ...(typeof topic === 'string' && topic.trim() ? { topic: topic.trim().slice(0, 200) } : {}),
     level: LEVELS.find((candidate) => candidate === level) ?? 'nybegynner',
     ...(seen.length ? { avoid: seen } : {}),
+    ...(comeback.length ? { review: comeback } : {}),
   };
 }
 
@@ -269,7 +278,9 @@ function topUp(asked: LessonRequest): void {
   const key = `${asked.learning}/${asked.level}/${topicKey(asked.topic)}`;
   if (toppingUp.has(key)) return;
   toppingUp.add(key);
-  const request: LessonRequest = { ...asked, avoid: pool.targets(asked).slice(-MAX_AVOID) };
+  // The shelf is for everyone, so the top-up is not steered by one learner's words.
+  const { review: _review, ...shared } = asked;
+  const request: LessonRequest = { ...shared, avoid: pool.targets(asked).slice(-MAX_AVOID) };
   limiter
     .run(() => lesson(request))
     .then((made) => {

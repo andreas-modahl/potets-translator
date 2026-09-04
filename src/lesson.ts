@@ -223,6 +223,8 @@ export interface LessonRequest {
   level: Level;
   /** Sentences the learner has already had, so the next one is not a repeat. */
   avoid?: string[];
+  /** Words from the learner's chest worth meeting again, in the target language. */
+  review?: string[];
 }
 
 /**
@@ -277,7 +279,7 @@ function randomSituation(): string {
   return SITUATIONS[Math.floor(Math.random() * SITUATIONS.length)] ?? SITUATIONS[0]!;
 }
 
-function brief({ learning, text, topic, level, avoid }: LessonRequest): string {
+function brief({ learning, text, topic, level, avoid, review }: LessonRequest): string {
   const d = DIRECTIONS[learning];
   if (text) {
     return (
@@ -292,7 +294,13 @@ function brief({ learning, text, topic, level, avoid }: LessonRequest): string {
     ? `\n\nThe student has already had these sentences. Do not repeat or lightly reword any of them; use different vocabulary and a different structure:\n` +
       avoid.map((sentence) => `- ${sentence}`).join('\n')
     : '';
-  return `Write one ${d.target} sentence for the student and break it down.\n\n${d.level[level]}${about}${seen}`;
+  // Words come back: the sentence is a chance to meet them again, as long as
+  // they belong in it. One or two, never a list crammed in.
+  const comeback = review?.length
+    ? `\n\nThe student has met these ${d.target} words before and should meet them again. Work one or two of them into the sentence where they fit naturally, in whatever form the grammar needs. Leave out any that would make the sentence contrived:\n` +
+      review.map((word) => `- ${word}`).join('\n')
+    : '';
+  return `Write one ${d.target} sentence for the student and break it down.\n\n${d.level[level]}${about}${seen}${comeback}`;
 }
 
 function parseMorphemes(value: unknown, word: string): Morpheme[] | undefined {

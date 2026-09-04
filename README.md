@@ -198,8 +198,11 @@ puts it back together.
   on the grammar it shows.
 - **Skjul norsk** hides every Norwegian word, the sentence underneath included,
   and leaves the spacing. Click a word to check yourself one at a time.
-- **Ordbank** keeps words you save. It lives in the browser's local storage, so
-  it never reaches the server, and it is per-browser.
+- **The chest** keeps every word typed without a hint. It lives in the
+  browser's local storage and is per-browser. Each request sends a few of the
+  least practised chest words along, and the next sentence brings one or two
+  of them back; typing one unaided again raises its tally, and every two
+  tallies lift the badge a rarity tier. Longer words start a tier higher.
 
 Ask for a sentence at a level (nybegynner, viderekommen, avansert) and optionally
 on a topic, or paste in your own sentence — Norwegian or Turkish, either way.

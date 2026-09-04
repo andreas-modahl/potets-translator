@@ -35,6 +35,25 @@ export function topicKey(topic: string | undefined): string {
     .replace(/\s+/gu, ' ');
 }
 
+/** Text with case, dotted/dotless i and accents flattened, for loose matching. */
+function fold(text: string): string {
+  return text
+    .toLocaleLowerCase('tr')
+    .replace(/ı/gu, 'i')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/gu, '');
+}
+
+/**
+ * Enough of a word to recognise it inflected: Turkish softens a final
+ * consonant (köpek → köpeğim) and Norwegian adds endings, so the last letter
+ * of anything longer than four is let go.
+ */
+export function stem(word: string): string {
+  const folded = fold(word.trim());
+  return folded.length > 4 ? folded.slice(0, -1) : folded;
+}
+
 export class LessonPool {
   private readonly db: DatabaseSync;
 
@@ -80,12 +99,23 @@ export class LessonPool {
   /**
    * A random lesson from the shelf that the learner has not had, or undefined
    * when the shelf is empty or they have seen it all.
+   *
+   * When the learner has words to meet again, only a lesson that brings one
+   * of them back will do; with none on the shelf the caller asks the model,
+   * and that sentence joins the shelf for the next learner with the word.
    */
   pick(request: LessonRequest): Lesson | undefined {
     const seen = new Set((request.avoid ?? []).map((sentence) => sentence.trim()));
-    const fresh = this.shelf(request.learning, request.level, topicKey(request.topic)).filter(
+    let fresh = this.shelf(request.learning, request.level, topicKey(request.topic)).filter(
       (row) => !seen.has(row.target),
     );
+    if (request.review?.length) {
+      const stems = request.review.map(stem).filter(Boolean);
+      fresh = fresh.filter((row) => {
+        const sentence = fold(row.target);
+        return stems.some((piece) => sentence.includes(piece));
+      });
+    }
     if (fresh.length === 0) return undefined;
     const row = fresh[Math.floor(Math.random() * fresh.length)]!;
     return JSON.parse(row.lesson) as Lesson;

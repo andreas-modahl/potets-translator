@@ -778,6 +778,18 @@
       .bank-list li.legendarisk .tr {
         color: var(--accent);
       }
+      /* A badge that just rose a tier. */
+      .bank-list li.upgraded {
+        animation: upgrade 0.9s cubic-bezier(0.2, 1.2, 0.4, 1);
+      }
+      @keyframes upgrade {
+        35% {
+          transform: rotate(var(--tilt, 0deg)) scale(1.18);
+          box-shadow:
+            3px 3px 0 var(--line),
+            0 0 0 6px color-mix(in srgb, var(--ochre) 55%, transparent);
+        }
+      }
       .bank-list button:hover,
       .bank-list button:active {
         color: var(--bad);
@@ -1017,19 +1029,46 @@
 
       /** Rarity by pieces: a bare word is common, a word of four or more
           pieces is legendary. Old entries without a count are common. */
-      function rarityOf(pieces) {
-        if (pieces >= 4) return 'legendarisk';
-        if (pieces === 3) return 'episk';
-        if (pieces === 2) return 'sjelden';
-        return 'vanlig';
+      /** A badge's rarity is earned: a longer word starts higher, and every
+          two more times it is typed unaided lifts it a tier. */
+      const RARITIES = ['vanlig', 'sjelden', 'episk', 'legendarisk'];
+
+      function rarityTier(word) {
+        const pieces = word.pieces ?? 0;
+        const count = word.count ?? 1;
+        return Math.min(RARITIES.length - 1, Math.floor(pieces / 2) + Math.floor((count - 1) / 2));
+      }
+
+      function rarityOf(word) {
+        return RARITIES[rarityTier(word)];
+      }
+
+      /**
+       * The words worth meeting again: the least practised, and among those
+       * the ones not seen for longest. A few are sent with each request so
+       * the next sentence can bring one back.
+       */
+      function comebacks(words) {
+        const ranked = [...words].sort(
+          (a, b) => (a.count ?? 1) - (b.count ?? 1) || (a.at ?? 0) - (b.at ?? 0),
+        );
+        // Some choice among the weakest, so the same three do not come back every time.
+        const weakest = ranked.slice(0, 6);
+        const chosen = [];
+        while (chosen.length < 3 && weakest.length) {
+          chosen.push(...weakest.splice(Math.floor(Math.random() * weakest.length), 1));
+        }
+        return chosen.map((word) => word.target);
       }
 
       chestToggle.addEventListener('click', () => {
         chestOpen = !chestOpen;
         renderBank(loadBank());
       });
-      /** Words per chest: the bar fills to here and starts over. */
+      /** Words per chest. */
       const CHEST_SIZE = 25;
+      /** The word whose badge just rose a tier, folded; its badge gets a flourish once. */
+      let upgraded = '';
       const chest = document.querySelector('#chest');
       const fireworksBox = document.querySelector('#fireworks');
       const flagFrom = document.querySelector('#flag-from');
@@ -1598,9 +1637,13 @@
         const words = loadBank();
         const at = words.findIndex((word) => fold(word.target) === fold(chunk.target));
         if (at >= 0) {
-          words[at] = { ...words[at], count: (words[at].count ?? 1) + 1 };
+          // A comeback: the word came round again and was typed unaided.
+          const before = rarityTier(words[at]);
+          words[at] = { ...words[at], count: (words[at].count ?? 1) + 1, at: Date.now() };
+          const rose = rarityTier(words[at]) > before;
+          if (rose) upgraded = fold(chunk.target);
           saveBank(words);
-          hop();
+          fireworks(chunk, rose ? 2 : 1);
           return;
         }
         saveBank([
@@ -1610,6 +1653,7 @@
             native: chunk.native,
             count: 1,
             pieces: chunk.morphemes?.length ?? 0,
+            at: Date.now(),
             ...(chunk.note ? { note: chunk.note } : {}),
           },
         ]);
@@ -1876,12 +1920,21 @@
           shown = indexed.slice(start, start + CHEST_SIZE);
         } else {
           groupSelect.hidden = true;
-          shown = indexed.slice(-PEEK).reverse();
+          // The most recently touched, so a comeback surfaces its badge.
+          shown = indexed
+            .map((entry, order) => [entry, entry[1].at ?? order])
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, PEEK)
+            .map(([entry]) => entry);
         }
 
         for (const [index, word] of shown) {
           const item = document.createElement('li');
-          item.className = rarityOf(word.pieces ?? 0);
+          item.className = rarityOf(word);
+          if (upgraded && fold(word.target) === upgraded) {
+            item.classList.add('upgraded');
+            item.addEventListener('animationend', () => item.classList.remove('upgraded'));
+          }
 
           const target = document.createElement('span');
           target.className = 'tr';
@@ -1911,6 +1964,8 @@
           item.append(target, native, tally, remove);
           bankList.append(item);
         }
+        // The flourish is shown once.
+        upgraded = '';
       }
 
       /* Fetching --------------------------------------------------------- */
@@ -1977,6 +2032,8 @@
             topic: topicField.value.trim(),
             // The recent sentences, so the next one is not one of them.
             avoid: history.slice(-30).map((entry) => entry.target),
+            // A few chest words the sentence could bring back.
+            review: comebacks(loadBank()),
           }),
         });
         const result = await response.json().catch(() => ({}));
