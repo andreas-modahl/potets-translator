@@ -5,7 +5,16 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { fileURLToPath } from 'node:url';
 import { assertTranslatorConfigured, config, type ExplainMode } from './config.js';
 import { parseTargets } from './languages.js';
-import { LEARNINGS, LEVELS, lesson, type Learning, type Lesson, type LessonRequest, type Level } from './lesson.js';
+import {
+  LEARNINGS,
+  LEVELS,
+  lesson,
+  lessons,
+  type Learning,
+  type Lesson,
+  type LessonRequest,
+  type Level,
+} from './lesson.js';
 import { Limiter } from './limiter.js';
 import { exchangeCode, googleConfigured, GoogleLoginFailed, loginUrl } from './google.js';
 import { LessonPool, POOL_TARGET, topicKey } from './pool.js';
@@ -281,10 +290,13 @@ const pool = config.lessonDb === 'off' ? undefined : new LessonPool(config.lesso
 /** Shelves being topped up right now, so a burst of requests adds one lesson, not five. */
 const toppingUp = new Set<string>();
 
+/** How many lessons a top-up asks for in one call. */
+const TOP_UP_BATCH = 4;
+
 /**
- * Adds one lesson to a shelf in the background, steering the model away from
- * what is already on it. Nothing waits for this; the learner who caused it
- * already has their sentence.
+ * Adds a few lessons to a shelf in the background, in one call, steering the
+ * model away from what is already on it. Nothing waits for this; the learner
+ * who caused it already has their sentence.
  */
 function topUp(asked: LessonRequest): void {
   if (!pool) return;
@@ -294,10 +306,11 @@ function topUp(asked: LessonRequest): void {
   // The shelf is for everyone, so the top-up is not steered by one learner's words.
   const { review: _review, ...shared } = asked;
   const request: LessonRequest = { ...shared, avoid: pool.targets(asked).slice(-MAX_AVOID) };
+  const wanted = Math.max(1, Math.min(TOP_UP_BATCH, POOL_TARGET - pool.count(asked)));
   limiter
-    .run(() => lesson(request))
+    .run(() => lessons(request, wanted))
     .then((made) => {
-      pool.store(request, made);
+      for (const one of made) pool.store(request, one);
     })
     .catch((error: unknown) => {
       console.warn(`Topping up ${key} failed: ${(error as Error).message}`);

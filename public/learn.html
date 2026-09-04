@@ -1640,6 +1640,8 @@
       }
 
       function select(index) {
+        // A new blank in focus has not been heard yet.
+        if (index !== selected) heardInFocus = false;
         selected = index;
         for (const [at, box] of [...comparator.children].entries()) {
           box.classList.toggle('open', at === index);
@@ -1745,6 +1747,8 @@
         if (solvedNow && typed.trim() !== chunk.target) field.textContent = chunk.target;
         if (solvedNow) paintWord(box, field, chunk);
         else renderCaption(box, chunk, []);
+        // A completed word reads itself out, unless it was just heard.
+        if (solvedNow) speakOnDone(chunk);
 
         // Earned outright — no hint, not shown — so it goes in the bank, and
         // the list jumps to the chest it landed in.
@@ -2305,8 +2309,25 @@
         speechSynthesis.speak(utterance);
       }
 
+      /* A word reads itself out when it is completed, unless it was already
+         read aloud while this blank had the focus: then the learner has just
+         heard it. Moving to another blank starts afresh. */
+      let heardInFocus = false;
+
+      /** The word of the selected blank, folded, for telling what was read. */
+      function focusedWord() {
+        const chunk = current.chunks?.[selected];
+        return chunk ? fold(chunk.target) : '';
+      }
+
+      function speakOnDone(chunk) {
+        if (heardInFocus && fold(chunk.target) === focusedWord()) return;
+        speak(chunk.target);
+      }
+
       async function speak(text) {
         if (!text) return;
+        if (fold(text) === focusedWord()) heardInFocus = true;
         player.pause();
         if (canSpeakLocally) speechSynthesis.cancel();
 

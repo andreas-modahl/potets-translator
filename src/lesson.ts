@@ -196,64 +196,89 @@ function tool(learning: Learning): Anthropic.Tool {
   return {
     name: 'post_lesson',
     description: `Report one ${d.target} sentence, broken down for a ${d.native}-speaking learner.`,
+    input_schema: lessonSchema(d) as Anthropic.Tool.InputSchema,
+  };
+}
+
+/** Several lessons in one report, for filling a shelf. */
+function batchTool(learning: Learning): Anthropic.Tool {
+  const d = DIRECTIONS[learning];
+  return {
+    name: 'post_lessons',
+    description: `Report several ${d.target} sentences, each broken down for a ${d.native}-speaking learner.`,
     input_schema: {
       type: 'object',
       properties: {
-        target: { type: 'string', description: `The ${d.target} sentence, exactly as it reads.` },
-        native: {
-          type: 'string',
-          description: `The natural ${d.native} sentence, in normal word order.`,
-        },
-        focus: {
-          type: 'string',
-          description: `The one grammar point this sentence teaches, named in ${d.native}.`,
-        },
-        chunks: {
+        lessons: {
           type: 'array',
-          description: `The ${d.target} sentence cut into pieces, in the order they appear in it, covering all of it.`,
-          items: {
-            type: 'object',
-            properties: {
-              target: {
-                type: 'string',
-                description: `A contiguous slice of the ${d.target} sentence, spelled exactly as it is there.`,
-              },
-              native: { type: 'string', description: `What this piece contributes, in ${d.native}.` },
-              pos: {
-                type: 'string',
-                enum: [...WORD_CLASSES],
-                description: "The word class of the piece's main word.",
-              },
-              note: {
-                type: 'string',
-                description: `One sentence of grammar explanation in ${d.native}. Omit when the piece has nothing to teach.`,
-              },
-              morphemes: {
-                type: 'array',
-                description:
-                  'Root and endings in spelling order, whose forms joined together spell the word. Omit for words with no ending.',
-                items: {
-                  type: 'object',
-                  properties: {
-                    form: {
-                      type: 'string',
-                      description: 'The root or ending as spelled inside the word.',
-                    },
-                    means: {
-                      type: 'string',
-                      description: `What it contributes, in ${d.native}.`,
-                    },
-                  },
-                  required: ['form', 'means'],
-                },
-              },
-            },
-            required: ['target', 'native', 'pos'],
-          },
+          description: 'The sentences asked for, one entry each, all different.',
+          items: lessonSchema(d),
         },
       },
-      required: ['target', 'native', 'chunks'],
+      required: ['lessons'],
     },
+  };
+}
+
+/** The shape of one lesson as the model reports it. */
+function lessonSchema(d: Direction): Record<string, unknown> {
+  return {
+    type: 'object',
+    properties: {
+      target: { type: 'string', description: `The ${d.target} sentence, exactly as it reads.` },
+      native: {
+        type: 'string',
+        description: `The natural ${d.native} sentence, in normal word order.`,
+      },
+      focus: {
+        type: 'string',
+        description: `The one grammar point this sentence teaches, named in ${d.native}.`,
+      },
+      chunks: {
+        type: 'array',
+        description: `The ${d.target} sentence cut into pieces, in the order they appear in it, covering all of it.`,
+        items: {
+          type: 'object',
+          properties: {
+            target: {
+              type: 'string',
+              description: `A contiguous slice of the ${d.target} sentence, spelled exactly as it is there.`,
+            },
+            native: { type: 'string', description: `What this piece contributes, in ${d.native}.` },
+            pos: {
+              type: 'string',
+              enum: [...WORD_CLASSES],
+              description: "The word class of the piece's main word.",
+            },
+            note: {
+              type: 'string',
+              description: `One sentence of grammar explanation in ${d.native}. Omit when the piece has nothing to teach.`,
+            },
+            morphemes: {
+              type: 'array',
+              description:
+                'Root and endings in spelling order, whose forms joined together spell the word. Omit for words with no ending.',
+              items: {
+                type: 'object',
+                properties: {
+                  form: {
+                    type: 'string',
+                    description: 'The root or ending as spelled inside the word.',
+                  },
+                  means: {
+                    type: 'string',
+                    description: `What it contributes, in ${d.native}.`,
+                  },
+                },
+                required: ['form', 'means'],
+              },
+            },
+          },
+          required: ['target', 'native', 'pos'],
+        },
+      },
+    },
+    required: ['target', 'native', 'chunks'],
   };
 }
 
@@ -322,7 +347,14 @@ function randomSituation(): string {
   return SITUATIONS[Math.floor(Math.random() * SITUATIONS.length)] ?? SITUATIONS[0]!;
 }
 
-function brief({ learning, text, topic, level, avoid, review }: LessonRequest): string {
+/** Several different situations, one per sentence asked for. */
+function randomSituations(count: number): string[] {
+  const picked = new Set<string>();
+  while (picked.size < Math.min(count, SITUATIONS.length)) picked.add(randomSituation());
+  return [...picked];
+}
+
+function brief({ learning, text, topic, level, avoid, review }: LessonRequest, count = 1): string {
   const d = DIRECTIONS[learning];
   if (text) {
     return (
@@ -332,7 +364,15 @@ function brief({ learning, text, topic, level, avoid, review }: LessonRequest): 
       `<sentence>\n${text}\n</sentence>`
     );
   }
-  const about = `\n\nThe sentence should be about: ${topic ?? randomSituation()}`;
+  let about = `\n\nThe sentence should be about: ${topic ?? randomSituation()}`;
+  if (count > 1) {
+    about = topic
+      ? `\n\nThe sentences should all be about: ${topic}, each from a different angle.`
+      : `\n\nThe sentences should be about, one each:\n` +
+        randomSituations(count)
+          .map((situation) => `- ${situation}`)
+          .join('\n');
+  }
   const seen = avoid?.length
     ? `\n\nThe student has already had these sentences. Do not repeat or lightly reword any of them; use different vocabulary and a different structure:\n` +
       avoid.map((sentence) => `- ${sentence}`).join('\n')
@@ -343,6 +383,13 @@ function brief({ learning, text, topic, level, avoid, review }: LessonRequest): 
     ? `\n\nThe student has met these ${d.target} words before and should meet them again. Work one or two of them into the sentence where they fit naturally, in whatever form the grammar needs. Leave out any that would make the sentence contrived:\n` +
       review.map((word) => `- ${word}`).join('\n')
     : '';
+  if (count > 1) {
+    return (
+      `Write ${count} different ${d.target} sentences for the student and break each one down. ` +
+      `Vary the vocabulary and the structure from one sentence to the next; no two should share their main verb.\n\n` +
+      `Each sentence: ${d.level[level]}${about}${seen}${comeback}`
+    );
+  }
   return `Write one ${d.target} sentence for the student and break it down.\n\n${d.level[level]}${about}${seen}${comeback}`;
 }
 
@@ -508,32 +555,78 @@ export async function lesson(request: LessonRequest, attempts = 2): Promise<Less
       continue;
     }
 
-    const input = block.input as Record<string, unknown>;
-    const native = typeof input.native === 'string' ? input.native.trim() : '';
-    const chunks = parseRawChunks(input.chunks);
-    // On a long sentence the model sometimes skips the whole-sentence field and
-    // gives only the pieces, which are the sentence anyway. Rebuilding it from
-    // them costs a real check — the pieces then line up by construction — but
-    // that beats refusing a lesson that is otherwise complete.
-    const given = typeof input.target === 'string' ? input.target.trim() : '';
-    const target = given || rejoin(chunks.map((chunk) => chunk.target));
-    if (!target || !native) {
+    const made = buildLesson(block.input, request.learning);
+    if (!made) {
       console.warn('Claude returned a lesson with neither a sentence nor pieces; asking again.');
       continue;
     }
-
-    last = {
-      learning: request.learning,
-      target,
-      native,
-      chunks: alignChunks(chunks, target),
-      ...(typeof input.focus === 'string' && input.focus.trim()
-        ? { focus: input.focus.trim() }
-        : {}),
-    };
+    last = made;
     if (last.chunks.length > 0) return last;
   }
 
   if (!last) throw new Error('Claude returned no usable lesson after two attempts.');
   return last;
+}
+
+/**
+ * Builds several lessons in one call, for filling a shelf: the model spreads
+ * the sentences out itself, which one call at a time never managed. Only the
+ * lessons whose breakdown fits are returned; a bad one costs nothing but its
+ * place in the batch.
+ */
+export async function lessons(request: LessonRequest, count: number): Promise<Lesson[]> {
+  if (count <= 1) return [await lesson(request)];
+  const postLessons = batchTool(request.learning);
+  // Streamed, since the SDK will not wait on a plain call with this much room
+  // for output; the whole message is still collected before it is read.
+  const response = await client()
+    .messages.stream({
+      model: config.model,
+      // Room for every sentence with its split; a cut-off batch loses only its tail.
+      max_tokens: Math.min(32000, 6000 * count),
+      system: systemPrompt(request.learning),
+      tools: [postLessons],
+      tool_choice: { type: 'tool', name: postLessons.name },
+      messages: [{ role: 'user', content: brief(request, count) }],
+    })
+    .finalMessage();
+  if (response.stop_reason === 'max_tokens') {
+    console.warn(`A batch of ${count} lessons came back cut off at max_tokens.`);
+  }
+
+  const block = response.content.find((part) => part.type === 'tool_use');
+  const input = block ? (block.input as Record<string, unknown>) : {};
+  const entries = Array.isArray(input.lessons) ? input.lessons : [];
+  const made: Lesson[] = [];
+  for (const entry of entries) {
+    const built = buildLesson(entry, request.learning);
+    if (built && built.chunks.length > 0) made.push(built);
+  }
+  if (made.length < entries.length) {
+    console.warn(`Batch of ${count}: ${made.length} of ${entries.length} lessons usable.`);
+  }
+  return made;
+}
+
+/** One lesson from what the model reported, or undefined when there is no sentence in it. */
+function buildLesson(value: unknown, learning: Learning): Lesson | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const input = value as Record<string, unknown>;
+  const native = typeof input.native === 'string' ? input.native.trim() : '';
+  const chunks = parseRawChunks(input.chunks);
+  // On a long sentence the model sometimes skips the whole-sentence field and
+  // gives only the pieces, which are the sentence anyway. Rebuilding it from
+  // them costs a real check — the pieces then line up by construction — but
+  // that beats refusing a lesson that is otherwise complete.
+  const given = typeof input.target === 'string' ? input.target.trim() : '';
+  const target = given || rejoin(chunks.map((chunk) => chunk.target));
+  if (!target || !native) return undefined;
+
+  return {
+    learning,
+    target,
+    native,
+    chunks: alignChunks(chunks, target),
+    ...(typeof input.focus === 'string' && input.focus.trim() ? { focus: input.focus.trim() } : {}),
+  };
 }

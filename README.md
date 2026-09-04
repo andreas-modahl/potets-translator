@@ -218,8 +218,9 @@ on a topic, or paste in your own sentence — Norwegian or Turkish, either way.
 Generated lessons are pooled in an SQLite file (`LESSON_DB`). A request for a
 direction, level and topic that already has lessons on its shelf is answered
 from disk, skipping the sentences that learner has already had, and the shelf
-is topped up in the background until it holds a dozen. Sentences the learner
-pastes in are never pooled.
+is topped up in the background until it holds a dozen, a few sentences per
+call so the model spreads them out itself. Sentences the learner pastes in are
+never pooled.
 
 The breakdown is checked before it is shown: the pieces must walk the sentence
 start to end without skipping or repeating a word, and a morpheme split must
