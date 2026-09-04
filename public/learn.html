@@ -447,13 +447,6 @@
         transform: none;
         box-shadow: none;
       }
-      /* A word carrying suffixes is marked with a dotted line under its
-         Norwegian, so it is visible at a glance which words have something
-         inside them to open up. */
-      .chunk.built .no {
-        text-decoration: underline dotted var(--accent);
-        text-underline-offset: 0.22em;
-      }
 
       /* Placeholders ------------------------------------------------------
          While a sentence is on its way, the row and the card are drawn at
@@ -1697,7 +1690,7 @@
           reads the target word aloud. */
       function chunkField(chunk, index) {
         const box = document.createElement('div');
-        box.className = chunk.morphemes?.length ? 'chunk built' : 'chunk';
+        box.className = 'chunk';
 
         const field = document.createElement('span');
         field.className = 'tr';
