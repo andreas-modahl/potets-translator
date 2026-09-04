@@ -79,6 +79,11 @@ export const config = {
   webPort: positiveInt('WEB_PORT', 3000),
   /** The languages the web app starts with; the page can change them per request. */
   webTargets: languageList('WEB_TARGETS', ['English', 'Norwegian']),
+  /** Azure Speech, for reading Turkish aloud on the learn page. Optional. */
+  azureSpeechKey: optional('AZURE_SPEECH_KEY'),
+  azureSpeechRegion: optional('AZURE_SPEECH_REGION'),
+  azureSpeechVoice: optional('AZURE_SPEECH_VOICE') ?? 'tr-TR-EmelNeural',
+  speechCacheDir: optional('SPEECH_CACHE_DIR') ?? 'data/speech',
 } as const;
 
 /**

@@ -6,6 +6,7 @@ import { assertTranslatorConfigured, config, type ExplainMode } from './config.j
 import { parseTargets } from './languages.js';
 import { LEVELS, lesson, type Level } from './lesson.js';
 import { Limiter } from './limiter.js';
+import { speak, speechConfigured, SpeechUnavailable } from './speech.js';
 import { translate } from './translate.js';
 
 interface Asset {
@@ -213,8 +214,34 @@ async function handleLesson(request: IncomingMessage, response: ServerResponse):
   send(response, 200, result);
 }
 
+/**
+ * Turkish read aloud. The text rides in the query string so the browser can
+ * point an audio element straight at it and cache the result like any file.
+ */
+async function handleSpeak(url: URL, response: ServerResponse): Promise<void> {
+  if (!speechConfigured) {
+    send(response, 503, { error: 'Speech is not configured on this server.' });
+    return;
+  }
+  const text = url.searchParams.get('text') ?? '';
+  let audio: Buffer;
+  try {
+    audio = await speak(text);
+  } catch (error) {
+    if (error instanceof SpeechUnavailable) throw new BadRequest(error.message);
+    throw error;
+  }
+  response.writeHead(200, {
+    'content-type': 'audio/mpeg',
+    'content-length': audio.byteLength,
+    'cache-control': 'private, max-age=31536000, immutable',
+  });
+  response.end(audio);
+}
+
 const server = createServer((request, response) => {
-  const path = new URL(request.url ?? '/', 'http://localhost').pathname;
+  const url = new URL(request.url ?? '/', 'http://localhost');
+  const path = url.pathname;
 
   void (async () => {
     try {
@@ -251,6 +278,10 @@ const server = createServer((request, response) => {
       }
       if (request.method === 'POST' && path === '/api/lesson') {
         await handleLesson(request, response);
+        return;
+      }
+      if (request.method === 'GET' && path === '/api/speak') {
+        await handleSpeak(url, response);
         return;
       }
       send(response, 404, { error: 'Not found.' });

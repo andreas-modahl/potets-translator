@@ -204,6 +204,25 @@ really spell the word it claims to. A breakdown that fails is thrown away rather
 than displayed, because a column pairing the wrong two things teaches something
 false. When that happens the page says so and the sentence is shown whole.
 
+### Deploying the web app
+
+The page needs the server, because the server holds the keys, so it cannot be
+hosted as static files on GitHub Pages. Two ready-made routes:
+
+- **Render.** `render.yaml` is a blueprint for a free web service. In the Render
+  dashboard choose *New → Blueprint*, point it at this repository, and paste in
+  `ANTHROPIC_API_KEY` and `AZURE_SPEECH_KEY` when prompted. Change
+  `AZURE_SPEECH_REGION` in the file if your Speech resource is elsewhere. The
+  free plan sleeps after idle time, so the first load after a pause takes a
+  moment.
+- **Any container host** (Fly.io, Railway, a VPS). `Dockerfile` builds an image
+  that runs `node dist/server.js` on port 3000. Pass the same variables as
+  environment variables. Generated speech is cached under `data/speech/`, so
+  mount a volume there if you want it to survive restarts.
+
+Set `NODE_ENV=production` in either case; it turns off the development live
+reload.
+
 ## Configuration
 
 Everything lives in `.env`; see `.env.example` for the annotated list.
