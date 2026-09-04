@@ -1866,11 +1866,27 @@
 
       /* Direction switch ------------------------------------------------- */
 
+      /** The build, fetched once and kept in the tab title. */
+      let version = '';
+      fetch('/api/version')
+        .then((response) => (response.ok ? response.json() : null))
+        .then((body) => {
+          if (typeof body?.version === 'string') {
+            version = body.version;
+            setTitle();
+          }
+        })
+        .catch(() => {});
+
+      function setTitle() {
+        document.title = version ? `${D.title} · ${version}` : D.title;
+      }
+
       /** Writes every label on the page in the learner's own language. */
       function applyDirection() {
         D = DIRECTIONS[learning];
         document.documentElement.lang = D.native;
-        document.title = D.title;
+        setTitle();
         flagFrom.replaceChildren(flag(D.flagFrom));
         flagTo.replaceChildren(flag(D.flagTo));
         speakBall.replaceChildren(flag(D.flagTo));

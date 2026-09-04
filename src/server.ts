@@ -1,4 +1,5 @@
-import { watch } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, watch } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { fileURLToPath } from 'node:url';
@@ -87,6 +88,30 @@ function handleReloadStream(request: IncomingMessage, response: ServerResponse):
   reloadListeners.add(response);
   request.on('close', () => reloadListeners.delete(response));
 }
+
+/**
+ * What is running: the package version plus the short commit, so the page
+ * title says which build it is. Render provides the commit as an environment
+ * variable; locally it is asked of git, and left out if that fails.
+ */
+const VERSION = (() => {
+  let version = '0.0.0';
+  try {
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    if (typeof pkg.version === 'string') version = pkg.version;
+  } catch {
+    // Fall back to the placeholder.
+  }
+  let commit = process.env.RENDER_GIT_COMMIT ?? process.env.GIT_COMMIT ?? '';
+  if (!commit) {
+    try {
+      commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+    } catch {
+      // Not a checkout, or no git: version alone will do.
+    }
+  }
+  return commit ? `${version}+${commit.slice(0, 7)}` : version;
+})();
 
 /** Refuse a body far enough over the input limit that it cannot be a sentence. */
 const MAX_BODY_BYTES = 64 * 1024;
@@ -290,7 +315,12 @@ const server = createServer((request, response) => {
           targets: config.webTargets,
           explain: config.explainByDefault,
           maxInputChars: config.maxInputChars,
+          version: VERSION,
         });
+        return;
+      }
+      if (request.method === 'GET' && path === '/api/version') {
+        send(response, 200, { version: VERSION });
         return;
       }
       if (request.method === 'POST' && path === '/api/translate') {
