@@ -335,6 +335,7 @@ const server = createServer((request, response) => {
           explain: config.explainByDefault,
           maxInputChars: config.maxInputChars,
           version: VERSION,
+          model: config.model,
         });
         return;
       }
