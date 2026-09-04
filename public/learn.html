@@ -224,6 +224,44 @@
         text-underline-offset: 0.22em;
       }
 
+      /* Placeholders ------------------------------------------------------
+         While a sentence is on its way, the row and the card are drawn at
+         the size they will be, with shimmering bars where the words go, so
+         nothing jumps when the real thing lands. */
+      .bone {
+        display: inline-block;
+        height: 0.9em;
+        border-radius: 4px;
+        background: linear-gradient(90deg, var(--sunk) 25%, var(--line) 50%, var(--sunk) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.4s linear infinite;
+      }
+      .chunk.bone-chunk .tr {
+        color: transparent;
+        border-bottom-color: var(--line);
+      }
+      .chunk.bone-chunk .no {
+        cursor: default;
+      }
+      .chunk.bone-chunk .no .bone {
+        height: 0.75em;
+        vertical-align: middle;
+      }
+      .natural .bone {
+        height: 1em;
+        vertical-align: middle;
+      }
+      @keyframes shimmer {
+        to {
+          background-position: -200% 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .bone {
+          animation: none;
+        }
+      }
+
       /* The natural Norwegian sentence stands on its own above the card, so
          the card holds nothing but the Turkish and what it is made of. */
       .natural {
@@ -832,7 +870,7 @@
       hintButton.addEventListener('click', () => {
         let index = selected >= 0 && !isSolved(selected) ? selected : -1;
         if (index < 0) index = [...comparator.children].findIndex((box) => !box.classList.contains('correct'));
-        if (index < 0) return;
+        if (index < 0 || !current.chunks[index]) return;
         select(index);
         hint(index);
         if (isSolved(index)) focusNextOpen();
@@ -1115,6 +1153,42 @@
         if (word) speak(word);
       });
 
+      /** The shape of a lesson with nothing in it, shown while one is fetched. */
+      function renderSkeleton() {
+        current = { chunks: [] };
+        selected = -1;
+        comparator.replaceChildren();
+        detail.replaceChildren();
+        explanations.replaceChildren();
+        explanations.hidden = true;
+
+        naturalLine.replaceChildren(bone('60%'));
+        naturalRow.hidden = false;
+
+        for (const width of [3, 6, 4, 7, 5]) {
+          const box = document.createElement('div');
+          box.className = 'chunk bone-chunk';
+          const field = document.createElement('span');
+          field.className = 'tr';
+          field.style.minWidth = `${width}ch`;
+          field.textContent = ' ';
+          const under = document.createElement('span');
+          under.className = 'no';
+          under.append(bone(`${width + 1}ch`));
+          box.append(field, under);
+          comparator.append(box);
+        }
+
+        lessonCard.hidden = false;
+      }
+
+      function bone(width) {
+        const span = document.createElement('span');
+        span.className = 'bone';
+        span.style.width = width;
+        return span;
+      }
+
       function renderLesson(result) {
         current = result;
         selected = -1;
@@ -1270,6 +1344,8 @@
         submitButton.disabled = true;
         submitButton.classList.add('busy');
         setStatus('');
+        // Nothing on screen yet: hold the space the sentence will take.
+        if (current.chunks.length === 0) renderSkeleton();
 
         try {
           const response = await fetch('/api/lesson', {
@@ -1371,9 +1447,8 @@
         if (history.length) {
           showAt(history.length - 1);
         } else {
-          lessonCard.hidden = true;
-          naturalRow.hidden = true;
           cursor = -1;
+          current = { chunks: [] };
           updateSteps();
           form.requestSubmit();
         }
