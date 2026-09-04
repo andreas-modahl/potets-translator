@@ -1272,7 +1272,9 @@
         }
         field.textContent = answer.slice(0, Math.min(answer.length, right + 1));
         checkField(field, chunk);
-        placeCaretAtEnd(field);
+        // The last letter of the last word leaves the focus on the next
+        // button, where checkField put it; otherwise the caret stays here.
+        if (!sentenceDone()) placeCaretAtEnd(field);
       }
 
       function placeCaretAtEnd(field) {
