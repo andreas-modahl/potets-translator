@@ -42,8 +42,17 @@ const VOICES: Record<SpeechLang, { voice: string; locale: string }> = {
   nb: { voice: config.azureSpeechVoiceNb, locale: 'nb-NO' },
 };
 
+/**
+ * The countryball delivery: pitched up so the ball sounds small and round,
+ * slowed a touch so the words stay clear enough to learn from. Both are part
+ * of the cache key, so changing them regenerates the audio.
+ */
+const PROSODY = { pitch: config.speechPitch, rate: config.speechRate };
+
 function cachePath(text: string, lang: SpeechLang): string {
-  const key = createHash('sha256').update(`${VOICES[lang].voice}\n${text}`).digest('hex');
+  const key = createHash('sha256')
+    .update(`${VOICES[lang].voice}\n${PROSODY.pitch}\n${PROSODY.rate}\n${text}`)
+    .digest('hex');
   return join(config.speechCacheDir, `${key}.mp3`);
 }
 
@@ -53,7 +62,7 @@ async function synthesise(text: string, lang: SpeechLang): Promise<Buffer> {
   const ssml =
     `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${locale}">` +
     `<voice name="${voice}">` +
-    `<prosody rate="-10%">${escapeXml(text)}</prosody>` +
+    `<prosody pitch="${PROSODY.pitch}" rate="${PROSODY.rate}">${escapeXml(text)}</prosody>` +
     `</voice></speak>`;
 
   const response = await fetch(url, {
