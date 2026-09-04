@@ -508,15 +508,19 @@
         align-items: center;
       }
       /* The bar: an ink-edged trough with a painted fill, in 25 steps. */
+      /* One line with the chest: the bar carries its own count, and the
+         full-chest tally sits after it, all on the chest's centre line. */
       .progress {
         flex: 1 1 auto;
         min-width: 0;
-        display: grid;
-        gap: 0.3rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
       }
       .progress-bar {
         position: relative;
-        height: 1.1rem;
+        flex: 1 1 auto;
+        height: 1.7rem;
         background: var(--panel);
         border: 2px solid var(--line);
         border-radius: var(--wobble-small);
@@ -546,12 +550,33 @@
         pointer-events: none;
       }
       .progress-text {
-        display: flex;
-        justify-content: space-between;
-        gap: 0.75rem;
+        display: contents;
         font-family: var(--hand);
         font-size: 0.95rem;
         color: var(--muted);
+      }
+      /* The count rides inside the bar; the tally of full chests follows it. */
+      .progress-count {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--hand);
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--ink);
+        pointer-events: none;
+      }
+      .progress-full {
+        flex: 0 0 auto;
+        font-family: var(--hand);
+        font-size: 0.95rem;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .progress-full:empty {
+        display: none;
       }
       #bank h2 {
         flex: 0 0 auto;
@@ -914,8 +939,9 @@
           <div class="progress" id="progress">
             <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="25" aria-valuenow="0" id="progress-bar">
               <div class="progress-fill" id="progress-fill"></div>
+              <span class="progress-count" id="progress-count"></span>
             </div>
-            <div class="progress-text" id="progress-text"></div>
+            <span class="progress-full" id="progress-full"></span>
           </div>
           <!-- Which chest's words are listed below. Only shown once there is
                more than one chest to choose from. -->
@@ -950,7 +976,8 @@
       const bankCount = document.querySelector('#bank-count');
       const progressBar = document.querySelector('#progress-bar');
       const progressFill = document.querySelector('#progress-fill');
-      const progressText = document.querySelector('#progress-text');
+      const progressCount = document.querySelector('#progress-count');
+      const progressFull = document.querySelector('#progress-full');
       const groupSelect = document.querySelector('#group');
       const chestToggle = document.querySelector('#chest-toggle');
       const chestWrap = document.querySelector('.chest-wrap');
@@ -1703,12 +1730,8 @@
         const inChest = total - full * CHEST_SIZE;
         progressFill.style.width = `${(inChest / CHEST_SIZE) * 100}%`;
         progressBar.setAttribute('aria-valuenow', String(inChest));
-        progressText.replaceChildren();
-        const count = document.createElement('span');
-        count.textContent = `${inChest} / ${CHEST_SIZE}`;
-        const chests = document.createElement('span');
-        chests.textContent = full > 0 ? D.chestsFull(full) : '';
-        progressText.append(count, chests);
+        progressCount.textContent = `${inChest} / ${CHEST_SIZE}`;
+        progressFull.textContent = full > 0 ? D.chestsFull(full) : '';
       }
 
       /** The chest picker: one entry per 25 words, the newest chest last. */
