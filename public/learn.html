@@ -433,7 +433,9 @@
         gap: 0.35rem;
       }
       .chunk .say {
-        display: none;
+        display: inline-flex;
+        /* Present in every chunk, so nothing shifts when it shows. */
+        visibility: hidden;
         align-items: center;
         gap: 0.05rem;
         padding: 0.1rem 0.15rem;
@@ -445,7 +447,7 @@
         line-height: 0;
       }
       .chunk.open .say {
-        display: inline-flex;
+        visibility: visible;
       }
       .chunk .say svg:first-child {
         width: 1.15rem;
