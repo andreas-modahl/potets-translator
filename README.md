@@ -212,7 +212,7 @@ puts it back together.
   follow the learner to the next device. Login is a plain OAuth redirect:
   no Google script runs on the page, and the session is a signed cookie.
 
-Ask for a sentence at a level (nybegynner, viderekommen, avansert) and optionally
+Ask for a sentence at a level (start, nybegynner, viderekommen, avansert) and optionally
 on a topic, or paste in your own sentence — Norwegian or Turkish, either way.
 
 Generated lessons are pooled in an SQLite file (`LESSON_DB`). A request for a

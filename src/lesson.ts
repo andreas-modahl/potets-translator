@@ -49,9 +49,9 @@ export interface Lesson {
   focus?: string;
 }
 
-export type Level = 'nybegynner' | 'viderekommen' | 'avansert';
+export type Level = 'start' | 'nybegynner' | 'viderekommen' | 'avansert';
 
-export const LEVELS: readonly Level[] = ['nybegynner', 'viderekommen', 'avansert'];
+export const LEVELS: readonly Level[] = ['start', 'nybegynner', 'viderekommen', 'avansert'];
 
 interface Direction {
   /** The language being learned, and the learner's own, as the prompt names them. */
@@ -71,6 +71,8 @@ const DIRECTIONS: Record<Learning, Direction> = {
     target: 'Turkish',
     native: 'Norwegian (bokmål)',
     level: {
+      start:
+        'A very first sentence for someone who knows almost no Turkish: 2-4 words, present tense, only the most common words (I, you, this, a dog, to be, to have, to like, good, big), and no suffix beyond the one the sentence cannot do without. Keep any note to one short line.',
       nybegynner:
         'A first-year sentence: 4-7 words, present tense, everyday vocabulary, at most one suffix worth explaining.',
       viderekommen:
@@ -91,6 +93,8 @@ const DIRECTIONS: Record<Learning, Direction> = {
     target: 'Norwegian (bokmål)',
     native: 'Turkish',
     level: {
+      start:
+        'A very first sentence for someone who knows almost no Norwegian: 2-4 words, present tense, only the most common words (jeg, du, dette, en hund, å være, å ha, å like, god, stor), and no ending beyond the one the sentence cannot do without. Keep any note to one short line.',
       nybegynner:
         'A first-year sentence: 4-7 words, present tense, everyday vocabulary, at most one grammar point worth explaining.',
       viderekommen:
