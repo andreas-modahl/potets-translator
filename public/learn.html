@@ -2208,7 +2208,14 @@
       levelButton.addEventListener('click', () => {
         const at = D.levels.findIndex(([key]) => key === level);
         setLevel(D.levels[(at + 1) % D.levels.length][0]);
-        schedulePrefetch();
+        // A new level is a fresh start: the sentences so far were at the old
+        // one, so they go, and the first sentence at this level comes at once.
+        history = [];
+        saveHistory();
+        cursor = -1;
+        current = { chunks: [] };
+        prefetched = null;
+        form.requestSubmit();
       });
 
       /* Direction switch ------------------------------------------------- */
