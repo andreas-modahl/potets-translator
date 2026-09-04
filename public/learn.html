@@ -23,10 +23,28 @@
          proper button gives the same one-letter hint for the word in focus.
          On a keyboard it doubles as the place the shortcut is written down. */
       .hint-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
         margin-top: 1rem;
       }
       .hint-row button {
         padding: 0.5rem 1rem;
+      }
+      /* The letters the language has and a foreign keyboard may not: one
+         key each, typed into the blank in focus. */
+      .special-keys {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-left: auto;
+      }
+      .hint-row .special {
+        min-width: 2.4rem;
+        padding: 0.35rem 0.5rem;
+        font-size: 1.15rem;
+        line-height: 1;
       }
       .hint-row .key {
         margin-left: 0.35rem;
@@ -44,9 +62,17 @@
         }
       }
       @media (hover: none), (pointer: coarse) {
-        .hint-row button {
+        .hint-row #hint {
           width: 100%;
           padding: 0.7rem 1rem;
+        }
+        .special-keys {
+          width: 100%;
+          margin-left: 0;
+        }
+        .hint-row .special {
+          flex: 1 1 0;
+          padding: 0.6rem 0.4rem;
         }
       }
       /* The one keyboard shortcut, written beside the speaker it belongs with. */
@@ -880,6 +906,7 @@
         <div class="comparator" id="comparator"></div>
         <div class="hint-row">
           <button type="button" id="hint" class="ghost">Hint: én bokstav <kbd class="key">.</kbd></button>
+          <div class="special-keys" id="special-keys" role="group"></div>
         </div>
         <div id="detail"></div>
         <div id="explanations" hidden></div>
@@ -947,6 +974,7 @@
       const lessonCard = document.querySelector('#lesson');
       const comparator = document.querySelector('#comparator');
       const hintButton = document.querySelector('#hint');
+      const specialKeys = document.querySelector('#special-keys');
       const naturalRow = document.querySelector('#natural-row');
       const naturalLine = document.querySelector('#natural');
       const speakButton = document.querySelector('#speak');
@@ -1054,6 +1082,8 @@
           speak: 'Les opp setningen',
           keyHelp: ['leser ordet du står i', 'hele setningen'],
           hint: 'Hint: én bokstav',
+          specials: ['ç', 'ğ', 'ı', 'ö', 'ş', 'ü'],
+          typeLetter: (letter) => `Skriv ${letter}`,
           hintWord: 'Hint: én bokstav til',
           blankFor: (native) => `Tyrkisk for «${native}»`,
           prev: 'Forrige setning',
@@ -1100,6 +1130,8 @@
           speak: 'Cümleyi seslendir',
           keyHelp: ['bulunduğun kelimeyi okur', 'tüm cümleyi'],
           hint: 'İpucu: bir harf',
+          specials: ['æ', 'ø', 'å'],
+          typeLetter: (letter) => `${letter} yaz`,
           hintWord: 'İpucu: bir harf daha',
           blankFor: (native) => `«${native}» için Norveççe`,
           prev: 'Önceki cümle',
@@ -1303,6 +1335,43 @@
         if (isSolved(index)) focusNextOpen();
       });
 
+      /* Special letters ----------------------------------------------------
+         The target language's own letters as keys, for a keyboard without
+         them. Typing one lands in the blank in focus, or the first open one. */
+
+      function renderSpecialKeys() {
+        specialKeys.replaceChildren();
+        for (const letter of D.specials) {
+          const key = document.createElement('button');
+          key.type = 'button';
+          key.className = 'special ghost';
+          key.lang = D.target;
+          key.textContent = letter;
+          key.title = D.typeLetter(letter);
+          key.setAttribute('aria-label', D.typeLetter(letter));
+          // Keep the focus and caret where they are; the click types the letter.
+          key.addEventListener('mousedown', (event) => event.preventDefault());
+          key.addEventListener('click', () => typeLetter(letter));
+          specialKeys.append(key);
+        }
+      }
+
+      function typeLetter(letter) {
+        const active = document.activeElement;
+        let field = active?.classList?.contains('tr') && comparator.contains(active) ? active : null;
+        if (!field && selected >= 0 && !isSolved(selected)) field = comparator.children[selected]?.querySelector('.tr');
+        if (!field) field = [...comparator.children].find((box) => !box.classList.contains('correct'))?.querySelector('.tr');
+        if (!field) return;
+        if (document.activeElement !== field) placeCaretAtEnd(field);
+        // insertText goes through the same path as a keystroke, so the
+        // field's input handler checks the word and moves on when it fits.
+        if (!document.execCommand?.('insertText', false, letter)) {
+          field.textContent += letter;
+          placeCaretAtEnd(field);
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+
       /** After help, the caret goes to the first blank still to be done. */
       function focusNextOpen() {
         const box = [...comparator.children].find((candidate) => !candidate.classList.contains('correct'));
@@ -1310,9 +1379,10 @@
         if (field) placeCaretAtEnd(field);
       }
 
-      /** Letters folded to their plain Latin base, so ş and s, ı and i, ğ and
-          g, ö and o, ü and u, ç and c, æ and a, ø and o, å and a all count
-          the same. The point is the word and its order, not the keyboard. */
+      /** Letters folded to their plain Latin base, in either language, so ş
+          and s, ı and i, ğ and g, ö and o, ü and u, ç and c, æ and a, ø and
+          o, å and a all count the same. Both the typed word and the answer go
+          through this: the point is the word and its order, not the keyboard. */
       function fold(text) {
         return text
           .trim()
@@ -1322,6 +1392,11 @@
           .replace(/ø/g, 'o')
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '')
+          // The way å, ø and æ are typed on a keyboard without them. Applied to
+          // the answer too, so a word that really has "oe" (poeng) still matches.
+          .replace(/aa/g, 'a')
+          .replace(/oe/g, 'o')
+          .replace(/ae/g, 'a')
           .replace(/[’'`´]/g, '')
           // Punctuation the model left glued to a word is not part of the
           // spelling, and the full stop is the hint key besides.
@@ -2086,6 +2161,7 @@
         keyHelp.replaceChildren();
         keyHelp.append(kbd('|'), ` ${D.keyHelp[0]} · `, kbd('|'), kbd('|'), ` ${D.keyHelp[1]}`);
         hintButton.replaceChildren(`${D.hint} `, Object.assign(kbd('.'), { className: 'key' }));
+        renderSpecialKeys();
         backButton.title = D.prev;
         backButton.setAttribute('aria-label', D.prev);
         document.querySelector('.steps').setAttribute('aria-label', D.browse);
