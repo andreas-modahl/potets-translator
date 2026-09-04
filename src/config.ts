@@ -85,6 +85,8 @@ export const config = {
   azureSpeechVoice: optional('AZURE_SPEECH_VOICE') ?? 'tr-TR-EmelNeural',
   azureSpeechVoiceNb: optional('AZURE_SPEECH_VOICE_NB') ?? 'nb-NO-PernilleNeural',
   speechCacheDir: optional('SPEECH_CACHE_DIR') ?? 'data/speech',
+  /** The SQLite file generated lessons are pooled in. "off" turns the pool off. */
+  lessonDb: optional('LESSON_DB') ?? 'data/lessons.db',
   /** SSML prosody for the ball voice: pitch and rate as Azure accepts them. */
   speechPitch: optional('SPEECH_PITCH') ?? '+0%',
   speechRate: optional('SPEECH_RATE') ?? '-15%',

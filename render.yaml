@@ -5,10 +5,16 @@ services:
   - type: web
     name: potets-translator
     runtime: node
-    plan: free
+    # Starter: no sleeping, and a disk can be attached. The disk keeps the
+    # lesson pool and the generated speech across deploys.
+    plan: starter
     buildCommand: npm ci && npm run build
     startCommand: npm run web:start
     healthCheckPath: /
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
     # DNS is set up at the registrar (see README, "Custom domain").
     domains:
       - languageballs.com
@@ -26,6 +32,10 @@ services:
         value: claude-haiku-4-5-20251001
       - key: WEB_PORT
         value: 10000
+      - key: LESSON_DB
+        value: /var/data/lessons.db
+      - key: SPEECH_CACHE_DIR
+        value: /var/data/speech
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: AZURE_SPEECH_KEY

@@ -204,6 +204,12 @@ puts it back together.
 Ask for a sentence at a level (nybegynner, viderekommen, avansert) and optionally
 on a topic, or paste in your own sentence — Norwegian or Turkish, either way.
 
+Generated lessons are pooled in an SQLite file (`LESSON_DB`). A request for a
+direction, level and topic that already has lessons on its shelf is answered
+from disk, skipping the sentences that learner has already had, and the shelf
+is topped up in the background until it holds a dozen. Sentences the learner
+pastes in are never pooled.
+
 The breakdown is checked before it is shown: the pieces must walk the sentence
 start to end without skipping or repeating a word, and a morpheme split must
 really spell the word it claims to. A breakdown that fails is thrown away rather
@@ -215,12 +221,13 @@ false. When that happens the page says so and the sentence is shown whole.
 The page needs the server, because the server holds the keys, so it cannot be
 hosted as static files on GitHub Pages. Two ready-made routes:
 
-- **Render.** `render.yaml` is a blueprint for a free web service. In the Render
-  dashboard choose *New → Blueprint*, point it at this repository, and paste in
-  `ANTHROPIC_API_KEY` and `AZURE_SPEECH_KEY` when prompted. Change
-  `AZURE_SPEECH_REGION` in the file if your Speech resource is elsewhere. The
-  free plan sleeps after idle time, so the first load after a pause takes a
-  moment.
+- **Render.** `render.yaml` is a blueprint for a Starter web service with a
+  1 GB disk at `/var/data`. In the Render dashboard choose *New → Blueprint*,
+  point it at this repository, and paste in `ANTHROPIC_API_KEY` and
+  `AZURE_SPEECH_KEY` when prompted. Change `AZURE_SPEECH_REGION` in the file if
+  your Speech resource is elsewhere. The disk holds the lesson pool and the
+  generated speech, so both survive deploys; on the free plan (no disk) they
+  are rebuilt after each one, and the service sleeps when idle.
 - **Any container host** (Fly.io, Railway, a VPS). `Dockerfile` builds an image
   that runs `node dist/server.js` on port 3000. Pass the same variables as
   environment variables. Generated speech is cached under `data/speech/`, so
@@ -299,6 +306,7 @@ If cost is the main constraint, set `CLAUDE_MODEL=claude-haiku-4-5-20251001`.
 | `src/translate.ts` | The Claude call, prompt, and structured output |
 | `src/lesson.ts` | The lesson call: Turkish sentence, breakdown, morphemes |
 | `src/align.ts` | Checking that a breakdown really fits its sentence |
+| `src/pool.ts` | The lesson pool: generated lessons kept in SQLite and shared |
 | `src/poster.ts` | Posting, editing and deleting translations |
 | `src/filter.ts` | Deciding which messages are worth translating |
 | `src/commands.ts` | The `/translator` slash command |

@@ -5,8 +5,9 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { fileURLToPath } from 'node:url';
 import { assertTranslatorConfigured, config, type ExplainMode } from './config.js';
 import { parseTargets } from './languages.js';
-import { LEARNINGS, LEVELS, lesson, type Learning, type Level } from './lesson.js';
+import { LEARNINGS, LEVELS, lesson, type Learning, type Lesson, type LessonRequest, type Level } from './lesson.js';
 import { Limiter } from './limiter.js';
+import { LessonPool, POOL_TARGET, topicKey } from './pool.js';
 import { speak, speechConfigured, speechFingerprint, SpeechUnavailable } from './speech.js';
 import { translate } from './translate.js';
 
@@ -253,9 +254,46 @@ function parseLesson(raw: string): {
   };
 }
 
+const pool = config.lessonDb === 'off' ? undefined : new LessonPool(config.lessonDb);
+
+/** Shelves being topped up right now, so a burst of requests adds one lesson, not five. */
+const toppingUp = new Set<string>();
+
+/**
+ * Adds one lesson to a shelf in the background, steering the model away from
+ * what is already on it. Nothing waits for this; the learner who caused it
+ * already has their sentence.
+ */
+function topUp(asked: LessonRequest): void {
+  if (!pool) return;
+  const key = `${asked.learning}/${asked.level}/${topicKey(asked.topic)}`;
+  if (toppingUp.has(key)) return;
+  toppingUp.add(key);
+  const request: LessonRequest = { ...asked, avoid: pool.targets(asked).slice(-MAX_AVOID) };
+  limiter
+    .run(() => lesson(request))
+    .then((made) => {
+      pool.store(request, made);
+    })
+    .catch((error: unknown) => {
+      console.warn(`Topping up ${key} failed: ${(error as Error).message}`);
+    })
+    .finally(() => {
+      toppingUp.delete(key);
+    });
+}
+
 async function handleLesson(request: IncomingMessage, response: ServerResponse): Promise<void> {
   const asked = parseLesson(await readBody(request));
-  const result = await limiter.run(() => lesson(asked));
+
+  // A sentence of the learner's own is theirs; only generated ones are shared.
+  let result: Lesson | undefined = asked.text ? undefined : pool?.pick(asked);
+  if (result) {
+    if (pool && pool.count(asked) < POOL_TARGET) topUp(asked);
+  } else {
+    result = await limiter.run(() => lesson(asked));
+    if (!asked.text) pool?.store(asked, result);
+  }
   send(response, 200, result);
 }
 
