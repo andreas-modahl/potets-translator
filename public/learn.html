@@ -483,6 +483,62 @@
         font-size: 1.15rem;
         line-height: 1.4;
       }
+      /* The sentence being learned, under the native one, filling in word
+         by word as the blanks are solved: the gaps are the words still to
+         come, drawn at their length, so the shape of the sentence is there
+         from the start and the punctuation with it. */
+      .natural .target-line {
+        flex: 1 0 100%;
+        font-size: 1.15rem;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+      .target-line .piece {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .target-line .piece.fresh {
+        animation: settle 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+      }
+      .target-line .gap {
+        display: inline-block;
+        height: 0.9em;
+        vertical-align: -0.15em;
+        border-bottom: 2px solid var(--faint);
+        border-radius: 0 0 40% 60% / 0 0 4px 3px;
+      }
+      @keyframes settle {
+        0% {
+          transform: translateY(-0.3em);
+          color: var(--accent);
+        }
+        60% {
+          color: var(--accent);
+        }
+      }
+      /* Sentences finished in a row without a hint, beside the next button. */
+      .streak {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.7rem;
+        font-family: var(--hand);
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--ink);
+        background: var(--mark);
+        border: 1.5px solid var(--line);
+        border-radius: 999px;
+        box-shadow: 2px 2px 0 var(--line);
+        transform: rotate(2deg);
+        white-space: nowrap;
+      }
+      .streak[hidden] {
+        display: none;
+      }
+      .streak.bump {
+        animation: nudge 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+      }
 
       /* Once the whole sentence is in, every word that has something inside
          it is opened up underneath: root plus suffixes, and the grammar note. */
@@ -924,6 +980,7 @@
 
       <div class="natural" id="natural-row" hidden>
         <p id="natural" lang="nb"></p>
+        <p class="target-line" id="target-line" lang="tr" aria-live="polite"></p>
       </div>
 
       <article id="lesson" class="card" hidden>
@@ -958,6 +1015,7 @@
           </svg>
           <span class="spinner" aria-hidden="true"></span>
         </button>
+        <span class="streak" id="streak" hidden></span>
       </div>
 
       <section id="bank">
@@ -1013,6 +1071,8 @@
       const specialKeys = document.querySelector('#special-keys');
       const naturalRow = document.querySelector('#natural-row');
       const naturalLine = document.querySelector('#natural');
+      const builtLine = document.querySelector('#target-line');
+      const streakPill = document.querySelector('#streak');
       const speakButton = document.querySelector('#speak');
       const speakBall = document.querySelector('#speak-ball');
       const detail = document.querySelector('#detail');
@@ -1124,6 +1184,8 @@
           prev: 'Forrige setning',
           next: 'Neste setning',
           done: 'Flott! Neste',
+          streak: (n) => `${n} på rad`,
+          streakHelp: 'Setninger på rad uten hint',
           fresh: 'Ny setning',
           browse: 'Bla i setninger',
           bank: 'Ordbank',
@@ -1173,6 +1235,8 @@
           prev: 'Önceki cümle',
           next: 'Sonraki cümle',
           done: 'Harika! Sıradaki',
+          streak: (n) => `${n} üst üste`,
+          streakHelp: 'İpucu almadan üst üste bitirilen cümleler',
           fresh: 'Yeni cümle',
           browse: 'Cümleler arasında gez',
           bank: 'Kelime sandığı',
@@ -1329,6 +1393,11 @@
         const field = box.querySelector('.tr');
         box.classList.add('helped');
         struggled(chunk);
+        // A hint ends the run right away, not at the end of the sentence.
+        if (streak > 0) {
+          streak = 0;
+          renderStreak();
+        }
         const answer = chunk.target;
         // Keep a trailing space: in a multi-word chunk it is the letter that
         // was just given, and trimming it would hand out the same space again.
@@ -1456,6 +1525,7 @@
         box.querySelector('.marks').textContent = marksFor(chunk.target, typed);
         const solvedNow = box.classList.contains('correct');
         if (solvedNow === wasSolved) return;
+        renderBuilt(solvedNow ? chunk : undefined);
 
         // A near-miss on the letters still counts, but the word left on screen
         // is the real spelling: ş where s was typed, ø where o was.
@@ -1474,10 +1544,78 @@
         if (sentenceDone()) {
           renderExplanations();
           setReady(true, chestFilled);
+          countSentence();
           submitButton.focus();
         } else {
           explanations.hidden = true;
           setReady(false);
+        }
+      }
+
+      /** The sentence being learned, with the words solved so far in place
+          and a gap the length of each word still to come. The chunks run in
+          sentence order, so each is looked for after the one before it, and
+          whatever lies between (a comma, a space, a full stop) is kept. */
+      function renderBuilt(fresh) {
+        builtLine.replaceChildren();
+        builtLine.lang = D.target;
+        if (!current.chunks?.length || !current.target) {
+          builtLine.hidden = true;
+          return;
+        }
+        builtLine.hidden = false;
+        const sentence = current.target;
+        const lower = sentence.toLocaleLowerCase(D.target);
+        let at = 0;
+        for (const [index, chunk] of current.chunks.entries()) {
+          const found = lower.indexOf(chunk.target.toLocaleLowerCase(D.target), at);
+          let shown = chunk.target;
+          if (found >= 0) {
+            builtLine.append(sentence.slice(at, found));
+            shown = sentence.slice(found, found + chunk.target.length);
+            at = found + chunk.target.length;
+          } else if (index > 0) {
+            // A chunk that does not sit in the sentence as written still
+            // gets its place in the line, with a space before it.
+            builtLine.append(' ');
+          }
+          const node = document.createElement('span');
+          if (isSolved(index)) {
+            node.className = chunk === fresh ? 'piece fresh' : 'piece';
+            node.textContent = shown;
+          } else {
+            node.className = 'gap';
+            node.style.width = `${Math.max(2, chunk.target.length)}ch`;
+            node.setAttribute('aria-label', '…');
+          }
+          builtLine.append(node);
+        }
+        builtLine.append(sentence.slice(at));
+      }
+
+      /* Streak ------------------------------------------------------------
+         Sentences finished in a row without a hint. It lives for the visit
+         only: it is a run, not a score, and the chest is the score. */
+
+      let streak = 0;
+      let streakCounted = false;
+
+      function countSentence() {
+        if (streakCounted) return;
+        streakCounted = true;
+        const helped = [...comparator.children].some((box) => box.classList.contains('helped'));
+        streak = helped ? 0 : streak + 1;
+        renderStreak(true);
+      }
+
+      function renderStreak(bump = false) {
+        streakPill.hidden = streak < 2;
+        streakPill.textContent = D.streak(streak);
+        streakPill.title = D.streakHelp;
+        streakPill.classList.remove('bump');
+        if (bump && streak >= 2) {
+          void streakPill.offsetWidth;
+          streakPill.classList.add('bump');
         }
       }
 
@@ -1801,6 +1939,8 @@
         explanations.hidden = true;
 
         naturalLine.replaceChildren(bone('60%'));
+        builtLine.hidden = false;
+        builtLine.replaceChildren(bone('45%'));
         naturalRow.hidden = false;
 
         for (const width of [3, 6, 4, 7, 5]) {
@@ -1847,6 +1987,8 @@
         for (const [index, chunk] of result.chunks.entries()) {
           comparator.append(chunkField(chunk, index));
         }
+        streakCounted = false;
+        renderBuilt();
 
         // With no breakdown there is nothing to line up, so the sentence is
         // shown as one piece rather than pretending to a word-by-word split.
@@ -2271,6 +2413,8 @@
         applyDirection();
         setLevel(recall(keyFor('niva')) ?? 'nybegynner');
         renderBank(loadBank());
+        streak = 0;
+        renderStreak();
         // Left behind by the short-lived XP bar.
         try {
           localStorage.removeItem(keyFor('xp'));
