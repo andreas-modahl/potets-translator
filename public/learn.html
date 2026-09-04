@@ -586,6 +586,30 @@
       .chest {
         display: block;
         filter: drop-shadow(3px 3px 0 var(--line));
+        transition: transform 0.2s cubic-bezier(0.2, 1.4, 0.4, 1);
+      }
+      /* An invisible button laid over the chest, so the drawing is the control. */
+      .chest-toggle {
+        position: absolute;
+        inset: -0.25rem;
+        z-index: 1;
+        padding: 0;
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+        border-radius: 12px;
+        cursor: pointer;
+      }
+      .chest-toggle:hover,
+      .chest-toggle:active {
+        transform: none;
+        box-shadow: none;
+      }
+      .chest-wrap:hover .chest {
+        transform: translateY(-2px) rotate(-2deg);
+      }
+      .chest-wrap[data-open='true'] .chest {
+        transform: rotate(2deg);
       }
       @media (prefers-color-scheme: dark) {
         #bank h2 {
@@ -617,49 +641,97 @@
         text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
         pointer-events: none;
       }
+      /* The words as badges: painted tags that wrap across the row, each
+         with the word, its gloss underneath, a tally, and a tiny remove. */
       .bank-list {
-        display: grid;
-        gap: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.7rem 0.6rem;
         margin: 1.25rem 0 0;
         padding: 0;
         list-style: none;
       }
       .bank-list li {
-        display: flex;
-        gap: 0.4rem 0.75rem;
+        position: relative;
+        display: grid;
+        grid-template-columns: auto auto;
+        grid-template-rows: auto auto;
+        column-gap: 0.4rem;
         align-items: baseline;
-        padding: 0.5rem 0.85rem;
+        padding: 0.35rem 1.7rem 0.4rem 0.75rem;
         background: var(--panel);
         border: 2px solid var(--line);
         border-radius: var(--wobble-small);
         box-shadow: 3px 3px 0 var(--line);
+        transform: rotate(var(--tilt, 0deg));
+      }
+      /* Every other badge leans a touch the other way, like stickers. */
+      .bank-list li:nth-child(3n + 1) {
+        --tilt: -1deg;
+      }
+      .bank-list li:nth-child(3n) {
+        --tilt: 1deg;
       }
       .bank-list .tr {
-        flex: 0 0 auto;
-        min-width: 5rem;
-        font-weight: 600;
+        grid-column: 1;
+        font-size: 1.05rem;
+        font-weight: 700;
       }
-      /* The gloss gives way first, so the tally and the button stay on the line. */
       .bank-list .no {
-        flex: 1 1 4rem;
-        min-width: 0;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        font-family: var(--hand);
+        font-size: 0.85rem;
+        line-height: 1.2;
         color: var(--muted);
       }
-      .bank-list .tally,
-      .bank-list button {
-        flex: 0 0 auto;
-      }
       .bank-list .tally {
-        font-size: 0.8rem;
+        grid-column: 2;
+        grid-row: 1;
+        font-size: 0.75rem;
         font-variant-numeric: tabular-nums;
         color: var(--faint);
       }
       .bank-list button {
-        width: 1.6rem;
-        height: 1.6rem;
+        position: absolute;
+        top: 0.15rem;
+        right: 0.15rem;
+        width: 1.15rem;
+        height: 1.15rem;
         padding: 0;
-        font-size: 0.95rem;
+        font-size: 0.85rem;
         line-height: 1;
+        color: var(--muted);
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+        opacity: 0.5;
+      }
+      .bank-list li:hover button {
+        opacity: 1;
+      }
+      /* Rarity, by how many pieces the word is built from. */
+      .bank-list li.sjelden {
+        background: color-mix(in srgb, var(--teal) 18%, var(--panel));
+      }
+      .bank-list li.episk {
+        background: color-mix(in srgb, #7c5cbf 22%, var(--panel));
+      }
+      .bank-list li.legendarisk {
+        background: color-mix(in srgb, var(--ochre) 45%, var(--panel));
+        box-shadow:
+          3px 3px 0 var(--line),
+          0 0 0 3px color-mix(in srgb, var(--ochre) 45%, transparent);
+      }
+      .bank-list li.legendarisk .tr {
+        color: var(--accent);
+      }
+      .bank-list button:hover,
+      .bank-list button:active {
+        color: var(--bad);
+        background: var(--sunk);
+        transform: none;
+        box-shadow: none;
       }
 
       /* Fireworks -------------------------------------------------------
@@ -814,6 +886,9 @@
       <section id="bank">
         <header>
           <h2 class="chest-wrap">
+            <!-- The chest itself is the toggle: closed shows the newest few
+                 words, open shows a whole chest at a time. -->
+            <button type="button" id="chest-toggle" class="chest-toggle" aria-expanded="false" aria-controls="bank-list"></button>
             <span class="fireworks" id="fireworks" aria-hidden="true"></span>
             <!-- The tally sits on the front of the chest, so the body is kept
                  clear: bands only on the lid, and a small latch at its edge. -->
@@ -877,8 +952,27 @@
       const progressFill = document.querySelector('#progress-fill');
       const progressText = document.querySelector('#progress-text');
       const groupSelect = document.querySelector('#group');
+      const chestToggle = document.querySelector('#chest-toggle');
+      const chestWrap = document.querySelector('.chest-wrap');
       /** Which chest is listed; -1 means the one being filled. */
       let viewGroup = -1;
+      /** Closed: the newest few words. Open: a whole chest, with the picker. */
+      let chestOpen = false;
+      const PEEK = 5;
+
+      /** Rarity by pieces: a bare word is common, a word of four or more
+          pieces is legendary. Old entries without a count are common. */
+      function rarityOf(pieces) {
+        if (pieces >= 4) return 'legendarisk';
+        if (pieces === 3) return 'episk';
+        if (pieces === 2) return 'sjelden';
+        return 'vanlig';
+      }
+
+      chestToggle.addEventListener('click', () => {
+        chestOpen = !chestOpen;
+        renderBank(loadBank());
+      });
       /** Words per chest: the bar fills to here and starts over. */
       const CHEST_SIZE = 25;
       const chest = document.querySelector('#chest');
@@ -924,6 +1018,8 @@
           browse: 'Bla i setninger',
           bank: 'Ordbank',
           chest: 'Kiste',
+          chestOpen: 'Åpne kisten og vis alle ordene',
+          chestClose: 'Lukk kisten',
           chestsFull: (n) => (n === 1 ? '1 kiste full' : `${n} kister fulle`),
           inBank: 'Ligger i ordbanken',
           tally: 'Ganger skrevet riktig uten hjelp',
@@ -963,6 +1059,8 @@
           browse: 'Cümleler arasında gez',
           bank: 'Kelime sandığı',
           chest: 'Sandık',
+          chestOpen: 'Sandığı aç ve tüm kelimeleri göster',
+          chestClose: 'Sandığı kapat',
           chestsFull: (n) => `${n} sandık dolu`,
           inBank: 'Sandıkta var',
           tally: 'Yardımsız doğru yazma sayısı',
@@ -1388,6 +1486,7 @@
             target: chunk.target,
             native: chunk.native,
             count: 1,
+            pieces: chunk.morphemes?.length ?? 0,
             ...(chunk.note ? { note: chunk.note } : {}),
           },
         ]);
@@ -1642,14 +1741,25 @@
         // No chest until there is something in it.
         bank.hidden = words.length === 0;
         renderProgress(words.length);
-        const group = renderGroups(words.length);
-        const start = group * CHEST_SIZE;
-        const shown = words
-          .map((word, index) => [index, word])
-          .slice(start, start + CHEST_SIZE);
+        chestWrap.dataset.open = String(chestOpen);
+        chestToggle.setAttribute('aria-expanded', String(chestOpen));
+        chestToggle.setAttribute('aria-label', chestOpen ? D.chestClose : D.chestOpen);
+        chestToggle.title = chestOpen ? D.chestClose : D.chestOpen;
+
+        const indexed = words.map((word, index) => [index, word]);
+        let shown;
+        if (chestOpen) {
+          const group = renderGroups(words.length);
+          const start = group * CHEST_SIZE;
+          shown = indexed.slice(start, start + CHEST_SIZE);
+        } else {
+          groupSelect.hidden = true;
+          shown = indexed.slice(-PEEK).reverse();
+        }
 
         for (const [index, word] of shown) {
           const item = document.createElement('li');
+          item.className = rarityOf(word.pieces ?? 0);
 
           const target = document.createElement('span');
           target.className = 'tr';
@@ -1704,7 +1814,13 @@
           const response = await fetch('/api/lesson', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ learning, level, topic: topicField.value.trim() }),
+            body: JSON.stringify({
+              learning,
+              level,
+              topic: topicField.value.trim(),
+              // The recent sentences, so the next one is not one of them.
+              avoid: history.slice(-30).map((entry) => entry.target),
+            }),
           });
           const result = await response.json().catch(() => ({}));
           // A flip while waiting means this answer belongs to the other side.

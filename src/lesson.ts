@@ -221,9 +221,63 @@ export interface LessonRequest {
   /** What a generated sentence should be about. */
   topic?: string;
   level: Level;
+  /** Sentences the learner has already had, so the next one is not a repeat. */
+  avoid?: string[];
 }
 
-function brief({ learning, text, topic, level }: LessonRequest): string {
+/**
+ * With no topic given, the model reaches for the same first-year sentence
+ * every time. One of these is drawn at random instead, so consecutive lessons
+ * wander through different corners of everyday life.
+ */
+const SITUATIONS = [
+  'at the market buying fruit',
+  'asking for directions in a city',
+  'ordering food at a restaurant',
+  'talking about the weather',
+  'a phone call with a friend',
+  'at the doctor',
+  'looking for a flat to rent',
+  'a birthday party',
+  'on the bus or train',
+  'cooking dinner at home',
+  'at the airport',
+  'meeting a neighbour',
+  'a day at the beach',
+  'walking the dog',
+  'at work, a meeting',
+  'shopping for clothes',
+  'a football match',
+  'visiting grandparents',
+  'at the pharmacy',
+  'planning a holiday',
+  'in the library',
+  'a rainy morning',
+  'at the gym',
+  'a wedding',
+  'losing your keys',
+  'at the hairdresser',
+  'a picnic in the park',
+  'a late night with friends',
+  'the first day at a new job',
+  'at the bank',
+  'gardening',
+  'a cat and a bird',
+  'a broken phone',
+  'a long queue',
+  'cleaning the house',
+  'a school trip',
+  'a snowy day',
+  'at the cinema',
+  'writing a letter',
+  'a trip to the mountains',
+];
+
+function randomSituation(): string {
+  return SITUATIONS[Math.floor(Math.random() * SITUATIONS.length)] ?? SITUATIONS[0]!;
+}
+
+function brief({ learning, text, topic, level, avoid }: LessonRequest): string {
   const d = DIRECTIONS[learning];
   if (text) {
     return (
@@ -233,8 +287,12 @@ function brief({ learning, text, topic, level }: LessonRequest): string {
       `<sentence>\n${text}\n</sentence>`
     );
   }
-  const about = topic ? `\n\nThe sentence should be about: ${topic}` : '';
-  return `Write one ${d.target} sentence for the student and break it down.\n\n${d.level[level]}${about}`;
+  const about = `\n\nThe sentence should be about: ${topic ?? randomSituation()}`;
+  const seen = avoid?.length
+    ? `\n\nThe student has already had these sentences. Do not repeat or lightly reword any of them; use different vocabulary and a different structure:\n` +
+      avoid.map((sentence) => `- ${sentence}`).join('\n')
+    : '';
+  return `Write one ${d.target} sentence for the student and break it down.\n\n${d.level[level]}${about}${seen}`;
 }
 
 function parseMorphemes(value: unknown, word: string): Morpheme[] | undefined {

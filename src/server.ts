@@ -189,11 +189,15 @@ async function handleAsset(response: ServerResponse, asset: Asset): Promise<void
  * Reads the learn page's form: either a sentence the learner typed, or the
  * topic and level to build one from.
  */
+/** How many earlier sentences the prompt is told to steer clear of. */
+const MAX_AVOID = 30;
+
 function parseLesson(raw: string): {
   learning: Learning;
   text?: string;
   topic?: string;
   level: Level;
+  avoid?: string[];
 } {
   let parsed: unknown;
   try {
@@ -203,17 +207,24 @@ function parseLesson(raw: string): {
   }
   if (!parsed || typeof parsed !== 'object') throw new BadRequest('Expected a JSON object.');
 
-  const { learning, text, topic, level } = parsed as Record<string, unknown>;
+  const { learning, text, topic, level, avoid } = parsed as Record<string, unknown>;
   const sentence = typeof text === 'string' ? text.trim() : '';
   if (sentence.length > config.maxInputChars) {
     throw new BadRequest(`Setningen er lengre enn grensen på ${config.maxInputChars} tegn.`);
   }
+  const seen = Array.isArray(avoid)
+    ? avoid
+        .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+        .map((entry) => entry.trim().slice(0, 300))
+        .slice(-MAX_AVOID)
+    : [];
 
   return {
     learning: LEARNINGS.find((candidate) => candidate === learning) ?? 'tr',
     ...(sentence ? { text: sentence } : {}),
     ...(typeof topic === 'string' && topic.trim() ? { topic: topic.trim().slice(0, 200) } : {}),
     level: LEVELS.find((candidate) => candidate === level) ?? 'nybegynner',
+    ...(seen.length ? { avoid: seen } : {}),
   };
 }
 
