@@ -1,6 +1,6 @@
-# Potets Translator
+# Languageballs
 
-A Discord bot that translates every message in the channels you point it at,
+A learn-a-language web app (see *Web app* below) and a Discord bot that translates every message in the channels you point it at,
 using Claude. It detects the source language on its own, so there is nothing to
 declare per message — you only say which languages a channel should end up in.
 
