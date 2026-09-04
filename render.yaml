@@ -9,6 +9,10 @@ services:
     buildCommand: npm ci && npm run build
     startCommand: npm run web:start
     healthCheckPath: /
+    # DNS is set up at the registrar (see README, "Custom domain").
+    domains:
+      - languageballs.com
+      - www.languageballs.com
     envVars:
       - key: NODE_ENV
         value: production

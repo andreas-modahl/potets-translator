@@ -229,6 +229,21 @@ hosted as static files on GitHub Pages. Two ready-made routes:
 Set `NODE_ENV=production` in either case; it turns off the development live
 reload.
 
+#### Custom domain
+
+The site lives at **languageballs.com**, registered at Squarespace. `render.yaml`
+declares both `languageballs.com` and `www.languageballs.com`, and Render issues
+the certificates itself once DNS points at it. In Squarespace (*Domains → DNS
+settings → Custom records*) the records are:
+
+| Type  | Host | Value                           |
+| ----- | ---- | ------------------------------- |
+| A     | @    | `216.24.57.1`                   |
+| CNAME | www  | `potets-translator.onrender.com` |
+
+Delete the Squarespace defaults for `@` and `www` first, or the site parks on
+their placeholder page. Render's own domain keeps working alongside.
+
 ## Configuration
 
 Everything lives in `.env`; see `.env.example` for the annotated list.
