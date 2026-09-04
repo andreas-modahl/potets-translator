@@ -63,7 +63,7 @@
       }
       @media (hover: none), (pointer: coarse) {
         .hint-row #hint {
-          width: 100%;
+          flex: 1 1 auto;
           padding: 0.7rem 1rem;
         }
         .special-keys {
@@ -73,27 +73,6 @@
         .hint-row .special {
           flex: 1 1 0;
           padding: 0.6rem 0.4rem;
-        }
-      }
-      /* The one keyboard shortcut, written beside the speaker it belongs with. */
-      .key-help {
-        font-size: 0.8rem;
-        color: var(--faint);
-        white-space: nowrap;
-      }
-      .key-help kbd {
-        padding: 0 0.4rem;
-        font: inherit;
-        font-size: 0.72rem;
-        color: var(--ink);
-        background: var(--panel);
-        border: 1.5px solid var(--line);
-        border-radius: var(--wobble-small);
-        box-shadow: 1px 1px 0 var(--line);
-      }
-      @media (hover: none), (pointer: coarse) {
-        .key-help {
-          display: none;
         }
       }
 
@@ -443,24 +422,15 @@
       .speak:hover .flag svg {
         transform: scale(1.1) rotate(-6deg);
       }
-      /* The speaker sits right after the sentence; a long sentence wraps
-         inside its own box rather than pushing the speaker off the line. */
+      .hint-row .speak {
+        padding: 0 0.35rem 0 0.1rem;
+      }
       .natural p {
         flex: 0 1 auto;
         min-width: 0;
         margin: 0;
         font-size: 1.15rem;
         line-height: 1.4;
-      }
-      /* The shortcut note takes the line under the sentence. */
-      .natural .key-help {
-        flex: 1 0 100%;
-        white-space: normal;
-      }
-      @media (max-width: 40rem) {
-        .natural .key-help {
-          display: none;
-        }
       }
 
       /* Once the whole sentence is in, every word that has something inside
@@ -892,19 +862,19 @@
 
       <div class="natural" id="natural-row" hidden>
         <p id="natural" lang="nb"></p>
-        <!-- The ball of the language being learned does the talking. -->
-        <button type="button" id="speak" class="speak" aria-label="Les opp setningen" title="Les opp setningen">
-          <span class="flag" id="speak-ball" aria-hidden="true"></span>
-          <svg class="waves" viewBox="0 0 12 16" width="9" height="12" aria-hidden="true" focusable="false">
-            <path d="M2 5.5a4 4 0 0 1 0 5M5.5 3a8 8 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-          </svg>
-        </button>
-        <span class="key-help" id="key-help"></span>
       </div>
 
       <article id="lesson" class="card" hidden>
         <div class="comparator" id="comparator"></div>
         <div class="hint-row">
+          <!-- The ball of the language being learned does the talking. It
+               sits with the blanks it reads; the shortcuts are in its tooltip. -->
+          <button type="button" id="speak" class="speak" aria-label="Les opp setningen" title="Les opp setningen">
+            <span class="flag" id="speak-ball" aria-hidden="true"></span>
+            <svg class="waves" viewBox="0 0 12 16" width="9" height="12" aria-hidden="true" focusable="false">
+              <path d="M2 5.5a4 4 0 0 1 0 5M5.5 3a8 8 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </button>
           <button type="button" id="hint" class="ghost">Hint: én bokstav <kbd class="key">.</kbd></button>
           <div class="special-keys" id="special-keys" role="group"></div>
         </div>
@@ -979,7 +949,6 @@
       const naturalLine = document.querySelector('#natural');
       const speakButton = document.querySelector('#speak');
       const speakBall = document.querySelector('#speak-ball');
-      const keyHelp = document.querySelector('#key-help');
       const detail = document.querySelector('#detail');
       const explanations = document.querySelector('#explanations');
       const bank = document.querySelector('#bank');
@@ -1084,7 +1053,7 @@
           hint: 'Hint: én bokstav',
           specials: ['ç', 'ğ', 'ı', 'ö', 'ş', 'ü'],
           typeLetter: (letter) => `Skriv ${letter}`,
-          hintWord: 'Hint: én bokstav til',
+          hearWord: 'Hør ordet',
           blankFor: (native) => `Tyrkisk for «${native}»`,
           prev: 'Forrige setning',
           next: 'Neste setning',
@@ -1132,7 +1101,7 @@
           hint: 'İpucu: bir harf',
           specials: ['æ', 'ø', 'å'],
           typeLetter: (letter) => `${letter} yaz`,
-          hintWord: 'İpucu: bir harf daha',
+          hearWord: 'Kelimeyi dinle',
           blankFor: (native) => `«${native}» için Norveççe`,
           prev: 'Önceki cümle',
           next: 'Sonraki cümle',
@@ -1484,8 +1453,8 @@
       }
 
       /** The chunk: a blank field to type the target word into, standing over
-          the native words it should carry. The native text is the button that
-          gives one letter at a time. */
+          the native words it should carry. The native text is a button that
+          reads the target word aloud. */
       function chunkField(chunk, index) {
         const box = document.createElement('div');
         box.className = chunk.morphemes?.length ? 'chunk built' : 'chunk';
@@ -1525,13 +1494,15 @@
         native.className = 'no';
         native.lang = D.native;
         native.textContent = chunk.native;
-        native.title = D.hintWord;
+        native.title = D.hearWord;
+        native.setAttribute('aria-label', `${D.hearWord}: ${chunk.native}`);
         native.tabIndex = -1;
-        // Each click gives one more letter; the last one completes the word.
+        // A click reads the word aloud in the language being learned; the
+        // hint button is the place for letters.
+        native.addEventListener('mousedown', (event) => event.preventDefault());
         native.addEventListener('click', () => {
           select(index);
-          hint(index);
-          if (isSolved(index)) focusNextOpen();
+          speak(chunk.target);
         });
 
         box.append(field, native);
@@ -2156,10 +2127,9 @@
         if (!topicField.value.trim() || defaults.includes(topicField.value.trim())) {
           topicField.value = D.defaultTopic;
         }
-        speakButton.title = D.speak;
+        // The shortcuts ride in the tooltip: | for the word in focus, || for the sentence.
+        speakButton.title = `${D.speak} · | ${D.keyHelp[0]} · || ${D.keyHelp[1]}`;
         speakButton.setAttribute('aria-label', D.speak);
-        keyHelp.replaceChildren();
-        keyHelp.append(kbd('|'), ` ${D.keyHelp[0]} · `, kbd('|'), kbd('|'), ` ${D.keyHelp[1]}`);
         hintButton.replaceChildren(`${D.hint} `, Object.assign(kbd('.'), { className: 'key' }));
         renderSpecialKeys();
         backButton.title = D.prev;
