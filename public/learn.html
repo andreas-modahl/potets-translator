@@ -28,6 +28,21 @@
       .hint-row button {
         padding: 0.5rem 1rem;
       }
+      .hint-row .key {
+        margin-left: 0.35rem;
+        padding: 0 0.45rem;
+        font: inherit;
+        font-size: 0.85rem;
+        color: var(--ink);
+        background: var(--mark);
+        border: 1.5px solid var(--line);
+        border-radius: var(--wobble-small);
+      }
+      @media (hover: none), (pointer: coarse) {
+        .hint-row .key {
+          display: none;
+        }
+      }
       @media (hover: none), (pointer: coarse) {
         .hint-row button {
           width: 100%;
@@ -759,7 +774,7 @@
       <article id="lesson" class="card" hidden>
         <div class="comparator" id="comparator"></div>
         <div class="hint-row">
-          <button type="button" id="hint" class="ghost">Hint: én bokstav</button>
+          <button type="button" id="hint" class="ghost">Hint: én bokstav <kbd class="key">.</kbd></button>
         </div>
         <div id="detail"></div>
         <div id="explanations" hidden></div>
@@ -1129,6 +1144,9 @@
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '')
           .replace(/[’'`´]/g, '')
+          // Punctuation the model left glued to a word is not part of the
+          // spelling, and the full stop is the hint key besides.
+          .replace(/[.,;:!?…]/g, '')
           .replace(/\s+/g, ' ');
       }
 
@@ -1380,10 +1398,20 @@
       chest.addEventListener('animationend', () => chest.classList.remove('hop'));
 
       document.addEventListener('keydown', (event) => {
+        if (event.ctrlKey || event.altKey || event.metaKey || lessonCard.hidden) return;
+
+        // The . key is a one-letter hint. Punctuation is not checked, so no
+        // blank ever needs a full stop typed into it.
+        if (event.key === '.') {
+          event.preventDefault();
+          if (!event.repeat) hintButton.click();
+          return;
+        }
+
         // The | key reads the word in focus aloud; pressed twice quickly it
         // reads the whole sentence. No word in either language needs the key,
         // so it can be swallowed even while the caret sits in a blank.
-        if (event.key !== '|' || event.ctrlKey || event.altKey || event.metaKey || lessonCard.hidden) return;
+        if (event.key !== '|') return;
         event.preventDefault();
         if (event.repeat) return;
         const now = Date.now();
@@ -1708,7 +1736,7 @@
         speakButton.setAttribute('aria-label', D.speak);
         keyHelp.replaceChildren();
         keyHelp.append(kbd('|'), ` ${D.keyHelp[0]} · `, kbd('|'), kbd('|'), ` ${D.keyHelp[1]}`);
-        hintButton.textContent = D.hint;
+        hintButton.replaceChildren(`${D.hint} `, Object.assign(kbd('.'), { className: 'key' }));
         backButton.title = D.prev;
         backButton.setAttribute('aria-label', D.prev);
         document.querySelector('.steps').setAttribute('aria-label', D.browse);
