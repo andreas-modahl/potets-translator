@@ -235,37 +235,6 @@
           transform: rotate(1turn);
         }
       }
-      /* The XP bar between the two buttons: the level on the left, the bar
-         with its count in the middle, fireworks out of its centre on a level. */
-      .xp {
-        position: relative;
-        flex: 1 1 auto;
-        max-width: 22rem;
-        min-width: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-      }
-      .xp .progress-bar {
-        min-width: 5.5rem;
-      }
-      .xp-level {
-        flex: 0 0 auto;
-        font-family: var(--hand);
-        font-size: 1.05rem;
-        font-weight: 700;
-        white-space: nowrap;
-      }
-      .xp-level.up {
-        animation: level-up 0.9s cubic-bezier(0.2, 1.2, 0.4, 1);
-      }
-      @keyframes level-up {
-        30% {
-          transform: scale(1.35) rotate(-4deg);
-          color: var(--accent);
-        }
-      }
-
       /* The comparator ----------------------------------------------------
          Turkish across the top, each word standing over the Norwegian it
          carries. The Norwegian reads in Turkish order, so it comes out
@@ -543,53 +512,6 @@
         display: flex;
         gap: 1rem;
         align-items: center;
-      }
-      /* The bar: an ink-edged trough with a painted fill, in 25 steps. */
-      /* A painted bar with its count written inside. */
-      .progress-bar {
-        position: relative;
-        flex: 1 1 auto;
-        height: 1.7rem;
-        background: var(--panel);
-        border: 2px solid var(--line);
-        border-radius: var(--wobble-small);
-        box-shadow: 3px 3px 0 var(--line);
-        overflow: hidden;
-      }
-      .progress-fill {
-        height: 100%;
-        width: 0;
-        background: var(--ochre);
-        border-right: 2px solid var(--line);
-        transition: width 0.5s cubic-bezier(0.2, 1.2, 0.4, 1);
-      }
-      /* Tick marks every five words. */
-      .progress-bar::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: repeating-linear-gradient(
-          90deg,
-          transparent 0,
-          transparent calc(20% - 1px),
-          var(--faint) calc(20% - 1px),
-          var(--faint) 20%
-        );
-        opacity: 0.5;
-        pointer-events: none;
-      }
-      /* The count rides inside the bar. */
-      .progress-count {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: var(--hand);
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: var(--ink);
-        pointer-events: none;
       }
       #bank h2 {
         flex: 0 0 auto;
@@ -937,15 +859,6 @@
             <path d="M16 4.5v15l-12-7.5z" fill="currentColor" />
           </svg>
         </button>
-        <!-- The XP bar: one point per sentence finished, 25 to a level. -->
-        <div class="xp" id="xp">
-          <span class="xp-level" id="xp-level"></span>
-          <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="25" aria-valuenow="0" id="xp-bar">
-            <div class="progress-fill" id="xp-fill"></div>
-            <span class="progress-count" id="xp-count"></span>
-          </div>
-          <span class="fireworks" id="xp-fireworks" aria-hidden="true"></span>
-        </div>
         <button id="submit" type="submit" form="form" class="step" aria-label="Neste setning" title="Neste setning">
           <span class="step-label" id="step-label" hidden></span>
           <svg class="play-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
@@ -998,11 +911,6 @@
       const submitButton = document.querySelector('#submit');
       const backButton = document.querySelector('#back');
       const stepLabel = document.querySelector('#step-label');
-      const xpLevel = document.querySelector('#xp-level');
-      const xpBar = document.querySelector('#xp-bar');
-      const xpFill = document.querySelector('#xp-fill');
-      const xpCount = document.querySelector('#xp-count');
-      const xpFireworks = document.querySelector('#xp-fireworks');
       const statusLine = document.querySelector('#status');
       const lessonCard = document.querySelector('#lesson');
       const comparator = document.querySelector('#comparator');
@@ -1049,16 +957,19 @@
        * the next sentence can bring one back.
        */
       function comebacks(words) {
-        const ranked = [...words].sort(
-          (a, b) => (a.count ?? 1) - (b.count ?? 1) || (a.at ?? 0) - (b.at ?? 0),
-        );
-        // Some choice among the weakest, so the same three do not come back every time.
+        // Words that needed a hint come first: they are not earned yet.
+        const chosen = loadStruggled()
+          .slice(-2)
+          .map((word) => word.target);
+        const ranked = [...words]
+          .filter((word) => !chosen.some((target) => fold(target) === fold(word.target)))
+          .sort((a, b) => (a.count ?? 1) - (b.count ?? 1) || (a.at ?? 0) - (b.at ?? 0));
+        // Some choice among the weakest, so the same ones do not come back every time.
         const weakest = ranked.slice(0, 6);
-        const chosen = [];
         while (chosen.length < 3 && weakest.length) {
-          chosen.push(...weakest.splice(Math.floor(Math.random() * weakest.length), 1));
+          chosen.push(weakest.splice(Math.floor(Math.random() * weakest.length), 1)[0].target);
         }
-        return chosen.map((word) => word.target);
+        return chosen;
       }
 
       chestToggle.addEventListener('click', () => {
@@ -1069,6 +980,8 @@
       const CHEST_SIZE = 25;
       /** The word whose badge just rose a tier, folded; its badge gets a flourish once. */
       let upgraded = '';
+      /** Whether a word in the sentence on screen filled a chest. */
+      let chestFilled = false;
       const chest = document.querySelector('#chest');
       const fireworksBox = document.querySelector('#fireworks');
       const flagFrom = document.querySelector('#flag-from');
@@ -1115,8 +1028,8 @@
           chest: 'Kiste',
           chestOpen: 'Åpne kisten og vis alle ordene',
           chestClose: 'Lukk kisten',
-          level: 'Level',
-          levelUp: 'Level opp!',
+          chestFull: 'Kiste full!',
+          fullChests: (n) => (n === 1 ? '1 full kiste' : `${n} fulle kister`),
           inBank: 'Ligger i ordbanken',
           tally: 'Ganger skrevet riktig uten hjelp',
           remove: (word) => `Fjern ${word}`,
@@ -1158,8 +1071,8 @@
           chest: 'Sandık',
           chestOpen: 'Sandığı aç ve tüm kelimeleri göster',
           chestClose: 'Sandığı kapat',
-          level: 'Seviye',
-          levelUp: 'Seviye atladın!',
+          chestFull: 'Sandık doldu!',
+          fullChests: (n) => `${n} dolu sandık`,
           inBank: 'Sandıkta var',
           tally: 'Yardımsız doğru yazma sayısı',
           remove: (word) => `${word} kelimesini kaldır`,
@@ -1296,6 +1209,7 @@
         const box = comparator.children[index];
         const field = box.querySelector('.tr');
         box.classList.add('helped');
+        struggled(chunk);
         const answer = chunk.target;
         // Keep a trailing space: in a multi-word chunk it is the letter that
         // was just given, and trimming it would hand out the same space again.
@@ -1394,7 +1308,7 @@
         // the next button, so Enter carries on.
         if (sentenceDone()) {
           renderExplanations();
-          setReady(true, sentenceEarned(current.target) === 'up');
+          setReady(true, chestFilled);
           submitButton.focus();
         } else {
           explanations.hidden = true;
@@ -1402,75 +1316,47 @@
         }
       }
 
-      function setReady(ready, levelledUp = false) {
+      function setReady(ready, filledChest = false) {
         submitButton.classList.toggle('ready', ready);
         stepLabel.hidden = !ready;
-        stepLabel.textContent = ready ? (levelledUp ? D.levelUp : D.done) : '';
+        stepLabel.textContent = ready ? (filledChest ? D.chestFull : D.done) : '';
         // Nothing left to hint at once every word is in place.
         hintButton.parentElement.hidden = ready;
       }
 
-      /* XP ---------------------------------------------------------------- */
+      /* Words that needed a hint ------------------------------------------
+         They are not in the chest, but they are the ones worth meeting again
+         soonest, so they come back in the next sentences until one is typed
+         unaided, and then they are earned like any other. */
 
-      /** Sentences to a level. */
-      const XP_PER_LEVEL = 25;
+      const STRUGGLED_LIMIT = 30;
 
-      /** The XP for this direction: sentences finished, and the recent ones
-          so stepping back and solving one again does not count twice. */
-      function loadXp() {
+      function loadStruggled() {
         try {
-          const saved = JSON.parse(recall(keyFor('xp')) ?? 'null');
-          if (saved && Number.isInteger(saved.done) && saved.done >= 0) {
-            return { done: saved.done, recent: Array.isArray(saved.recent) ? saved.recent : [] };
-          }
+          const parsed = JSON.parse(recall(keyFor('slit')) ?? '[]');
+          return Array.isArray(parsed) ? parsed.filter((entry) => entry?.target) : [];
         } catch {
-          // Unreadable: start over.
+          return [];
         }
-        return { done: 0, recent: [] };
       }
 
-      function renderXp(done, { full = false } = {}) {
-        const level = Math.floor(done / XP_PER_LEVEL) + 1;
-        const inLevel = full ? XP_PER_LEVEL : done % XP_PER_LEVEL;
-        xpFill.style.width = `${(inLevel / XP_PER_LEVEL) * 100}%`;
-        xpBar.setAttribute('aria-valuenow', String(inLevel));
-        xpBar.setAttribute('aria-label', `${D.level} ${level}`);
-        xpCount.textContent = `${inLevel} / ${XP_PER_LEVEL}`;
-        xpLevel.textContent = `${D.level} ${level}`;
+      function saveStruggled(words) {
+        remember(keyFor('slit'), JSON.stringify(words.slice(-STRUGGLED_LIMIT)));
       }
 
-      /**
-       * A sentence finished. Returns 'seen' when it was finished before,
-       * 'earned' for a point, and 'up' when that point made a level: the bar
-       * fills to the brim, bursts, and rolls over to the next level.
-       */
-      function sentenceEarned(target) {
-        const xp = loadXp();
-        if (xp.recent.includes(target)) return 'seen';
-        xp.recent.push(target);
-        if (xp.recent.length > 200) xp.recent.splice(0, xp.recent.length - 200);
-        xp.done += 1;
-        remember(keyFor('xp'), JSON.stringify(xp));
-
-        if (xp.done % XP_PER_LEVEL !== 0) {
-          renderXp(xp.done);
-          return 'earned';
-        }
-        renderXp(xp.done - 1, { full: true });
-        fireworks({ morphemes: [1, 2, 3] }, 3, xpFireworks);
-        setTimeout(() => {
-          renderXp(xp.done);
-          xpLevel.classList.remove('up');
-          void xpLevel.offsetWidth;
-          xpLevel.classList.add('up');
-          // The star lands in the chest.
-          renderBank(loadBank());
-          fireworks({ morphemes: [] }, 2);
-        }, 900);
-        return 'up';
+      /** Notes a word the learner needed help with. */
+      function struggled(chunk) {
+        const words = loadStruggled().filter((word) => fold(word.target) !== fold(chunk.target));
+        words.push({ target: chunk.target, native: chunk.native, at: Date.now() });
+        saveStruggled(words);
       }
 
-      xpLevel.addEventListener('animationend', () => xpLevel.classList.remove('up'));
+      /** The word was typed unaided, so it needs no more chasing. */
+      function overcame(chunk) {
+        const words = loadStruggled();
+        const rest = words.filter((word) => fold(word.target) !== fold(chunk.target));
+        if (rest.length !== words.length) saveStruggled(rest);
+      }
 
       /** The chunk: a blank field to type the target word into, standing over
           the native words it should carry. The native text is the button that
@@ -1634,6 +1520,7 @@
       /** A word typed right with no hint goes into the bank, or if it is
           there already, has its tally bumped. Only the first time is a drop. */
       function bankEarned(chunk) {
+        overcame(chunk);
         const words = loadBank();
         const at = words.findIndex((word) => fold(word.target) === fold(chunk.target));
         if (at >= 0) {
@@ -1657,8 +1544,10 @@
             ...(chunk.note ? { note: chunk.note } : {}),
           },
         ]);
-        // A chest filled to 25 gets a bigger show.
-        fireworks(chunk, (words.length + 1) % CHEST_SIZE === 0 ? 3 : 1);
+        // A chest filled to 25 gets a bigger show, and a star on the lid.
+        const filled = (words.length + 1) % CHEST_SIZE === 0;
+        if (filled) chestFilled = true;
+        fireworks(chunk, filled ? 3 : 1);
       }
 
       /* Fireworks -------------------------------------------------------- */
@@ -1762,6 +1651,7 @@
       function renderLesson(result) {
         current = result;
         selected = -1;
+        chestFilled = false;
         comparator.replaceChildren();
         detail.replaceChildren();
         explanations.replaceChildren();
@@ -1869,12 +1759,12 @@
         return total - full * CHEST_SIZE;
       }
 
-      /** One star on the chest's lid for every level gained; past five, a
+      /** One star on the chest's lid for every chest filled; past five, a
           count instead of a row. */
-      function renderStars() {
-        const levels = Math.floor(loadXp().done / XP_PER_LEVEL);
-        chestStars.textContent = levels === 0 ? '' : levels <= 5 ? '⭐'.repeat(levels) : `⭐×${levels}`;
-        chestStars.title = levels ? `${D.level} ${levels + 1}` : '';
+      function renderStars(total) {
+        const full = Math.floor(total / CHEST_SIZE);
+        chestStars.textContent = full === 0 ? '' : full <= 5 ? '⭐'.repeat(full) : `⭐×${full}`;
+        chestStars.title = full ? D.fullChests(full) : '';
       }
 
       /** The chest picker: one entry per 25 words, the newest chest last. */
@@ -1904,9 +1794,9 @@
       function renderBank(words) {
         bankList.replaceChildren();
         bankCount.textContent = words.length ? `${inChest(words.length)}/${CHEST_SIZE}` : '';
-        renderStars();
+        renderStars(words.length);
         // No chest until there is something in it.
-        bank.hidden = words.length === 0 && chestStars.textContent === '';
+        bank.hidden = words.length === 0;
         chestWrap.dataset.open = String(chestOpen);
         chestToggle.setAttribute('aria-expanded', String(chestOpen));
         chestToggle.setAttribute('aria-label', chestOpen ? D.chestClose : D.chestOpen);
@@ -2193,7 +2083,12 @@
         applyDirection();
         setLevel(recall(keyFor('niva')) ?? 'nybegynner');
         renderBank(loadBank());
-        renderXp(loadXp().done);
+        // Left behind by the short-lived XP bar.
+        try {
+          localStorage.removeItem(keyFor('xp'));
+        } catch {
+          // Storage is optional.
+        }
 
         history = loadHistory();
         if (history.length) {

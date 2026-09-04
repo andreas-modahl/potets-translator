@@ -203,6 +203,9 @@ puts it back together.
   least practised chest words along, and the next sentence brings one or two
   of them back; typing one unaided again raises its tally, and every two
   tallies lift the badge a rarity tier. Longer words start a tier higher.
+  Words that needed a hint are remembered too and come back first, until one
+  is typed unaided and earned. Every 25 words fill a chest and put a star on
+  the lid.
 
 Ask for a sentence at a level (nybegynner, viderekommen, avansert) and optionally
 on a topic, or paste in your own sentence — Norwegian or Turkish, either way.
