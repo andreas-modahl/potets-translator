@@ -58,28 +58,34 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        margin-bottom: 1.25rem;
+        margin-bottom: 1rem;
       }
       .flag {
-        font-size: 1.6rem;
-        line-height: 1;
+        display: inline-flex;
+        line-height: 0;
+      }
+      .flag svg {
+        width: 1.75rem;
+        height: 1.25rem;
+        border-radius: 3px;
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
       }
       .direction-arrow {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         color: var(--faint);
       }
       .direction-label {
         margin-left: 0.25rem;
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         color: var(--muted);
       }
       .flip {
-        margin-left: auto;
-        width: 2.4rem;
-        height: 2.4rem;
+        width: 2rem;
+        height: 2rem;
         padding: 0;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         line-height: 1;
+        border-color: transparent;
       }
 
       /* One field for both: the level is a small toggle that lives inside the
@@ -266,9 +272,10 @@
          the card holds nothing but the Turkish and what it is made of. */
       .natural {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 0.75rem;
-        margin: 2.5rem 0 1.25rem;
+        gap: 0.35rem 0.75rem;
+        margin: 2.25rem 0 1rem;
       }
       .speak {
         flex: 0 0 auto;
@@ -280,9 +287,24 @@
         justify-content: center;
         border-color: transparent;
       }
+      /* The speaker sits right after the sentence; a long sentence wraps
+         inside its own box rather than pushing the speaker off the line. */
       .natural p {
+        flex: 0 1 auto;
+        min-width: 0;
         margin: 0;
-        font-size: 1.05rem;
+        font-size: 1.15rem;
+        line-height: 1.4;
+      }
+      /* The shortcut note takes the line under the sentence. */
+      .natural .key-help {
+        flex: 1 0 100%;
+        white-space: normal;
+      }
+      @media (max-width: 40rem) {
+        .natural .key-help {
+          display: none;
+        }
       }
 
       /* Once the whole sentence is in, every word that has something inside
@@ -512,20 +534,35 @@
   <body>
     <nav class="site-nav">
       <span class="brand" aria-label="Potets Translator">🥔🥔🥔🥔🥔🥔🥔</span>
-      <a href="/">Translator</a>
-      <a href="/learn" aria-current="page" id="nav-learn">Lær tyrkisk</a>
+      <a href="/" aria-current="page" id="nav-learn">Lær tyrkisk</a>
     </nav>
 
     <main>
       <!-- Which way round: the flag on the left is the language you know, the
            one on the right is the language you are learning. -->
       <div class="direction">
-        <span class="flag" id="flag-from" aria-hidden="true">🇳🇴</span>
+        <span class="flag" id="flag-from" aria-hidden="true"></span>
         <span class="direction-arrow" aria-hidden="true">→</span>
-        <span class="flag" id="flag-to" aria-hidden="true">🇹🇷</span>
+        <span class="flag" id="flag-to" aria-hidden="true"></span>
         <span class="direction-label" id="direction-label"></span>
         <button type="button" id="flip" class="flip ghost" aria-label="Bytt retning" title="Bytt retning">⇄</button>
       </div>
+
+      <!-- Flags drawn rather than typed: Windows has no flag emoji, and shows
+           the country letters instead. -->
+      <svg style="display: none" aria-hidden="true">
+        <symbol id="flag-no" viewBox="0 0 22 16">
+          <rect width="22" height="16" fill="#ba0c2f" />
+          <path d="M6 0h4v16H6zM0 6h22v4H0z" fill="#fff" />
+          <path d="M7 0h2v16H7zM0 7h22v2H0z" fill="#00205b" />
+        </symbol>
+        <symbol id="flag-tr" viewBox="0 0 24 16">
+          <rect width="24" height="16" fill="#e30a17" />
+          <circle cx="9" cy="8" r="4" fill="#fff" />
+          <circle cx="10" cy="8" r="3.2" fill="#e30a17" />
+          <path d="M13.2 8l2.6-.85-1.6 2.2V6.65l1.6 2.2z" fill="#fff" />
+        </symbol>
+      </svg>
 
       <form id="form">
         <div class="topic-wrap">
@@ -635,8 +672,8 @@
           target: 'tr',
           native: 'nb',
           targetLocale: 'tr-TR',
-          flagFrom: '🇳🇴',
-          flagTo: '🇹🇷',
+          flagFrom: 'flag-no',
+          flagTo: 'flag-tr',
           label: 'Jeg lærer tyrkisk',
           nav: 'Lær tyrkisk',
           title: 'Lær tyrkisk — Potets Translator',
@@ -672,8 +709,8 @@
           target: 'nb',
           native: 'tr',
           targetLocale: 'nb-NO',
-          flagFrom: '🇹🇷',
-          flagTo: '🇳🇴',
+          flagFrom: 'flag-tr',
+          flagTo: 'flag-no',
           label: 'Norveççe öğreniyorum',
           nav: 'Norveççe öğren',
           title: 'Norveççe öğren — Potets Translator',
@@ -1403,8 +1440,8 @@
         document.documentElement.lang = D.native;
         document.title = D.title;
         navLearn.textContent = D.nav;
-        flagFrom.textContent = D.flagFrom;
-        flagTo.textContent = D.flagTo;
+        flagFrom.replaceChildren(flag(D.flagFrom));
+        flagTo.replaceChildren(flag(D.flagTo));
         directionLabel.textContent = D.label;
         flipButton.title = D.flip;
         flipButton.setAttribute('aria-label', D.flip);
@@ -1426,6 +1463,15 @@
         const key = document.createElement('kbd');
         key.textContent = text;
         return key;
+      }
+
+      function flag(id) {
+        const ns = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(ns, 'svg');
+        const use = document.createElementNS(ns, 'use');
+        use.setAttribute('href', `#${id}`);
+        svg.append(use);
+        return svg;
       }
 
       /** Switches sides: own labels, own level, own history, own chest. */

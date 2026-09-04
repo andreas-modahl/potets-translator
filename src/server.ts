@@ -27,10 +27,13 @@ const HTML = 'text/html; charset=utf-8';
 const ASSETS = new Map<string, Asset>(
   (
     [
-      ['/', 'index.html', HTML],
-      ['/index.html', 'index.html', HTML],
+      // The learn page is the front page; the translator moved to /translate.
+      // /learn stays so old links and bookmarks keep working.
+      ['/', 'learn.html', HTML],
       ['/learn', 'learn.html', HTML],
       ['/learn.html', 'learn.html', HTML],
+      ['/translate', 'index.html', HTML],
+      ['/index.html', 'index.html', HTML],
       ['/app.css', 'app.css', 'text/css; charset=utf-8'],
     ] satisfies Array<[string, string, string]>
   ).map(([path, file, type]) => [

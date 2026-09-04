@@ -66,12 +66,17 @@ main {
   font-weight: 700;
   letter-spacing: -0.01em;
   margin-right: auto;
+  /* On a narrow screen the brand gives way; the links never wrap. */
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .site-nav a {
   color: var(--muted);
   text-decoration: none;
   font-size: 0.92rem;
+  white-space: nowrap;
 }
 
 .site-nav a:hover {

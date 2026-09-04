@@ -153,8 +153,9 @@ trustworthy enough to show.
 
 ## Web app
 
-`npm run web` serves a page at <http://localhost:3000> where you type a sentence
-and get it back in the languages you name. It reuses the bot's translation code,
+`npm run web` serves the learn page at <http://localhost:3000> and, at
+<http://localhost:3000/translate>, a page where you type a sentence and get it
+back in the languages you name. It reuses the bot's translation code,
 so the same explanation modes apply: `full` lays each chunk of the translation
 above the original wording it came from, and `beginner` marks a few words worth
 learning and lists them underneath.
@@ -172,7 +173,7 @@ nothing is stored on the server.
 
 ### Lær tyrkisk
 
-`/learn` is a subpage for one specific job: learning Turkish as a Norwegian
+The front page (also reachable as `/learn`) has one specific job: learning Turkish as a Norwegian
 speaker, or, flipped with the ⇄ button at the top, learning Norwegian as a
 Turkish speaker. Everything on the page is written in the language the learner
 already knows, and each direction keeps its own history, level and word chest.
