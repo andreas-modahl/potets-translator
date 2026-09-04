@@ -49,6 +49,16 @@ const VOICES: Record<SpeechLang, { voice: string; locale: string }> = {
  */
 const PROSODY = { pitch: config.speechPitch, rate: config.speechRate };
 
+/**
+ * A short fingerprint of the voices and delivery. The page puts it in every
+ * speech URL, so audio the browser cached under the old settings is never
+ * replayed after the settings change.
+ */
+export const speechFingerprint = createHash('sha256')
+  .update(`${VOICES.tr.voice}\n${VOICES.nb.voice}\n${PROSODY.pitch}\n${PROSODY.rate}`)
+  .digest('hex')
+  .slice(0, 8);
+
 function cachePath(text: string, lang: SpeechLang): string {
   const key = createHash('sha256')
     .update(`${VOICES[lang].voice}\n${PROSODY.pitch}\n${PROSODY.rate}\n${text}`)

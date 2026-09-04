@@ -7,7 +7,7 @@ import { assertTranslatorConfigured, config, type ExplainMode } from './config.j
 import { parseTargets } from './languages.js';
 import { LEARNINGS, LEVELS, lesson, type Learning, type Level } from './lesson.js';
 import { Limiter } from './limiter.js';
-import { speak, speechConfigured, SpeechUnavailable } from './speech.js';
+import { speak, speechConfigured, speechFingerprint, SpeechUnavailable } from './speech.js';
 import { translate } from './translate.js';
 
 interface Asset {
@@ -339,7 +339,7 @@ const server = createServer((request, response) => {
         return;
       }
       if (request.method === 'GET' && path === '/api/version') {
-        send(response, 200, { version: VERSION });
+        send(response, 200, { version: VERSION, speech: speechFingerprint });
         return;
       }
       if (request.method === 'POST' && path === '/api/translate') {

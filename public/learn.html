@@ -1702,7 +1702,7 @@
         if (serverSpeech) {
           try {
             const response = await fetch(
-              `/api/speak?lang=${D.target}&text=${encodeURIComponent(text)}`,
+              `/api/speak?lang=${D.target}&v=${speechVersion}&text=${encodeURIComponent(text)}`,
             );
             if (response.status === 503) {
               serverSpeech = false;
@@ -1906,9 +1906,13 @@
 
       /** The build, fetched once and kept in the tab title. */
       let version = '';
+      /** Fingerprint of the voice settings; part of every speech URL so the
+       *  browser's cache is bypassed when the voice changes. */
+      let speechVersion = '';
       fetch('/api/version')
         .then((response) => (response.ok ? response.json() : null))
         .then((body) => {
+          if (typeof body?.speech === 'string') speechVersion = body.speech;
           if (typeof body?.version === 'string') {
             version = body.version;
             setTitle();
