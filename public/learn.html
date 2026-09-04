@@ -89,6 +89,20 @@
         color: var(--ink);
         line-height: 1;
       }
+      /* The git hash, small and faint after the name, so a tester can see
+         which build they are on. */
+      .wordmark .build {
+        margin-left: 0.5rem;
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 0.7rem;
+        font-weight: 400;
+        letter-spacing: 0;
+        color: var(--muted);
+        vertical-align: 0.15em;
+      }
+      .wordmark .build:empty {
+        display: none;
+      }
       .direction-label {
         font-family: var(--hand);
         font-size: 1.05rem;
@@ -827,7 +841,7 @@
         <span class="flag" id="flag-to" aria-hidden="true"></span>
         <span class="direction-label" id="direction-label"></span>
         <button type="button" id="flip" class="flip ghost" aria-label="Bytt retning" title="Bytt retning">⇄</button>
-        <span class="wordmark" aria-hidden="true">Languageballs</span>
+        <span class="wordmark" aria-hidden="true">Languageballs<small class="build" id="build"></small></span>
       </div>
 
       <!-- Norwayball and Turkeyball: the flags as countryballs, drawn rather
@@ -1898,6 +1912,8 @@
           if (typeof body?.version === 'string') {
             version = body.version;
             setTitle();
+            // "0.1.0+5f87809" -> "5f87809"
+            document.querySelector('#build').textContent = version.split('+')[1] ?? version;
           }
         })
         .catch(() => {});
