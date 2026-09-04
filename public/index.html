@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Potets Translator</title>
+    <link rel="stylesheet" href="/app.css" />
+    <script src="/dev/reload.js"></script>
+    <style>
+      .sentence {
+        margin: 0;
+        font-size: 1.15rem;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .sentence mark {
+        background: var(--mark);
+        color: inherit;
+        border-radius: 3px;
+        padding: 0 0.12em;
+      }
+      .card h2 {
+        margin: 0 0 0.6rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      #output {
+        margin-top: 1.5rem;
+        display: grid;
+        gap: 1rem;
+      }
+
+      /* The chunk-by-chunk breakdown: translation on top, original beneath it,
+         each pair its own column so the two lines stay aligned even when they
+         wrap onto a second row. */
+      .columns {
+        margin-top: 0.85rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.9rem;
+        border-top: 1px solid var(--line);
+        padding-top: 0.85rem;
+      }
+      .pair {
+        display: grid;
+        gap: 0.1rem;
+      }
+      .pair .target {
+        font-size: 0.95rem;
+      }
+      .pair .source {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      /* A beginner gloss is a short vocabulary list, not a full breakdown. */
+      .vocab {
+        margin: 0.85rem 0 0;
+        padding: 0.85rem 0 0;
+        border-top: 1px solid var(--line);
+        display: grid;
+        gap: 0.3rem;
+        font-size: 0.9rem;
+      }
+      .vocab div {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .vocab .target {
+        font-weight: 600;
+        min-width: 8rem;
+      }
+      .vocab .source {
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="site-nav">
+      <span class="brand">Potets Translator</span>
+      <a href="/" aria-current="page">Translator</a>
+      <a href="/learn">Lær tyrkisk</a>
+    </nav>
+
+    <main>
+      <h1>Potets Translator</h1>
+      <p class="lede">Type a sentence. Claude works out what language it is in and translates it.</p>
+
+      <form id="form">
+        <div>
+          <label for="text">Sentence</label>
+          <textarea id="text" placeholder="Skriv en setning her…" autofocus></textarea>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="targets">Translate into</label>
+            <input id="targets" placeholder="English, Norwegian" />
+          </div>
+          <div>
+            <label for="explain">Explanation</label>
+            <select id="explain">
+              <option value="off">None — just the translation</option>
+              <option value="full">Full — chunk by chunk</option>
+              <option value="beginner">Beginner — a few words to learn</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="submit" type="submit">Translate</button>
+          <span class="hint">Ctrl + Enter</span>
+        </div>
+      </form>
+
+      <p id="status" class="status" hidden></p>
+      <div id="output"></div>
+    </main>
+
+    <script type="module">
+      const form = document.querySelector('#form');
+      const textField = document.querySelector('#text');
+      const targetsField = document.querySelector('#targets');
+      const explainField = document.querySelector('#explain');
+      const submitButton = document.querySelector('#submit');
+      const statusLine = document.querySelector('#status');
+      const output = document.querySelector('#output');
+
+      /** The last request, so a slow answer cannot overwrite a newer one. */
+      let pending = 0;
+
+      function setStatus(message, isError = false) {
+        statusLine.textContent = message ?? '';
+        statusLine.hidden = !message;
+        statusLine.classList.toggle('error', Boolean(isError));
+      }
+
+      /** Fills the form with the server's defaults, so the page matches its config. */
+      async function loadDefaults() {
+        try {
+          const response = await fetch('/api/config');
+          if (!response.ok) return;
+          const settings = await response.json();
+          if (Array.isArray(settings.targets)) targetsField.value = settings.targets.join(', ');
+          if (typeof settings.explain === 'string') explainField.value = settings.explain;
+          if (Number.isFinite(settings.maxInputChars)) textField.maxLength = settings.maxInputChars;
+        } catch {
+          // Defaults are a convenience; a failure here still leaves a usable form.
+        }
+      }
+
+      /**
+       * Splits a sentence around each chunk, so the chunks can be marked without
+       * building HTML out of the translation itself. Chunks are matched
+       * case-insensitively and longest first, so a longer phrase wins over a
+       * shorter one nested inside it, and each is marked only once.
+       */
+      function markChunks(sentence, chunks) {
+        const ordered = [...new Set(chunks.map((chunk) => chunk.trim()).filter(Boolean))].sort(
+          (a, b) => b.length - a.length,
+        );
+        let parts = [{ text: sentence, marked: false }];
+
+        for (const chunk of ordered) {
+          const needle = chunk.toLowerCase();
+          const index = parts.findIndex(
+            (part) => !part.marked && part.text.toLowerCase().includes(needle),
+          );
+          if (index === -1) continue;
+
+          const part = parts[index];
+          const at = part.text.toLowerCase().indexOf(needle);
+          parts = [
+            ...parts.slice(0, index),
+            { text: part.text.slice(0, at), marked: false },
+            { text: part.text.slice(at, at + chunk.length), marked: true },
+            { text: part.text.slice(at + chunk.length), marked: false },
+            ...parts.slice(index + 1),
+          ].filter((piece) => piece.text.length > 0);
+        }
+        return parts;
+      }
+
+      function sentenceNode(translation) {
+        const paragraph = document.createElement('p');
+        paragraph.className = 'sentence';
+
+        const chunks =
+          translation.glossStyle === 'beginner' && translation.gloss?.length
+            ? translation.gloss.map(({ target }) => target)
+            : [];
+        if (chunks.length === 0) {
+          paragraph.textContent = translation.text;
+          return paragraph;
+        }
+
+        for (const { text, marked } of markChunks(translation.text, chunks)) {
+          if (!marked) {
+            paragraph.append(text);
+            continue;
+          }
+          const node = document.createElement('mark');
+          node.textContent = text;
+          paragraph.append(node);
+        }
+        return paragraph;
+      }
+
+      function glossNode(translation) {
+        const gloss = translation.gloss ?? [];
+        if (gloss.length === 0) return undefined;
+
+        const container = document.createElement('div');
+        container.className = translation.glossStyle === 'beginner' ? 'vocab' : 'columns';
+
+        for (const { target, source } of gloss) {
+          const pair = document.createElement('div');
+          if (translation.glossStyle !== 'beginner') pair.className = 'pair';
+
+          const top = document.createElement('span');
+          top.className = 'target';
+          top.textContent = target;
+
+          const bottom = document.createElement('span');
+          bottom.className = 'source';
+          bottom.textContent = source;
+
+          pair.append(top, bottom);
+          container.append(pair);
+        }
+        return container;
+      }
+
+      function render(result) {
+        output.replaceChildren();
+        for (const translation of result.translations) {
+          const card = document.createElement('div');
+          card.className = 'card';
+
+          const heading = document.createElement('h2');
+          heading.textContent = translation.language;
+
+          card.append(heading, sentenceNode(translation));
+          const gloss = glossNode(translation);
+          if (gloss) card.append(gloss);
+          output.append(card);
+        }
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const text = textField.value.trim();
+        if (!text) {
+          setStatus('Type something to translate.', true);
+          return;
+        }
+
+        const attempt = ++pending;
+        submitButton.disabled = true;
+        setStatus('Translating…');
+
+        try {
+          const response = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              text,
+              targets: targetsField.value,
+              explain: explainField.value,
+            }),
+          });
+          const result = await response.json().catch(() => ({}));
+          if (attempt !== pending) return;
+
+          if (!response.ok) {
+            setStatus(result.error ?? 'Translation failed.', true);
+            return;
+          }
+          render(result);
+          setStatus(
+            result.translations.length === 0
+              ? 'Nothing to translate — it is already in every language you asked for.'
+              : `Detected ${result.sourceLanguage}.`,
+          );
+        } catch {
+          if (attempt === pending) setStatus('Could not reach the server.', true);
+        } finally {
+          if (attempt === pending) submitButton.disabled = false;
+        }
+      });
+
+      textField.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) form.requestSubmit();
+      });
+
+      loadDefaults();
+    </script>
+  </body>
+</html>

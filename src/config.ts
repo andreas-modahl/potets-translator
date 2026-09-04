@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { parseTargets } from './languages.js';
 
 export type PostMode = 'plain' | 'reply' | 'thread' | 'webhook';
 
@@ -28,6 +29,17 @@ function positiveInt(name: string, fallback: number): number {
     throw new Error(`Environment variable ${name} must be a positive integer, got "${raw}".`);
   }
   return parsed;
+}
+
+/** Comma-separated language list, used for the web app's initial targets. */
+function languageList(name: string, fallback: string[]): string[] {
+  const raw = optional(name);
+  if (!raw) return fallback;
+  const targets = parseTargets(raw);
+  if (targets.length === 0) {
+    throw new Error(`Environment variable ${name} must list at least one language, got "${raw}".`);
+  }
+  return targets;
 }
 
 function explainMode(name: string, fallback: ExplainMode): ExplainMode {
@@ -64,6 +76,9 @@ export const config = {
   defaultPostMode: postMode('DEFAULT_POST_MODE', 'plain'),
   explainByDefault: explainMode('EXPLAIN_TRANSLATIONS', 'full'),
   dataFile: optional('DATA_FILE') ?? 'data/channels.json',
+  webPort: positiveInt('WEB_PORT', 3000),
+  /** The languages the web app starts with; the page can change them per request. */
+  webTargets: languageList('WEB_TARGETS', ['English', 'Norwegian']),
 } as const;
 
 /**
@@ -75,6 +90,18 @@ export function assertConfigured(): void {
   const missing: string[] = [];
   if (!config.discordToken) missing.push('DISCORD_TOKEN');
   if (!config.anthropicApiKey) missing.push('ANTHROPIC_API_KEY');
+  report(missing);
+}
+
+/**
+ * The web app's half of the check. It talks to Claude but not to Discord, so
+ * refusing to start it over a missing bot token would be nonsense.
+ */
+export function assertTranslatorConfigured(): void {
+  report(config.anthropicApiKey ? [] : ['ANTHROPIC_API_KEY']);
+}
+
+function report(missing: string[]): void {
   if (missing.length === 0) return;
 
   throw new Error(

@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lær tyrkisk — Potets Translator</title>
+    <link rel="stylesheet" href="/app.css" />
+    <script src="/dev/reload.js"></script>
+    <style>
+      /* Back and forward through the sentences seen so far. Forward past the
+         end of the list asks for a new one. */
+      .steps {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+      }
+      .card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+      .card-actions button {
+        padding: 0.3rem 0.8rem;
+        font-size: 0.85rem;
+      }
+      /* The word itself stays hidden in the detail panel until it has been
+         typed right or asked for; its parts are still described. */
+      .hidden-word {
+        color: var(--faint);
+        letter-spacing: 0.15em;
+      }
+      .step {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.9rem;
+        height: 2.9rem;
+        padding: 0;
+      }
+      .step-count {
+        min-width: 3.5rem;
+        text-align: center;
+        font-size: 0.85rem;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
+      }
+
+      .focus {
+        display: inline-block;
+        margin: 0 0 1rem;
+        padding: 0.25rem 0.65rem;
+        font-size: 0.76rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--accent);
+        background: var(--accent-soft);
+        border-radius: 999px;
+      }
+
+      /* The comparator ----------------------------------------------------
+         Turkish across the top, each word standing over the Norwegian it
+         carries. The Norwegian reads in Turkish order, so it comes out
+         scrambled — that mismatch is exactly what there is to learn, and the
+         natural Norwegian sentence sits underneath to put it back together. */
+      .comparator {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 0.5rem 0.4rem;
+      }
+      .chunk {
+        display: grid;
+        gap: 0.15rem;
+        justify-items: start;
+        padding: 0.4rem 0.5rem;
+        border: 1px solid transparent;
+        border-radius: 8px;
+      }
+      .chunk.open {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+      }
+      /* The blank to type the Turkish into. A line underneath rather than a
+         box, so the row still reads as a sentence and not as a form. */
+      .chunk .tr {
+        display: block;
+        padding: 0 0.1rem;
+        font-size: 1.4rem;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+        white-space: nowrap;
+        border-bottom: 2px solid var(--line);
+        outline: none;
+      }
+      .chunk .tr:focus {
+        border-bottom-color: var(--accent);
+      }
+      .chunk.filled .tr {
+        border-bottom-color: var(--bad);
+      }
+      .chunk.correct .tr {
+        border-bottom-color: var(--accent);
+        color: var(--accent);
+      }
+      .chunk.revealed .tr {
+        color: var(--muted);
+      }
+      .chunk .no {
+        padding: 0;
+        font: inherit;
+        font-size: 0.85rem;
+        color: var(--muted);
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        cursor: pointer;
+      }
+      .chunk .no:hover {
+        color: var(--ink);
+        text-decoration: underline;
+      }
+      /* A word carrying suffixes is marked with a dotted line under its
+         Norwegian, so it is visible at a glance which words have something
+         inside them to open up. */
+      .chunk.built .no {
+        text-decoration: underline dotted var(--accent);
+        text-underline-offset: 0.22em;
+      }
+
+      /* The natural Norwegian sentence stands on its own above the card, so
+         the card holds nothing but the Turkish and what it is made of. */
+      .natural {
+        display: flex;
+        gap: 0.75rem;
+        align-items: baseline;
+        margin: 1.5rem 0 0.75rem;
+      }
+      .natural .tag {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--faint);
+        white-space: nowrap;
+      }
+      .natural p {
+        margin: 0;
+        font-size: 1.05rem;
+      }
+
+      /* The detail panel for whichever word is selected ------------------- */
+      #detail {
+        margin-top: 1.15rem;
+        padding-top: 1.15rem;
+        border-top: 1px solid var(--line);
+      }
+      #detail:empty {
+        display: none;
+      }
+      .detail-head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.2rem 0.75rem;
+        align-items: baseline;
+      }
+      .detail-head .tr {
+        font-size: 1.3rem;
+      }
+      .detail-head .no {
+        color: var(--muted);
+      }
+
+      /* The word taken apart: root, then each suffix, with what it does. */
+      .morphemes {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 0.35rem 0.2rem;
+        margin-top: 0.9rem;
+      }
+      .morpheme {
+        display: grid;
+        gap: 0.1rem;
+        padding: 0.35rem 0.5rem;
+        background: var(--sunk);
+        border-radius: 7px;
+      }
+      .morpheme .form {
+        font-weight: 600;
+      }
+      .morpheme .means {
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      .joint {
+        padding-bottom: 0.4rem;
+        color: var(--faint);
+      }
+
+      .note {
+        margin: 0.9rem 0 0;
+        padding-left: 0.85rem;
+        border-left: 3px solid var(--accent);
+      }
+
+      .detail-actions {
+        margin: 1rem 0 0;
+      }
+      .hint-text {
+        font-size: 0.8rem;
+        color: var(--faint);
+      }
+
+      /* Word bank -------------------------------------------------------- */
+      #bank {
+        margin-top: 2.75rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--line);
+      }
+      #bank header {
+        display: flex;
+        gap: 0.75rem;
+        align-items: baseline;
+      }
+      #bank h2 {
+        margin: 0 auto 0 0;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .bank-count {
+        font-size: 0.85rem;
+        color: var(--faint);
+      }
+      .bank-empty {
+        margin: 0.9rem 0 0;
+        color: var(--faint);
+      }
+      .bank-list {
+        display: grid;
+        gap: 0.4rem;
+        margin: 0.9rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .bank-list li {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.75rem;
+        align-items: baseline;
+        padding: 0.5rem 0.75rem;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+      .bank-list .tr {
+        min-width: 7rem;
+        font-weight: 600;
+      }
+      .bank-list .no {
+        flex: 1 1 10rem;
+        color: var(--muted);
+      }
+      .bank-list button {
+        padding: 0.1rem 0.5rem;
+        font-size: 0.8rem;
+      }
+
+      /* Loot screen ------------------------------------------------------
+         A word earned outright is dropped like treasure: dim the page, burst
+         of confetti, and the card swings in with a glow in its rarity's
+         colour. Rarity is how many pieces the word is built from. */
+      .loot {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        padding: 1.5rem;
+        background: rgba(10, 8, 6, 0.72);
+        backdrop-filter: blur(3px);
+        cursor: pointer;
+        animation: loot-fade 0.25s ease-out;
+      }
+      .loot[hidden] {
+        display: none;
+      }
+      .loot-card {
+        --glow: var(--accent);
+        position: relative;
+        width: min(22rem, 100%);
+        padding: 2rem 1.75rem 1.5rem;
+        text-align: center;
+        color: #f6f1e8;
+        background:
+          radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--glow) 38%, transparent), transparent 70%),
+          #221d19;
+        border: 1px solid color-mix(in srgb, var(--glow) 70%, transparent);
+        border-radius: 16px;
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+          0 0 40px color-mix(in srgb, var(--glow) 55%, transparent),
+          0 30px 60px rgba(0, 0, 0, 0.5);
+        animation: loot-drop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+      }
+      .loot-card::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 18px;
+        background: conic-gradient(from 0deg, transparent, var(--glow), transparent 40%);
+        mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+        mask-composite: exclude;
+        padding: 2px;
+        animation: loot-spin 2.2s linear infinite;
+        opacity: 0.9;
+      }
+      .loot-card p {
+        margin: 0;
+      }
+      .loot-kicker {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(246, 241, 232, 0.6);
+      }
+      .loot-rarity {
+        margin-top: 0.35rem !important;
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--glow);
+        text-shadow: 0 0 12px color-mix(in srgb, var(--glow) 80%, transparent);
+      }
+      .loot-word {
+        margin-top: 1.1rem !important;
+        font-size: 2.6rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        animation: loot-shine 1.6s ease-in-out 0.4s infinite alternate;
+      }
+      .loot-meaning {
+        margin-top: 0.4rem !important;
+        font-size: 1.05rem;
+        color: rgba(246, 241, 232, 0.8);
+      }
+      .loot-dismiss {
+        margin-top: 1.6rem !important;
+        font-size: 0.75rem;
+        color: rgba(246, 241, 232, 0.45);
+      }
+      .loot-burst {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .loot-burst i {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0.55rem;
+        height: 0.55rem;
+        background: var(--c);
+        border-radius: 2px;
+        opacity: 0;
+        animation: loot-confetti 1.4s cubic-bezier(0.1, 0.8, 0.4, 1) var(--d) both;
+      }
+      .loot-burst i:nth-child(odd) {
+        border-radius: 50%;
+      }
+
+      /* Rarity palette. */
+      .loot-card.vanlig { --glow: #b8b1a4; }
+      .loot-card.sjelden { --glow: #5fa8ff; }
+      .loot-card.episk { --glow: #c07cff; }
+      .loot-card.legendarisk { --glow: #ffb340; }
+
+      @keyframes loot-fade {
+        from { opacity: 0; }
+      }
+      @keyframes loot-drop {
+        from {
+          opacity: 0;
+          transform: translateY(-40px) scale(0.6) rotateX(30deg);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes loot-spin {
+        to { transform: rotate(1turn); }
+      }
+      @keyframes loot-shine {
+        from { text-shadow: 0 0 6px color-mix(in srgb, var(--glow) 50%, transparent); }
+        to { text-shadow: 0 0 22px var(--glow); }
+      }
+      @keyframes loot-confetti {
+        0% {
+          opacity: 1;
+          transform: translate(0, 0) rotate(0);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(var(--x), var(--y)) rotate(var(--r));
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .loot,
+        .loot-card,
+        .loot-card::before,
+        .loot-word,
+        .loot-burst i {
+          animation: none;
+        }
+        .loot-burst {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="site-nav">
+      <span class="brand">Potets Translator</span>
+      <a href="/">Translator</a>
+      <a href="/learn" aria-current="page">Lær tyrkisk</a>
+    </nav>
+
+    <main>
+      <h1>Tyrkisk, ord for ord</h1>
+      <p class="lede">
+        Én setning om gangen. Skriv det tyrkiske ordet over hvert norske ord, i tyrkisk rekkefølge.
+        Trykk på et norsk ord for å få svaret og se hva ordet er bygd av.
+      </p>
+
+      <form id="form">
+        <div class="row">
+          <div>
+            <label for="level">Nivå</label>
+            <select id="level">
+              <option value="nybegynner">Nybegynner</option>
+              <option value="viderekommen">Viderekommen</option>
+              <option value="avansert">Avansert</option>
+            </select>
+          </div>
+          <div>
+            <label for="topic">Tema <span class="hint">(valgfritt)</span></label>
+            <input id="topic" placeholder="på kafé, familie, å reise…" />
+          </div>
+        </div>
+      </form>
+
+      <p id="status" class="status" hidden></p>
+
+      <div class="natural" id="natural-row" hidden>
+        <span class="tag">Norsk</span>
+        <p id="natural"></p>
+      </div>
+
+      <article id="lesson" class="card" hidden>
+        <p class="focus" id="focus" hidden></p>
+        <div class="comparator" id="comparator"></div>
+        <div class="card-actions">
+          <button type="button" id="hint" class="ghost">Hint</button>
+          <button type="button" id="show-word" class="ghost">Vis ordet</button>
+          <button type="button" id="show-all" class="ghost">Vis alt</button>
+        </div>
+        <div id="detail"></div>
+      </article>
+
+      <div class="steps" role="group" aria-label="Bla i setninger">
+        <button type="button" id="back" class="step ghost" aria-label="Forrige setning" title="Forrige setning" disabled>
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+            <path d="M16 4.5v15l-12-7.5z" fill="currentColor" />
+          </svg>
+        </button>
+        <span class="step-count" id="step-count" aria-live="polite"></span>
+        <button id="submit" type="submit" form="form" class="step" aria-label="Neste setning" title="Neste setning">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+            <path d="M8 4.5v15l12-7.5z" fill="currentColor" />
+          </svg>
+        </button>
+      </div>
+
+      <section id="bank">
+        <header>
+          <h2>Ordbank</h2>
+          <span class="bank-count" id="bank-count"></span>
+          <button type="button" id="clear-bank" class="ghost" hidden>Tøm</button>
+        </header>
+        <p class="bank-empty" id="bank-empty">
+          Ord du skriver riktig uten hint eller fasit havner her.
+        </p>
+        <ul class="bank-list" id="bank-list"></ul>
+      </section>
+    </main>
+
+    <div class="loot" id="loot" hidden role="dialog" aria-live="assertive" aria-label="Nytt ord">
+      <div class="loot-burst" id="loot-burst" aria-hidden="true"></div>
+      <div class="loot-card" id="loot-card">
+        <p class="loot-kicker">Nytt ord i ordbanken</p>
+        <p class="loot-rarity" id="loot-rarity"></p>
+        <p class="loot-word" id="loot-word" lang="tr"></p>
+        <p class="loot-meaning" id="loot-meaning"></p>
+        <p class="loot-dismiss">Trykk hvor som helst for å fortsette</p>
+      </div>
+    </div>
+
+    <script type="module">
+      const form = document.querySelector('#form');
+      const levelField = document.querySelector('#level');
+      const topicField = document.querySelector('#topic');
+      const submitButton = document.querySelector('#submit');
+      const backButton = document.querySelector('#back');
+      const stepCount = document.querySelector('#step-count');
+      const statusLine = document.querySelector('#status');
+      const lessonCard = document.querySelector('#lesson');
+      const focusLine = document.querySelector('#focus');
+      const comparator = document.querySelector('#comparator');
+      const hintButton = document.querySelector('#hint');
+      const showWordButton = document.querySelector('#show-word');
+      const showAllButton = document.querySelector('#show-all');
+      const naturalRow = document.querySelector('#natural-row');
+      const naturalLine = document.querySelector('#natural');
+      const detail = document.querySelector('#detail');
+      const bank = document.querySelector('#bank');
+      const bankList = document.querySelector('#bank-list');
+      const bankCount = document.querySelector('#bank-count');
+      const bankEmpty = document.querySelector('#bank-empty');
+      const loot = document.querySelector('#loot');
+      const lootBurst = document.querySelector('#loot-burst');
+      const lootCard = document.querySelector('#loot-card');
+      const lootRarity = document.querySelector('#loot-rarity');
+      const lootWord = document.querySelector('#loot-word');
+      const lootMeaning = document.querySelector('#loot-meaning');
+      const clearBankButton = document.querySelector('#clear-bank');
+
+      const LEVEL_KEY = 'potets.tyrkisk.niva';
+      const BANK_KEY = 'potets.tyrkisk.ordbank';
+      const HISTORY_KEY = 'potets.tyrkisk.historikk';
+      /** How many sentences are kept; the oldest fall off the front. */
+      const HISTORY_LIMIT = 100;
+
+      /** The lesson on screen, and which of its chunks is open. */
+      let current = { chunks: [] };
+      let selected = -1;
+      /** Every sentence seen, oldest first, and which one is on screen. */
+      let history = [];
+      let cursor = -1;
+      /** Sequence number, so a slow answer cannot overwrite a newer one. */
+      let pending = 0;
+
+      function setStatus(message, isError = false) {
+        statusLine.textContent = message ?? '';
+        statusLine.hidden = !message;
+        statusLine.classList.toggle('error', Boolean(isError));
+      }
+
+      /* Storage ---------------------------------------------------------- */
+
+      /** Reading and writing both throw in a browser set to block site data. */
+      function remember(key, value) {
+        try {
+          localStorage.setItem(key, value);
+        } catch {
+          // A saved word is a convenience; the page works without one.
+        }
+      }
+
+      function recall(key) {
+        try {
+          return localStorage.getItem(key);
+        } catch {
+          return null;
+        }
+      }
+
+      function loadBank() {
+        try {
+          const parsed = JSON.parse(recall(BANK_KEY) ?? '[]');
+          return Array.isArray(parsed) ? parsed.filter((entry) => entry?.turkish) : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveBank(words) {
+        remember(BANK_KEY, JSON.stringify(words));
+        renderBank(words);
+      }
+
+      function loadHistory() {
+        try {
+          const parsed = JSON.parse(recall(HISTORY_KEY) ?? '[]');
+          return Array.isArray(parsed)
+            ? parsed.filter((entry) => entry?.turkish && Array.isArray(entry.chunks))
+            : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveHistory() {
+        remember(HISTORY_KEY, JSON.stringify(history));
+      }
+
+      /* Stepping through the history ------------------------------------- */
+
+      function updateSteps() {
+        backButton.disabled = cursor <= 0;
+        stepCount.textContent = history.length ? `${cursor + 1} / ${history.length}` : '';
+        submitButton.setAttribute(
+          'aria-label',
+          cursor < history.length - 1 ? 'Neste setning' : 'Ny setning',
+        );
+        submitButton.title = submitButton.getAttribute('aria-label');
+      }
+
+      function showAt(index) {
+        cursor = index;
+        renderLesson(history[index]);
+        setStatus('');
+        updateSteps();
+      }
+
+      backButton.addEventListener('click', () => {
+        if (cursor > 0) showAt(cursor - 1);
+      });
+
+      /* The comparator --------------------------------------------------- */
+
+      /** A word counts as solved once typed right or given away. */
+      function isSolved(index) {
+        const box = comparator.children[index];
+        return Boolean(box?.classList.contains('correct') || box?.classList.contains('revealed'));
+      }
+
+      function reveal(index) {
+        const chunk = current.chunks[index];
+        const box = comparator.children[index];
+        const field = box.querySelector('.tr');
+        box.classList.add('helped');
+        field.textContent = chunk.turkish;
+        box.classList.add('revealed');
+        checkField(field, chunk);
+      }
+
+      /** One more letter of the answer than is already right at the start. */
+      function hint(index) {
+        const chunk = current.chunks[index];
+        const box = comparator.children[index];
+        const field = box.querySelector('.tr');
+        box.classList.add('helped');
+        const answer = chunk.turkish;
+        const typed = field.textContent.trim();
+        let right = 0;
+        while (
+          right < typed.length &&
+          right < answer.length &&
+          typed[right].toLocaleLowerCase('tr') === answer[right].toLocaleLowerCase('tr')
+        ) {
+          right += 1;
+        }
+        field.textContent = answer.slice(0, Math.min(answer.length, right + 1));
+        checkField(field, chunk);
+        placeCaretAtEnd(field);
+      }
+
+      function placeCaretAtEnd(field) {
+        field.focus();
+        const range = document.createRange();
+        range.selectNodeContents(field);
+        range.collapse(false);
+        const selection = getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      function select(index, { reveal: giveAway }) {
+        selected = index;
+        for (const [at, box] of [...comparator.children].entries()) {
+          box.classList.toggle('open', at === index);
+        }
+        if (giveAway) reveal(index);
+        renderDetail(current.chunks[index]);
+      }
+
+      /** After help, the caret goes to the first blank still to be done. */
+      function focusNextOpen() {
+        const box = [...comparator.children].find((candidate) => !candidate.classList.contains('correct'));
+        const field = box?.querySelector('.tr');
+        if (field) placeCaretAtEnd(field);
+      }
+
+      hintButton.addEventListener('click', () => {
+        if (selected >= 0) hint(selected);
+        if (selected < 0 || isSolved(selected)) focusNextOpen();
+      });
+      showWordButton.addEventListener('click', () => {
+        if (selected >= 0) select(selected, { reveal: true });
+        focusNextOpen();
+      });
+      showAllButton.addEventListener('click', () => {
+        current.chunks.forEach((_, index) => reveal(index));
+        if (selected >= 0) renderDetail(current.chunks[selected]);
+        focusNextOpen();
+      });
+
+      /** Turkish spelling compared loosely: case and stray spaces do not count,
+          but ı/i and the other letters do — that is the thing being learned. */
+      function sameWord(typed, answer) {
+        return typed.trim().toLocaleLowerCase('tr') === answer.trim().toLocaleLowerCase('tr');
+      }
+
+      function checkField(field, chunk) {
+        const typed = field.textContent;
+        const box = field.parentElement;
+        const wasSolved = box.classList.contains('correct') || box.classList.contains('revealed');
+        box.classList.toggle('correct', sameWord(typed, chunk.turkish));
+        box.classList.toggle('filled', typed.trim().length > 0);
+        const solvedNow = box.classList.contains('correct') || box.classList.contains('revealed');
+        if (solvedNow === wasSolved) return;
+
+        // Earned outright — no hint, not shown — so it goes in the bank.
+        if (solvedNow && !box.classList.contains('helped')) bankEarned(chunk);
+        // Getting it right unmasks the word in the panel underneath.
+        if (current.chunks[selected] === chunk) renderDetail(chunk);
+      }
+
+      /** The chunk: a blank field to type the Turkish into, standing over the
+          Norwegian it should carry. The Norwegian is the button that opens the
+          word up — and doing so writes the answer into the field. */
+      function chunkField(chunk, index) {
+        const box = document.createElement('div');
+        box.className = chunk.morphemes?.length ? 'chunk built' : 'chunk';
+
+        const field = document.createElement('span');
+        field.className = 'tr';
+        field.lang = 'tr';
+        field.contentEditable = 'plaintext-only';
+        field.spellcheck = false;
+        field.setAttribute('role', 'textbox');
+        field.setAttribute('aria-label', `Tyrkisk for «${chunk.norwegian}»`);
+        // Sized to the answer so the row does not shift as it is filled in.
+        field.style.minWidth = `${Math.max(2, chunk.turkish.length)}ch`;
+
+        field.addEventListener('input', () => checkField(field, chunk));
+        // Enter and Tab both step to the next blank, skipping the Norwegian
+        // buttons in between; Shift+Tab steps back.
+        field.addEventListener('keydown', (event) => {
+          if (event.key !== 'Enter' && event.key !== 'Tab') return;
+          const step = event.key === 'Tab' && event.shiftKey ? -1 : 1;
+          const next = comparator.children[index + step]?.querySelector('.tr');
+          if (!next && event.key === 'Tab') return;
+          event.preventDefault();
+          if (next) placeCaretAtEnd(next);
+          else field.blur();
+        });
+        field.addEventListener('focus', () => select(index, { reveal: false }));
+
+        const norwegian = document.createElement('button');
+        norwegian.type = 'button';
+        norwegian.className = 'no';
+        norwegian.textContent = chunk.norwegian;
+        norwegian.title = 'Vis ordet';
+        norwegian.tabIndex = -1;
+        norwegian.addEventListener('click', () => {
+          select(index, { reveal: true });
+          focusNextOpen();
+        });
+
+        box.append(field, norwegian);
+        return box;
+      }
+
+      function morphemeNode({ form, means }, solved) {
+        const piece = document.createElement('span');
+        piece.className = 'morpheme';
+
+        const formNode = document.createElement('span');
+        formNode.className = 'form';
+        formNode.lang = 'tr';
+        if (solved) formNode.textContent = form;
+        else formNode.append(masked(form));
+
+        const meansNode = document.createElement('span');
+        meansNode.className = 'means';
+        meansNode.textContent = means;
+
+        piece.append(formNode, meansNode);
+        return piece;
+      }
+
+      /** Dots standing in for a word not yet earned, one per letter. */
+      function masked(word) {
+        const span = document.createElement('span');
+        span.className = 'hidden-word';
+        span.textContent = '·'.repeat(Math.max(1, word.length));
+        return span;
+      }
+
+      function renderDetail(chunk) {
+        detail.replaceChildren();
+        if (!chunk) return;
+        const solved = isSolved(current.chunks.indexOf(chunk));
+
+        const head = document.createElement('div');
+        head.className = 'detail-head';
+
+        const turkish = document.createElement('span');
+        turkish.className = 'tr';
+        turkish.lang = 'tr';
+        if (solved) turkish.textContent = chunk.turkish;
+        else turkish.append(masked(chunk.turkish));
+
+        const norwegian = document.createElement('span');
+        norwegian.className = 'no';
+        norwegian.textContent = chunk.norwegian;
+
+        head.append(turkish, norwegian);
+        detail.append(head);
+
+        if (chunk.morphemes?.length) {
+          const strip = document.createElement('div');
+          strip.className = 'morphemes';
+          chunk.morphemes.forEach((morpheme, index) => {
+            if (index > 0) {
+              const joint = document.createElement('span');
+              joint.className = 'joint';
+              joint.textContent = '+';
+              strip.append(joint);
+            }
+            strip.append(morphemeNode(morpheme, solved));
+          });
+          detail.append(strip);
+        }
+
+        if (chunk.note) {
+          const note = document.createElement('p');
+          note.className = 'note';
+          note.textContent = chunk.note;
+          detail.append(note);
+        }
+
+        const inBank = loadBank().some(
+          (word) => word.turkish.toLocaleLowerCase('tr') === chunk.turkish.toLocaleLowerCase('tr'),
+        );
+        if (inBank) {
+          const mark = document.createElement('p');
+          mark.className = 'detail-actions hint-text';
+          mark.textContent = 'Ligger i ordbanken';
+          detail.append(mark);
+        }
+      }
+
+      /** A word typed right with no hint and no reveal goes into the bank. */
+      function bankEarned(chunk) {
+        const words = loadBank();
+        const already = words.some(
+          (word) => word.turkish.toLocaleLowerCase('tr') === chunk.turkish.toLocaleLowerCase('tr'),
+        );
+        if (already) return;
+        saveBank([
+          ...words,
+          {
+            turkish: chunk.turkish,
+            norwegian: chunk.norwegian,
+            ...(chunk.note ? { note: chunk.note } : {}),
+          },
+        ]);
+        showLoot(chunk);
+      }
+
+      /* Loot screen ------------------------------------------------------ */
+
+      const RARITIES = [
+        { name: 'vanlig', label: 'Vanlig', pieces: 0 },
+        { name: 'sjelden', label: 'Sjelden', pieces: 2 },
+        { name: 'episk', label: 'Episk', pieces: 3 },
+        { name: 'legendarisk', label: 'Legendarisk', pieces: 4 },
+      ];
+
+      /** The more suffixes stacked on the root, the rarer the drop. */
+      function rarityOf(chunk) {
+        const pieces = chunk.morphemes?.length ?? 0;
+        return [...RARITIES].reverse().find((tier) => pieces >= tier.pieces) ?? RARITIES[0];
+      }
+
+      function showLoot(chunk) {
+        const tier = rarityOf(chunk);
+        lootCard.className = `loot-card ${tier.name}`;
+        lootRarity.textContent = tier.label;
+        lootWord.textContent = chunk.turkish;
+        lootMeaning.textContent = chunk.norwegian;
+
+        // A fresh burst each time: the pieces are scattered by CSS custom
+        // properties set here, so the CSS stays one keyframe.
+        lootBurst.replaceChildren();
+        const colours = ['#ffb340', '#5fa8ff', '#c07cff', '#ff6b6b', '#6ee7a8', '#f6f1e8'];
+        const count = 48 + RARITIES.indexOf(tier) * 24;
+        for (let at = 0; at < count; at += 1) {
+          const piece = document.createElement('i');
+          const angle = Math.random() * Math.PI * 2;
+          const distance = 120 + Math.random() * 380;
+          piece.style.setProperty('--x', `${Math.cos(angle) * distance}px`);
+          piece.style.setProperty('--y', `${Math.sin(angle) * distance + 160}px`);
+          piece.style.setProperty('--r', `${Math.round(Math.random() * 900 - 450)}deg`);
+          piece.style.setProperty('--d', `${Math.round(Math.random() * 250)}ms`);
+          piece.style.setProperty('--c', colours[at % colours.length]);
+          lootBurst.append(piece);
+        }
+
+        loot.hidden = false;
+        // Restart the card animation even when the previous card is still up.
+        lootCard.style.animation = 'none';
+        void lootCard.offsetWidth;
+        lootCard.style.animation = '';
+      }
+
+      function hideLoot() {
+        loot.hidden = true;
+        lootBurst.replaceChildren();
+        focusNextOpen();
+      }
+
+      loot.addEventListener('click', hideLoot);
+      document.addEventListener('keydown', (event) => {
+        if (!loot.hidden && (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          hideLoot();
+        }
+      });
+
+      function renderLesson(result) {
+        current = result;
+        selected = -1;
+        comparator.replaceChildren();
+        detail.replaceChildren();
+
+        focusLine.textContent = result.focus ?? '';
+        focusLine.hidden = !result.focus;
+        naturalLine.textContent = result.norwegian;
+        naturalRow.hidden = false;
+
+        for (const [index, chunk] of result.chunks.entries()) {
+          comparator.append(chunkField(chunk, index));
+        }
+
+        // With no breakdown there is nothing to line up, so the Turkish is
+        // shown as one piece rather than pretending to a word-by-word split.
+        if (result.chunks.length === 0) {
+          const whole = document.createElement('p');
+          whole.className = 'chunk';
+          whole.lang = 'tr';
+          whole.style.fontSize = '1.4rem';
+          whole.textContent = result.turkish;
+          comparator.append(whole);
+        }
+
+        lessonCard.hidden = false;
+        focusNextOpen();
+      }
+
+      // A click on nothing in particular is taken as "back to the exercise":
+      // the caret goes to the first blank still open. Controls, links, the
+      // loot screen and the card itself keep their own behaviour.
+      document.addEventListener('click', (event) => {
+        if (lessonCard.hidden || !loot.hidden) return;
+        const interactive = event.target.closest(
+          'button, a, input, select, textarea, label, [contenteditable], .loot, #lesson',
+        );
+        if (interactive) return;
+        focusNextOpen();
+      });
+
+      /* Word bank -------------------------------------------------------- */
+
+      function renderBank(words) {
+        bankList.replaceChildren();
+        bankEmpty.hidden = words.length > 0;
+        clearBankButton.hidden = words.length === 0;
+        bankCount.textContent = words.length ? `${words.length} ord` : '';
+
+        for (const [index, word] of words.entries()) {
+          const item = document.createElement('li');
+
+          const turkish = document.createElement('span');
+          turkish.className = 'tr';
+          turkish.lang = 'tr';
+          turkish.textContent = word.turkish;
+
+          const norwegian = document.createElement('span');
+          norwegian.className = 'no';
+          norwegian.textContent = word.norwegian;
+
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'ghost';
+          remove.textContent = 'Fjern';
+          remove.setAttribute('aria-label', `Fjern ${word.turkish}`);
+          remove.addEventListener('click', () => {
+            saveBank(words.filter((_, at) => at !== index));
+            if (selected >= 0) renderDetail(current.chunks[selected]);
+          });
+
+          item.append(turkish, norwegian, remove);
+          bankList.append(item);
+        }
+      }
+
+      clearBankButton.addEventListener('click', () => {
+        if (!confirm('Tømme ordbanken?')) return;
+        saveBank([]);
+        if (selected >= 0) renderDetail(current.chunks[selected]);
+      });
+
+      /* Fetching --------------------------------------------------------- */
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        // Forward within the history is just a step; past its end is a fetch.
+        if (cursor < history.length - 1) {
+          showAt(cursor + 1);
+          return;
+        }
+
+        const attempt = ++pending;
+        submitButton.disabled = true;
+        setStatus('Lager en setning…');
+
+        try {
+          const response = await fetch('/api/lesson', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ level: levelField.value, topic: topicField.value.trim() }),
+          });
+          const result = await response.json().catch(() => ({}));
+          if (attempt !== pending) return;
+
+          if (!response.ok) {
+            setStatus(result.error ?? 'Noe gikk galt.', true);
+            return;
+          }
+          history.push(result);
+          if (history.length > HISTORY_LIMIT) history.splice(0, history.length - HISTORY_LIMIT);
+          cursor = history.length - 1;
+          saveHistory();
+          renderLesson(result);
+          updateSteps();
+          setStatus(
+            result.chunks.length === 0
+              ? 'Setningen kom, men oppdelingen stemte ikke med den, så den er utelatt. Prøv en gang til.'
+              : '',
+            result.chunks.length === 0,
+          );
+        } catch {
+          if (attempt === pending) setStatus('Fikk ikke kontakt med serveren.', true);
+        } finally {
+          if (attempt === pending) submitButton.disabled = false;
+        }
+      });
+
+      levelField.addEventListener('change', () => remember(LEVEL_KEY, levelField.value));
+
+      const savedLevel = recall(LEVEL_KEY);
+      if (savedLevel) levelField.value = savedLevel;
+      renderBank(loadBank());
+
+      // Come back to the sentence that was last on screen, not a blank page.
+      history = loadHistory();
+      if (history.length) showAt(history.length - 1);
+      else updateSteps();
+    </script>
+  </body>
+</html>

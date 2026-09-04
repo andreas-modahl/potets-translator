@@ -1,4 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
+import type Anthropic from '@anthropic-ai/sdk';
+import { client } from './claude.js';
 import { config, type ExplainMode } from './config.js';
 
 export interface GlossPair {
@@ -23,14 +24,6 @@ export interface Translation {
 export interface TranslationResult {
   sourceLanguage: string;
   translations: Translation[];
-}
-
-let cached: Anthropic | undefined;
-
-/** Built on first use so that an unconfigured process fails in `main`, with a readable message. */
-function client(): Anthropic {
-  cached ??= new Anthropic({ apiKey: config.anthropicApiKey, maxRetries: 2 });
-  return cached;
 }
 
 const SYSTEM_PROMPT = `You translate messages posted in a Discord chat channel.
@@ -85,12 +78,27 @@ with the part of the original it came from.
   a single word in one language is often several in another, and vice versa.
   Pair "geçiriyor musun" with "har du", rather than inventing a word each.
 - Work through the translation in order, left to right, and cover all of it.
-- Do not overlap. Each part of the translation belongs to at most one pair, so
-  never pair a suffix separately from the word it is attached to.
+- Do not overlap, on either side. Each part of the translation belongs to at
+  most one pair, so never pair a suffix separately from the word it is attached
+  to. Likewise each part of the original belongs to at most one pair: once
+  "farklı olduğu" is paired with "er annerledes", the pair for "siden" gets only
+  "için", not "farklı olduğu için" again.
 - Skip pairs where both sides are the same text anyway: names, numbers, URLs,
   emoji, and mentions teach the reader nothing.
 - Keep each chunk short. Prefer more small pairs over a few long ones, but never
   split a chunk so small that the pairing becomes wrong.
+- Each "target" must be an exact, contiguous substring of your translation,
+  and the targets read in order must reconstruct the translation word for
+  word. Never write "..." or any placeholder to skip over words, and never
+  glue together words that are not adjacent in your translation. When a
+  construction wraps around other words (Norwegian "siden X er Y" against
+  Turkish "X Y için"), split it into pieces that are each contiguous, such as
+  "siden" / "için", "tyrkisk setningsstruktur" / "Türkçe cümle yapısı", "er
+  annerledes" / "farklı olduğu". The "source" side may then come out of order
+  relative to the original; that is expected and fine.
+- Keep a modifier in the same pair as the word it modifies, or right next to
+  it. An adverb like "noen ganger" / "bazen" belongs with its verb, not with
+  whichever noun happens to stand beside it in the translation.
 - At most 12 pairs. If the message is long enough that it would need more, give
   no gloss at all rather than a truncated one.`;
 
@@ -192,16 +200,32 @@ function parseGloss(value: unknown, translated: string): GlossPair[] {
     pairs.push({ target: cleanTarget, source: cleanSource });
   }
 
-  // Sort by where each chunk appears in the translation. Anything that cannot
-  // be located keeps its original position relative to the rest.
+  // Sort by where each chunk appears in the translation, so the translation
+  // line reads straight through. A chunk that cannot be located means the model
+  // glued together words that are not adjacent in its own sentence; shown
+  // anyway it would land somewhere wrong and scramble the sentence, which is
+  // worse than no gloss at all. So the whole gloss is dropped and the reader
+  // gets the plain translation instead.
   const haystack = translated.toLowerCase();
-  return pairs
-    .map((pair, index) => {
-      const at = locate(haystack, pair.target);
-      return { pair, index, at: at === -1 ? Number.MAX_SAFE_INTEGER : at };
-    })
-    .sort((a, b) => a.at - b.at || a.index - b.index)
-    .map(({ pair }) => pair);
+  const located = pairs.map((pair, index) => ({ pair, index, at: locate(haystack, pair.target) }));
+  const missing = located.filter(({ at }) => at === -1);
+  if (missing.length > 0) {
+    console.warn(
+      `Dropping gloss: chunk(s) not found in translation ${JSON.stringify(translated)}: ` +
+        missing.map(({ pair }) => JSON.stringify(pair.target)).join(', '),
+    );
+    return [];
+  }
+  // A source chunk that sits wholly inside another pair's source means the
+  // model counted part of the original twice. Left in for now, but logged, so
+  // it is visible how often the prompt rule against it is being ignored.
+  const sources = pairs.map(({ source }) => source.toLowerCase());
+  const doubled = sources.filter((s, i) => sources.some((o, j) => i !== j && o !== s && o.includes(s)));
+  if (doubled.length > 0) {
+    console.warn(`Gloss double-counts original text: ${doubled.map((s) => JSON.stringify(s)).join(', ')}`);
+  }
+
+  return located.sort((a, b) => a.at - b.at || a.index - b.index).map(({ pair }) => pair);
 }
 
 /**

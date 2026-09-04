@@ -7,6 +7,9 @@ declare per message — you only say which languages a channel should end up in.
 A message already written in one of the target languages is left alone, and
 messages that are only links, mentions or emoji are skipped entirely.
 
+The same translator is also available as a web page you can type into, with no
+Discord involved — see [Web app](#web-app).
+
 ## How it behaves
 
 Enable it in a channel:
@@ -144,7 +147,62 @@ npm start
 ```
 
 `npm test` covers the parts that can be checked without a Discord connection or
-an API key: which messages are worth translating, and language-name handling.
+an API key: which messages are worth translating, language-name handling, the
+column layout, and the two checks that decide whether a Turkish breakdown is
+trustworthy enough to show.
+
+## Web app
+
+`npm run web` serves a page at <http://localhost:3000> where you type a sentence
+and get it back in the languages you name. It reuses the bot's translation code,
+so the same explanation modes apply: `full` lays each chunk of the translation
+above the original wording it came from, and `beginner` marks a few words worth
+learning and lists them underneath.
+
+It needs `ANTHROPIC_API_KEY` and nothing else — no bot token, no Discord
+application. `npm run build` then `npm run web:start` runs the compiled version.
+
+There is no history: the page shows the translation you just asked for, and
+nothing is stored on the server.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `WEB_PORT` | `3000` | Port the page is served on. |
+| `WEB_TARGETS` | `English, Norwegian` | Languages the form starts with; changeable per request. |
+
+### Lær tyrkisk
+
+`/learn` is a subpage for one specific job: learning Turkish as a Norwegian
+speaker. It is in Norwegian throughout, and built around a sentence comparator —
+one Turkish sentence laid out word by word, with the Norwegian each word carries
+printed underneath it.
+
+    Yarın      arkadaşımla       yeni    açılan          müzeye       gideceğiz.
+    i morgen   med vennen min    nylig   som ble åpnet   til museet   skal vi dra
+
+    Norsk   I morgen skal jeg og vennen min dra til det nyåpnede museet.
+
+The Norwegian across the middle reads in Turkish order, so it comes out
+scrambled. That is the point: Turkish puts the verb last and glues onto it what
+Norwegian spreads over several words. The natural Norwegian sentence underneath
+puts it back together.
+
+- Words with a dotted underline carry suffixes. Click one to see it taken apart
+  — root plus each suffix, with what each contributes — and a note in Norwegian
+  on the grammar it shows.
+- **Skjul norsk** hides every Norwegian word, the sentence underneath included,
+  and leaves the spacing. Click a word to check yourself one at a time.
+- **Ordbank** keeps words you save. It lives in the browser's local storage, so
+  it never reaches the server, and it is per-browser.
+
+Ask for a sentence at a level (nybegynner, viderekommen, avansert) and optionally
+on a topic, or paste in your own sentence — Norwegian or Turkish, either way.
+
+The breakdown is checked before it is shown: the pieces must walk the sentence
+start to end without skipping or repeating a word, and a morpheme split must
+really spell the word it claims to. A breakdown that fails is thrown away rather
+than displayed, because a column pairing the wrong two things teaches something
+false. When that happens the page says so and the sentence is shown whole.
 
 ## Configuration
 
@@ -160,6 +218,8 @@ Everything lives in `.env`; see `.env.example` for the annotated list.
 | `DEFAULT_POST_MODE` | `plain` | `plain`, `reply`, `thread` or `webhook`. |
 | `EXPLAIN_TRANSLATIONS` | `full` | `full`, `beginner` or `off`. |
 | `DATA_FILE` | `data/channels.json` | Where per-channel settings persist. |
+| `WEB_PORT` | `3000` | Web app only. |
+| `WEB_TARGETS` | `English, Norwegian` | Web app only: the form's initial languages. |
 
 Per-channel settings are written to `DATA_FILE` and survive restarts. The file
 is gitignored.
@@ -187,8 +247,15 @@ If cost is the main constraint, set `CLAUDE_MODEL=claude-haiku-4-5-20251001`.
 
 | File | Responsibility |
 | --- | --- |
-| `src/index.ts` | Client setup and event wiring |
+| `src/index.ts` | Discord client setup and event wiring |
+| `src/server.ts` | The web app's HTTP server and JSON API |
+| `public/index.html` | The translator page |
+| `public/learn.html` | The Turkish lesson page and its comparator |
+| `public/app.css` | Colour tokens and chrome shared by both pages |
+| `src/claude.ts` | The shared Anthropic client |
 | `src/translate.ts` | The Claude call, prompt, and structured output |
+| `src/lesson.ts` | The lesson call: Turkish sentence, breakdown, morphemes |
+| `src/align.ts` | Checking that a breakdown really fits its sentence |
 | `src/poster.ts` | Posting, editing and deleting translations |
 | `src/filter.ts` | Deciding which messages are worth translating |
 | `src/commands.ts` | The `/translator` slash command |

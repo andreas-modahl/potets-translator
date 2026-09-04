@@ -1,0 +1,205 @@
+/* Shared chrome for both pages: colour tokens, form controls, cards, nav.
+   Anything specific to one page stays in that page's own <style>. */
+
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf7;
+  --panel: #ffffff;
+  --sunk: #f4f1ea;
+  --ink: #1b1a17;
+  --muted: #6d6a62;
+  --faint: #97928a;
+  --line: #e4e0d6;
+  --accent: #7c4a2d;
+  --accent-soft: #f0e3d8;
+  --mark: #f6e3b8;
+  --bad: #b03a2b;
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17161a;
+    --panel: #201f24;
+    --sunk: #1b1a1f;
+    --ink: #eceae4;
+    --muted: #9b968c;
+    --faint: #7c776f;
+    --line: #34323a;
+    --accent: #e0a878;
+    --accent-soft: #33291f;
+    --mark: #4a3a1c;
+    --bad: #f08a7a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 1.5rem 1.25rem 4rem;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+main {
+  max-width: 46rem;
+  margin: 0 auto;
+}
+
+/* Site header ------------------------------------------------------------ */
+
+.site-nav {
+  max-width: 46rem;
+  margin: 0 auto 2rem;
+  display: flex;
+  gap: 1.25rem;
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.75rem;
+}
+
+.site-nav .brand {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-right: auto;
+}
+
+.site-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+
+.site-nav a:hover {
+  color: var(--ink);
+}
+
+.site-nav a[aria-current='page'] {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+}
+
+.lede {
+  margin: 0 0 1.75rem;
+  color: var(--muted);
+}
+
+/* Form controls ---------------------------------------------------------- */
+
+form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+textarea,
+input,
+select {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  color: inherit;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+textarea {
+  min-height: 7.5rem;
+  resize: vertical;
+}
+
+textarea:focus,
+input:focus,
+select:focus,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.row {
+  display: flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.row > * {
+  flex: 1 1 12rem;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+button {
+  padding: 0.6rem 1.4rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+button.ghost {
+  color: var(--muted);
+  background: transparent;
+  border-color: var(--line);
+  font-weight: 500;
+}
+
+button.ghost:hover {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Shared blocks ---------------------------------------------------------- */
+
+.card {
+  padding: 1rem 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.status {
+  margin: 1.5rem 0 0;
+  color: var(--muted);
+}
+
+.status.error {
+  color: var(--bad);
+}

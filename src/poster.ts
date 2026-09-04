@@ -61,7 +61,10 @@ function render(translations: Translation[]): string {
       // columns, which needs a code block to hold the alignment. A beginner one
       // covers only a few words, so the sentence stays, with those words marked.
       const stacked = glossStyle === 'full' && gloss?.length ? interlinear(gloss) : '';
-      if (stacked) return fence(stacked);
+      // The sentence itself goes above the block, so the reader reads the
+      // translation once and uses the columns as a reference, rather than
+      // reassembling it from broken rows.
+      if (stacked) return `${text}\n${fence(stacked)}`;
 
       const content =
         glossStyle === 'beginner' && gloss?.length
