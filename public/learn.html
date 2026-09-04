@@ -1432,15 +1432,16 @@
           if (isSolved(index)) focusNextOpen();
         });
         // Enter and Tab both step to the next blank, skipping the buttons in
-        // between; Shift+Tab steps back.
+        // between; Shift+Tab steps back. Past the last blank they land on
+        // the next-sentence button, not on whatever button comes first.
         field.addEventListener('keydown', (event) => {
           if (event.key !== 'Enter' && event.key !== 'Tab') return;
           const step = event.key === 'Tab' && event.shiftKey ? -1 : 1;
           const next = comparator.children[index + step]?.querySelector('.tr');
-          if (!next && event.key === 'Tab') return;
+          if (!next && step < 0) return;
           event.preventDefault();
           if (next) placeCaretAtEnd(next);
-          else field.blur();
+          else submitButton.focus();
         });
         field.addEventListener('focus', () => select(index));
 
