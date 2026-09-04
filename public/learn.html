@@ -469,7 +469,7 @@
             <path d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
           </svg>
         </button>
-        <span class="key-help"><kbd>|</kbd> leser ordet du står i</span>
+        <span class="key-help"><kbd>|</kbd> leser ordet du står i · <kbd>|</kbd><kbd>|</kbd> hele setningen</span>
       </div>
 
       <article id="lesson" class="card" hidden>
@@ -981,10 +981,19 @@
       chest.addEventListener('animationend', () => chest.classList.remove('hop'));
 
       document.addEventListener('keydown', (event) => {
-        // The | key reads the word in focus aloud. No Turkish word needs it,
-        // so it can be swallowed even while the caret sits in a blank.
+        // The | key reads the word in focus aloud; pressed twice quickly it
+        // reads the whole sentence. No Turkish word needs the key, so it can
+        // be swallowed even while the caret sits in a blank.
         if (event.key !== '|' || event.ctrlKey || event.altKey || event.metaKey || lessonCard.hidden) return;
         event.preventDefault();
+        if (event.repeat) return;
+        const now = Date.now();
+        const double = now - lastPipe < DOUBLE_TAP_MS;
+        lastPipe = double ? 0 : now;
+        if (double) {
+          speak(current.turkish);
+          return;
+        }
         const word = current.chunks[selected]?.turkish;
         if (word) speak(word);
       });
@@ -1017,7 +1026,6 @@
 
         lessonCard.hidden = false;
         focusNextOpen();
-        speak(result.turkish);
       }
 
       /* Speech -----------------------------------------------------------
@@ -1025,6 +1033,8 @@
          MP3. If it is not set up there, the browser's own voice steps in. */
 
       const canSpeakLocally = 'speechSynthesis' in window;
+      const DOUBLE_TAP_MS = 400;
+      let lastPipe = 0;
       /** Flipped off the first time the server says it has no voice. */
       let serverSpeech = true;
       const player = new Audio();
