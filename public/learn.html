@@ -38,7 +38,7 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.35rem;
-        margin-left: auto;
+        margin-left: 0.5rem;
       }
       .hint-row .special {
         min-width: 2.4rem;
@@ -212,6 +212,22 @@
         transform: translateY(-50%) translate(1px, 1px);
         box-shadow: 1px 1px 0 var(--line);
       }
+      /* A small turning arrow says the tag cycles when clicked. */
+      .level {
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.3rem;
+      }
+      .level .cycle {
+        flex: 0 0 auto;
+        opacity: 0.6;
+        transition: transform 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
+      }
+      .level:hover .cycle {
+        opacity: 1;
+        transform: rotate(90deg);
+      }
 
       /* The word itself stays hidden in the detail panel until it has been
          typed right or asked for; its parts are still described. */
@@ -313,6 +329,20 @@
       .chunk.correct .tr {
         border-bottom-color: var(--accent);
         color: var(--accent);
+      }
+      /* One dot under the line for every letter still to type, so a blank
+         says how long its word is. A space in the answer shows as a gap. */
+      .chunk .marks {
+        min-height: 0.7rem;
+        font-size: 0.7rem;
+        line-height: 1;
+        letter-spacing: 0.15em;
+        white-space: pre;
+        color: var(--faint);
+        pointer-events: none;
+      }
+      .chunk.correct .marks {
+        visibility: hidden;
       }
       .chunk .no {
         padding: 0;
@@ -422,8 +452,29 @@
       .speak:hover .flag svg {
         transform: scale(1.1) rotate(-6deg);
       }
+      /* In the hint row the ball is a button like the hint beside it: same
+         paper cut-out, same press. */
       .hint-row .speak {
-        padding: 0 0.35rem 0 0.1rem;
+        height: auto;
+        gap: 0.25rem;
+        padding: 0.3rem 0.65rem 0.3rem 0.4rem;
+        color: var(--ink);
+        background: var(--panel);
+        border-color: var(--line);
+        border-radius: var(--wobble-small);
+        box-shadow: 3px 3px 0 var(--line);
+      }
+      .hint-row .speak:hover {
+        background: var(--sunk);
+        transform: translate(-1px, -1px);
+        box-shadow: 4px 4px 0 var(--line);
+      }
+      .hint-row .speak:active {
+        transform: translate(2px, 2px);
+        box-shadow: 1px 1px 0 var(--line);
+      }
+      .hint-row .speak .key {
+        margin-left: 0.2rem;
       }
       .natural p {
         flex: 0 1 auto;
@@ -647,6 +698,13 @@
         padding: 0;
         list-style: none;
       }
+      /* What the chest is for, shown while it is still empty. */
+      .bank-empty {
+        margin: 0.75rem 0 0;
+        font-family: var(--hand);
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
       .bank-list li {
         position: relative;
         display: grid;
@@ -852,7 +910,11 @@
       <form id="form">
         <div class="topic-wrap">
           <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
-            Nybegynner
+            <span id="level-name">Nybegynner</span>
+            <svg class="cycle" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
+              <path d="M13 8a5 5 0 1 1-1.5-3.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M12.5 1.5v3.5H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
           </button>
           <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" />
         </div>
@@ -930,6 +992,7 @@
           <select id="group" class="group" aria-label="Kiste" hidden></select>
         </header>
         <ul class="bank-list" id="bank-list"></ul>
+        <p class="bank-empty" id="bank-empty" hidden></p>
       </section>
     </main>
 
@@ -937,6 +1000,8 @@
     <script type="module">
       const form = document.querySelector('#form');
       const levelButton = document.querySelector('#level');
+      const levelName = document.querySelector('#level-name');
+      const bankEmpty = document.querySelector('#bank-empty');
       const topicField = document.querySelector('#topic');
       const submitButton = document.querySelector('#submit');
       const backButton = document.querySelector('#back');
@@ -1066,6 +1131,7 @@
           chestOpen: 'Åpne kisten og vis alle ordene',
           chestClose: 'Lukk kisten',
           chestFull: 'Kiste full!',
+          bankEmpty: 'Ord du skriver riktig uten hint, havner i kisten.',
           fullChests: (n) => (n === 1 ? '1 full kiste' : `${n} fulle kister`),
           login: 'Logg inn',
           logout: 'Logg ut',
@@ -1114,6 +1180,7 @@
           chestOpen: 'Sandığı aç ve tüm kelimeleri göster',
           chestClose: 'Sandığı kapat',
           chestFull: 'Sandık doldu!',
+          bankEmpty: 'İpucu almadan doğru yazdığın kelimeler sandığa girer.',
           fullChests: (n) => `${n} dolu sandık`,
           login: 'Giriş yap',
           logout: 'Çıkış yap',
@@ -1386,6 +1453,7 @@
         const wasSolved = box.classList.contains('correct');
         box.classList.toggle('correct', sameWord(typed, chunk.target));
         box.classList.toggle('filled', typed.trim().length > 0);
+        box.querySelector('.marks').textContent = marksFor(chunk.target, typed);
         const solvedNow = box.classList.contains('correct');
         if (solvedNow === wasSolved) return;
 
@@ -1411,6 +1479,12 @@
           explanations.hidden = true;
           setReady(false);
         }
+      }
+
+      /** One dot per letter of the answer not yet typed; spaces stay gaps. */
+      function marksFor(answer, typed) {
+        const done = typed.trimStart().length;
+        return answer.slice(Math.min(done, answer.length)).replace(/\S/g, '·');
       }
 
       function setReady(ready, filledChest = false) {
@@ -1508,7 +1582,12 @@
           speak(chunk.target);
         });
 
-        box.append(field, native);
+        const marks = document.createElement('span');
+        marks.className = 'marks';
+        marks.setAttribute('aria-hidden', 'true');
+        marks.textContent = marksFor(chunk.target, '');
+
+        box.append(field, marks, native);
         return box;
       }
 
@@ -1731,10 +1810,13 @@
           field.className = 'tr';
           field.style.minWidth = `${width}ch`;
           field.textContent = ' ';
+          const marks = document.createElement('span');
+          marks.className = 'marks';
+          marks.textContent = '·'.repeat(width);
           const under = document.createElement('span');
           under.className = 'no';
           under.append(bone(`${width + 1}ch`));
-          box.append(field, under);
+          box.append(field, marks, under);
           comparator.append(box);
         }
 
@@ -1893,10 +1975,12 @@
 
       function renderBank(words) {
         bankList.replaceChildren();
-        bankCount.textContent = words.length ? `${inChest(words.length)}/${CHEST_SIZE}` : '';
+        bankCount.textContent = `${inChest(words.length)}/${CHEST_SIZE}`;
         renderStars(words.length);
-        // No chest until there is something in it.
-        bank.hidden = words.length === 0;
+        // The chest is there from the start, with a line on what fills it.
+        bank.hidden = false;
+        bankEmpty.hidden = words.length > 0;
+        bankEmpty.textContent = D.bankEmpty;
         chestWrap.dataset.open = String(chestOpen);
         chestToggle.setAttribute('aria-expanded', String(chestOpen));
         chestToggle.setAttribute('aria-label', chestOpen ? D.chestClose : D.chestOpen);
@@ -2070,7 +2154,7 @@
       function setLevel(value) {
         const [key, label] = D.levels.find(([candidate]) => candidate === value) ?? D.levels[0];
         level = key;
-        levelButton.textContent = label;
+        levelName.textContent = label;
         levelButton.setAttribute('aria-label', `${D.levelLabel}: ${label}`);
         remember(keyFor('niva'), key);
       }
