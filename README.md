@@ -206,6 +206,11 @@ puts it back together.
   Words that needed a hint are remembered too and come back first, until one
   is typed unaided and earned. Every 25 words fill a chest and put a star on
   the lid.
+- **Logg inn** (shown when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are
+  set) signs in with Google. The chest, history and hinted words are then
+  kept on the server too, merged with whatever the browser already had, and
+  follow the learner to the next device. Login is a plain OAuth redirect:
+  no Google script runs on the page, and the session is a signed cookie.
 
 Ask for a sentence at a level (nybegynner, viderekommen, avansert) and optionally
 on a topic, or paste in your own sentence — Norwegian or Turkish, either way.
@@ -313,6 +318,9 @@ If cost is the main constraint, set `CLAUDE_MODEL=claude-haiku-4-5-20251001`.
 | `src/lesson.ts` | The lesson call: Turkish sentence, breakdown, morphemes |
 | `src/align.ts` | Checking that a breakdown really fits its sentence |
 | `src/pool.ts` | The lesson pool: generated lessons kept in SQLite and shared |
+| `src/google.ts` | Sign in with Google: the redirect and the code exchange |
+| `src/session.ts` | Signed session cookies |
+| `src/users.ts` | Logged-in learners and their synced chests |
 | `src/poster.ts` | Posting, editing and deleting translations |
 | `src/filter.ts` | Deciding which messages are worth translating |
 | `src/commands.ts` | The `/translator` slash command |

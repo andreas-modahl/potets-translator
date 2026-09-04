@@ -43,3 +43,10 @@ services:
         sync: false
       - key: AZURE_SPEECH_REGION
         value: northeurope
+      # Sign in with Google (see .env.example for the OAuth client set-up).
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true

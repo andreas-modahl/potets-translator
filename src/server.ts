@@ -7,7 +7,18 @@ import { assertTranslatorConfigured, config, type ExplainMode } from './config.j
 import { parseTargets } from './languages.js';
 import { LEARNINGS, LEVELS, lesson, type Learning, type Lesson, type LessonRequest, type Level } from './lesson.js';
 import { Limiter } from './limiter.js';
+import { exchangeCode, googleConfigured, GoogleLoginFailed, loginUrl } from './google.js';
 import { LessonPool, POOL_TARGET, topicKey } from './pool.js';
+import {
+  makeSession,
+  parseCookies,
+  randomToken,
+  readSession,
+  serializeCookie,
+  SESSION_COOKIE,
+  SESSION_DAYS,
+} from './session.js';
+import { UserStore, type User } from './users.js';
 import { speak, speechConfigured, speechFingerprint, SpeechUnavailable } from './speech.js';
 import { translate } from './translate.js';
 
@@ -116,6 +127,8 @@ const VERSION = (() => {
 
 /** Refuse a body far enough over the input limit that it cannot be a sentence. */
 const MAX_BODY_BYTES = 64 * 1024;
+/** A synced state carries a whole chest and history for both directions. */
+const MAX_STATE_BODY_BYTES = 2 * 1024 * 1024;
 
 const EXPLAIN_MODES: readonly ExplainMode[] = ['off', 'full', 'beginner'];
 
@@ -130,14 +143,14 @@ interface TranslateRequest {
 
 class BadRequest extends Error {}
 
-function readBody(request: IncomingMessage): Promise<string> {
+function readBody(request: IncomingMessage, limit = MAX_BODY_BYTES): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let size = 0;
 
     request.on('data', (chunk: Buffer) => {
       size += chunk.length;
-      if (size > MAX_BODY_BYTES) {
+      if (size > limit) {
         reject(new BadRequest('Request body is too large.'));
         request.destroy();
         return;
@@ -343,6 +356,115 @@ async function handleSpeak(url: URL, response: ServerResponse): Promise<void> {
  */
 const CANONICAL_HOST = process.env.CANONICAL_HOST?.trim() ?? '';
 
+/* Login ---------------------------------------------------------------------
+   Sign in with Google, so the chest and history follow the learner between
+   devices. Needs the pool's database for the users, and the Google client. */
+
+const users = pool && googleConfigured ? new UserStore(config.lessonDb) : undefined;
+const LOGIN_ENABLED = Boolean(users);
+const OAUTH_COOKIE = 'lb_oauth';
+const SESSION_SECRET = (() => {
+  if (config.sessionSecret) return config.sessionSecret;
+  if (LOGIN_ENABLED) console.warn('SESSION_SECRET is not set; logins will not survive a restart.');
+  return randomToken();
+})();
+
+/** Whether the browser reached us over TLS, directly or through Render's proxy. */
+function isSecure(request: IncomingMessage): boolean {
+  const forwarded = request.headers['x-forwarded-proto'];
+  const proto = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  return (proto ?? '').split(',')[0]?.trim() === 'https';
+}
+
+/** The URL Google sends the browser back to; it must match the one registered. */
+function callbackUrl(request: IncomingMessage): string {
+  const host = request.headers.host ?? `localhost:${config.webPort}`;
+  return `${isSecure(request) ? 'https' : 'http'}://${host}/auth/google/callback`;
+}
+
+/** The logged-in user, from the session cookie, if any. */
+function currentUser(request: IncomingMessage): User | undefined {
+  if (!users) return undefined;
+  const id = readSession(parseCookies(request.headers.cookie).get(SESSION_COOKIE), SESSION_SECRET);
+  return id ? users.get(id) : undefined;
+}
+
+function redirect(response: ServerResponse, location: string, cookies: string[] = []): void {
+  response.writeHead(302, { location, ...(cookies.length ? { 'set-cookie': cookies } : {}) });
+  response.end();
+}
+
+function handleLoginStart(request: IncomingMessage, response: ServerResponse): void {
+  const state = randomToken(16);
+  redirect(response, loginUrl(callbackUrl(request), state), [
+    serializeCookie(OAUTH_COOKIE, state, { maxAge: 600, secure: isSecure(request) }),
+  ]);
+}
+
+async function handleLoginCallback(request: IncomingMessage, url: URL, response: ServerResponse): Promise<void> {
+  const secure = isSecure(request);
+  const dropState = serializeCookie(OAUTH_COOKIE, '', { maxAge: 0, secure });
+  const state = url.searchParams.get('state');
+  const code = url.searchParams.get('code');
+  const expected = parseCookies(request.headers.cookie).get(OAUTH_COOKIE);
+  if (!state || !code || !expected || state !== expected) {
+    redirect(response, '/?login=failed', [dropState]);
+    return;
+  }
+  try {
+    const user = await exchangeCode(code, callbackUrl(request));
+    users!.upsert(user);
+    redirect(response, '/', [
+      dropState,
+      serializeCookie(SESSION_COOKIE, makeSession(user.id, SESSION_SECRET), {
+        maxAge: SESSION_DAYS * 24 * 60 * 60,
+        secure,
+      }),
+    ]);
+  } catch (error) {
+    if (!(error instanceof GoogleLoginFailed)) throw error;
+    console.warn(`Google login failed: ${error.message}`);
+    redirect(response, '/?login=failed', [dropState]);
+  }
+}
+
+function handleLogout(request: IncomingMessage, response: ServerResponse): void {
+  response.writeHead(204, {
+    'set-cookie': serializeCookie(SESSION_COOKIE, '', { maxAge: 0, secure: isSecure(request) }),
+  });
+  response.end();
+}
+
+function publicUser(user: User): { name: string; email: string; picture: string } {
+  return { name: user.name, email: user.email, picture: user.picture };
+}
+
+const DIRECTION_KEYS = ['tr', 'nb'] as const;
+
+/** Replaces the synced blobs the page sent, one per direction it included. */
+async function handleStateWrite(request: IncomingMessage, response: ServerResponse, user: User): Promise<void> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await readBody(request, MAX_STATE_BODY_BYTES));
+  } catch {
+    throw new BadRequest('Expected a JSON body.');
+  }
+  if (!parsed || typeof parsed !== 'object') throw new BadRequest('Expected a JSON object.');
+  const body = parsed as Record<string, unknown>;
+  for (const direction of DIRECTION_KEYS) {
+    const blob = body[direction];
+    if (blob === undefined) continue;
+    if (!blob || typeof blob !== 'object') throw new BadRequest(`State for ${direction} must be an object.`);
+    try {
+      users!.setState(user.id, direction, blob);
+    } catch (error) {
+      if (error instanceof RangeError) throw new BadRequest(error.message);
+      throw error;
+    }
+  }
+  send(response, 200, { ok: true });
+}
+
 function redirectHost(request: IncomingMessage, response: ServerResponse, path: string, search: string): boolean {
   if (!CANONICAL_HOST) return false;
   const host = request.headers.host?.split(':')[0] ?? '';
@@ -385,7 +507,35 @@ const server = createServer((request, response) => {
           maxInputChars: config.maxInputChars,
           version: VERSION,
           model: config.model,
+          login: LOGIN_ENABLED,
         });
+        return;
+      }
+      if (request.method === 'GET' && path === '/auth/google' && LOGIN_ENABLED) {
+        handleLoginStart(request, response);
+        return;
+      }
+      if (request.method === 'GET' && path === '/auth/google/callback' && LOGIN_ENABLED) {
+        await handleLoginCallback(request, url, response);
+        return;
+      }
+      if (request.method === 'POST' && path === '/auth/logout') {
+        handleLogout(request, response);
+        return;
+      }
+      if (request.method === 'GET' && path === '/api/me') {
+        const user = currentUser(request);
+        send(response, 200, { login: LOGIN_ENABLED, user: user ? publicUser(user) : null });
+        return;
+      }
+      if (path === '/api/me/state' && (request.method === 'GET' || request.method === 'PUT')) {
+        const user = currentUser(request);
+        if (!user) {
+          send(response, 401, { error: 'Not logged in.' });
+          return;
+        }
+        if (request.method === 'GET') send(response, 200, users!.state(user.id));
+        else await handleStateWrite(request, response, user);
         return;
       }
       if (request.method === 'GET' && path === '/api/version') {

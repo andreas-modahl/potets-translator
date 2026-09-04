@@ -107,6 +107,32 @@
         font-family: var(--hand);
         font-size: 1.05rem;
       }
+      /* Login: a small painted button, or the learner's picture once in. */
+      .login {
+        margin-left: 0.5rem;
+        padding: 0.35rem 0.8rem;
+        font-size: 0.95rem;
+        white-space: nowrap;
+      }
+      .account {
+        margin-left: 0.5rem;
+        padding: 0;
+        width: 2.3rem;
+        height: 2.3rem;
+        border-radius: 50%;
+        overflow: hidden;
+        background: var(--panel);
+      }
+      .account img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .account img:not([src]),
+      .account img[src=''] {
+        display: none;
+      }
       .flag {
         display: inline-flex;
         line-height: 0;
@@ -788,6 +814,12 @@
         <span class="flag" id="flag-to" aria-hidden="true"></span>
         <span class="direction-label" id="direction-label"></span>
         <button type="button" id="flip" class="flip ghost" aria-label="Bytt retning" title="Bytt retning">⇄</button>
+        <!-- Sign in with Google, so the chest follows the learner between
+             devices. Shown only when the server has a Google client. -->
+        <button type="button" id="login" class="login ghost" hidden>Logg inn</button>
+        <button type="button" id="account" class="account" hidden>
+          <img id="avatar" alt="" referrerpolicy="no-referrer" />
+        </button>
         <span class="wordmark" aria-hidden="true">Languageballs<small class="build" id="build"></small></span>
       </div>
 
@@ -988,6 +1020,11 @@
       const flagTo = document.querySelector('#flag-to');
       const directionLabel = document.querySelector('#direction-label');
       const flipButton = document.querySelector('#flip');
+      const loginButton = document.querySelector('#login');
+      const accountButton = document.querySelector('#account');
+      const avatar = document.querySelector('#avatar');
+      /** The logged-in learner, or null. Set before storage is touched. */
+      let account = null;
 
       /* Direction ---------------------------------------------------------
          "tr": a Norwegian speaker learning Turkish. "nb": a Turkish speaker
@@ -1030,6 +1067,9 @@
           chestClose: 'Lukk kisten',
           chestFull: 'Kiste full!',
           fullChests: (n) => (n === 1 ? '1 full kiste' : `${n} fulle kister`),
+          login: 'Logg inn',
+          logout: 'Logg ut',
+          loginFailed: 'Innloggingen gikk ikke. Prøv igjen.',
           inBank: 'Ligger i ordbanken',
           tally: 'Ganger skrevet riktig uten hjelp',
           remove: (word) => `Fjern ${word}`,
@@ -1073,6 +1113,9 @@
           chestClose: 'Sandığı kapat',
           chestFull: 'Sandık doldu!',
           fullChests: (n) => `${n} dolu sandık`,
+          login: 'Giriş yap',
+          logout: 'Çıkış yap',
+          loginFailed: 'Giriş yapılamadı. Tekrar dene.',
           inBank: 'Sandıkta var',
           tally: 'Yardımsız doğru yazma sayısı',
           remove: (word) => `${word} kelimesini kaldır`,
@@ -1107,7 +1150,12 @@
       /** Sequence number, so a slow answer cannot overwrite a newer one. */
       let pending = 0;
 
-      function setStatus(message, isError = false) {
+      /** A notice that should outlive the routine clearing done by a fetch. */
+      let stickyUntil = 0;
+
+      function setStatus(message, isError = false, { sticky = false } = {}) {
+        if (!message && Date.now() < stickyUntil) return;
+        stickyUntil = sticky ? Date.now() + 8000 : 0;
         statusLine.textContent = message ?? '';
         statusLine.hidden = !message;
         statusLine.classList.toggle('error', Boolean(isError));
@@ -1122,6 +1170,8 @@
         } catch {
           // A saved word is a convenience; the page works without one.
         }
+        // Anything that belongs to a direction is worth carrying to the server.
+        if (key.startsWith('potets.tyrkisk.') || key.startsWith('potets.norsk.')) scheduleSync();
       }
 
       function recall(key) {
@@ -2016,6 +2066,10 @@
         setFavicon(D.flagTo);
         directionLabel.textContent = D.label;
         flipButton.title = D.flip;
+        loginButton.textContent = D.login;
+        loginButton.title = D.login;
+        accountButton.title = account ? `${account.name} · ${D.logout}` : D.logout;
+        accountButton.setAttribute('aria-label', accountButton.title);
         flipButton.setAttribute('aria-label', D.flip);
         levelButton.title = D.switchLevel;
         topicField.placeholder = D.topicPlaceholder;
@@ -2103,10 +2157,168 @@
 
       flipButton.addEventListener('click', () => setDirection(learning === 'tr' ? 'nb' : 'tr'));
 
+      /* Login and sync ------------------------------------------------------
+         Logged in, the chest, the history, the hinted words and the level for
+         both directions are kept on the server as well. On arrival the two
+         are merged, so nothing is lost whichever device was used last; after
+         that every change is pushed a moment later. */
+
+      const SYNC_NAMES = ['ordbank', 'historikk', 'slit', 'niva'];
+      let syncTimer = 0;
+
+      function directionKey(direction, name) {
+        return direction === 'tr' ? `potets.tyrkisk.${name}` : `potets.norsk.${name}`;
+      }
+
+      /** One direction's storage as a plain object, ready to send. */
+      function snapshot(direction) {
+        const blob = {};
+        for (const name of SYNC_NAMES) {
+          const raw = recall(directionKey(direction, name));
+          if (raw === null) continue;
+          if (name === 'niva') {
+            blob[name] = raw;
+            continue;
+          }
+          try {
+            blob[name] = JSON.parse(raw);
+          } catch {
+            // Unreadable locally; the server's copy stands.
+          }
+        }
+        return blob;
+      }
+
+      /** Two lists joined on the folded target: local order first, then the rest. */
+      function unionByTarget(local, remote, merge) {
+        const result = local.map((entry) => ({ ...entry }));
+        for (const entry of remote) {
+          const at = result.findIndex((have) => fold(have.target) === fold(entry.target));
+          if (at < 0) result.push(entry);
+          else if (merge) result[at] = merge(result[at], entry);
+        }
+        return result;
+      }
+
+      /** Folds the server's copy of a direction into local storage. */
+      function applyRemote(direction, blob) {
+        if (!blob || typeof blob !== 'object') return;
+        const key = (name) => directionKey(direction, name);
+        const local = snapshot(direction);
+
+        if (Array.isArray(blob.ordbank)) {
+          const merged = unionByTarget(local.ordbank ?? [], blob.ordbank.filter((w) => w?.target), (a, b) => ({
+            ...b,
+            ...a,
+            count: Math.max(a.count ?? 1, b.count ?? 1),
+            pieces: Math.max(a.pieces ?? 0, b.pieces ?? 0),
+            at: Math.max(a.at ?? 0, b.at ?? 0),
+          }));
+          localStorage.setItem(key('ordbank'), JSON.stringify(merged));
+        }
+        if (Array.isArray(blob.historikk)) {
+          // The server's sentences go before the local ones, so the one on
+          // screen stays the newest and the cursor still points at it.
+          const remote = blob.historikk.filter((e) => e?.target && Array.isArray(e.chunks));
+          const mine = local.historikk ?? [];
+          const older = remote.filter((e) => !mine.some((have) => have.target === e.target));
+          const merged = [...older, ...mine].slice(-HISTORY_LIMIT);
+          localStorage.setItem(key('historikk'), JSON.stringify(merged));
+        }
+        if (Array.isArray(blob.slit)) {
+          const merged = unionByTarget(local.slit ?? [], blob.slit.filter((w) => w?.target)).slice(-STRUGGLED_LIMIT);
+          localStorage.setItem(key('slit'), JSON.stringify(merged));
+        }
+        if (typeof blob.niva === 'string' && !local.niva) localStorage.setItem(key('niva'), blob.niva);
+      }
+
+      /** Re-reads storage for the side on screen after a merge, gently. */
+      function refreshFromStorage() {
+        renderBank(loadBank());
+        const merged = loadHistory();
+        if (merged.at(-1)?.target !== history.at(-1)?.target && merged.length) {
+          history = merged;
+          showAt(history.length - 1);
+        } else {
+          history = merged;
+          updateSteps();
+        }
+      }
+
+      async function pushState() {
+        if (!account) return;
+        try {
+          await fetch('/api/me/state', {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ tr: snapshot('tr'), nb: snapshot('nb') }),
+          });
+        } catch {
+          // Offline: the next change tries again.
+        }
+      }
+
+      function scheduleSync() {
+        if (!account) return;
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(pushState, 1500);
+      }
+
+      async function pullState() {
+        try {
+          const response = await fetch('/api/me/state');
+          if (!response.ok) return;
+          const state = await response.json();
+          for (const direction of ['tr', 'nb']) applyRemote(direction, state[direction]);
+          refreshFromStorage();
+          await pushState();
+        } catch {
+          // The local copy is still there; sync waits for the next change.
+        }
+      }
+
+      function showAccount(user) {
+        account = user;
+        loginButton.hidden = Boolean(user);
+        accountButton.hidden = !user;
+        avatar.src = user?.picture ?? '';
+        accountButton.title = user ? `${user.name} · ${D.logout}` : D.logout;
+        accountButton.setAttribute('aria-label', accountButton.title);
+      }
+
+      loginButton.addEventListener('click', () => {
+        location.href = '/auth/google';
+      });
+
+      accountButton.addEventListener('click', async () => {
+        await fetch('/auth/logout', { method: 'POST' }).catch(() => {});
+        showAccount(null);
+      });
+
+      fetch('/api/me')
+        .then((response) => (response.ok ? response.json() : null))
+        .then((body) => {
+          if (!body?.login) return;
+          loginButton.hidden = Boolean(body.user);
+          if (body.user) {
+            showAccount(body.user);
+            return pullState();
+          }
+          return undefined;
+        })
+        .catch(() => {});
+
       // Come back to the side and sentence that were last on screen. A first
       // visit has nothing to come back to, so it fetches one rather than sit
       // empty.
       setDirection(learning);
+
+      // Google sends the browser back here with a note when a login failed.
+      // (window.history: the page's own `history` is the sentence list.)
+      if (new URLSearchParams(location.search).get('login') === 'failed') {
+        setStatus(D.loginFailed, true, { sticky: true });
+        window.history.replaceState(null, '', location.pathname);
+      }
     </script>
   </body>
 </html>
