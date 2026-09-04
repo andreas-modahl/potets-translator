@@ -83,6 +83,7 @@ export const config = {
   azureSpeechKey: optional('AZURE_SPEECH_KEY'),
   azureSpeechRegion: optional('AZURE_SPEECH_REGION'),
   azureSpeechVoice: optional('AZURE_SPEECH_VOICE') ?? 'tr-TR-EmelNeural',
+  azureSpeechVoiceNb: optional('AZURE_SPEECH_VOICE_NB') ?? 'nb-NO-PernilleNeural',
   speechCacheDir: optional('SPEECH_CACHE_DIR') ?? 'data/speech',
 } as const;
 

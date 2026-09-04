@@ -53,6 +53,35 @@
         }
       }
 
+      /* Which way round the lesson goes, with a button to swap it. */
+      .direction {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+      }
+      .flag {
+        font-size: 1.6rem;
+        line-height: 1;
+      }
+      .direction-arrow {
+        font-size: 1.2rem;
+        color: var(--faint);
+      }
+      .direction-label {
+        margin-left: 0.25rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .flip {
+        margin-left: auto;
+        width: 2.4rem;
+        height: 2.4rem;
+        padding: 0;
+        font-size: 1.2rem;
+        line-height: 1;
+      }
+
       /* One field for both: the level is a small toggle that lives inside the
          topic input, and cycles through the levels on click. */
       .topic-wrap {
@@ -446,10 +475,20 @@
     <nav class="site-nav">
       <span class="brand" aria-label="Potets Translator">🥔🥔🥔🥔🥔🥔🥔</span>
       <a href="/">Translator</a>
-      <a href="/learn" aria-current="page">Lær tyrkisk</a>
+      <a href="/learn" aria-current="page" id="nav-learn">Lær tyrkisk</a>
     </nav>
 
     <main>
+      <!-- Which way round: the flag on the left is the language you know, the
+           one on the right is the language you are learning. -->
+      <div class="direction">
+        <span class="flag" id="flag-from" aria-hidden="true">🇳🇴</span>
+        <span class="direction-arrow" aria-hidden="true">→</span>
+        <span class="flag" id="flag-to" aria-hidden="true">🇹🇷</span>
+        <span class="direction-label" id="direction-label"></span>
+        <button type="button" id="flip" class="flip ghost" aria-label="Bytt retning" title="Bytt retning">⇄</button>
+      </div>
+
       <form id="form">
         <div class="topic-wrap">
           <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
@@ -463,13 +502,13 @@
 
       <div class="natural" id="natural-row" hidden>
         <p id="natural" lang="nb"></p>
-        <button type="button" id="speak" class="speak ghost" aria-label="Les opp setningen på tyrkisk" title="Les opp setningen på tyrkisk">
+        <button type="button" id="speak" class="speak ghost" aria-label="Les opp setningen" title="Les opp setningen">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
             <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" />
             <path d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
           </svg>
         </button>
-        <span class="key-help"><kbd>|</kbd> leser ordet du står i · <kbd>|</kbd><kbd>|</kbd> hele setningen</span>
+        <span class="key-help" id="key-help"></span>
       </div>
 
       <article id="lesson" class="card" hidden>
@@ -534,6 +573,7 @@
       const naturalRow = document.querySelector('#natural-row');
       const naturalLine = document.querySelector('#natural');
       const speakButton = document.querySelector('#speak');
+      const keyHelp = document.querySelector('#key-help');
       const detail = document.querySelector('#detail');
       const explanations = document.querySelector('#explanations');
       const bank = document.querySelector('#bank');
@@ -541,12 +581,108 @@
       const bankCount = document.querySelector('#bank-count');
       const chest = document.querySelector('#chest');
       const fireworksBox = document.querySelector('#fireworks');
+      const flagFrom = document.querySelector('#flag-from');
+      const flagTo = document.querySelector('#flag-to');
+      const directionLabel = document.querySelector('#direction-label');
+      const flipButton = document.querySelector('#flip');
+      const navLearn = document.querySelector('#nav-learn');
 
-      const LEVEL_KEY = 'potets.tyrkisk.niva';
-      const BANK_KEY = 'potets.tyrkisk.ordbank';
-      const HISTORY_KEY = 'potets.tyrkisk.historikk';
+      /* Direction ---------------------------------------------------------
+         "tr": a Norwegian speaker learning Turkish. "nb": a Turkish speaker
+         learning Norwegian. Everything on the page is written in the language
+         the learner already knows, and the blanks are in the other one. */
+
+      const DIRECTIONS = {
+        tr: {
+          target: 'tr',
+          native: 'nb',
+          targetLocale: 'tr-TR',
+          flagFrom: '🇳🇴',
+          flagTo: '🇹🇷',
+          label: 'Jeg lærer tyrkisk',
+          nav: 'Lær tyrkisk',
+          title: 'Lær tyrkisk — Potets Translator',
+          levels: [
+            ['nybegynner', 'Nybegynner'],
+            ['viderekommen', 'Viderekommen'],
+            ['avansert', 'Avansert'],
+          ],
+          levelLabel: 'Nivå',
+          switchLevel: 'Bytt nivå',
+          topic: 'Tema',
+          topicPlaceholder: 'Tema: på kafé, familie, å reise…',
+          flip: 'Bytt retning: lær norsk fra tyrkisk',
+          speak: 'Les opp setningen',
+          keyHelp: ['leser ordet du står i', 'hele setningen'],
+          hint: 'Hint: én bokstav',
+          hintWord: 'Hint: én bokstav til',
+          blankFor: (native) => `Tyrkisk for «${native}»`,
+          prev: 'Forrige setning',
+          next: 'Neste setning',
+          fresh: 'Ny setning',
+          browse: 'Bla i setninger',
+          bank: 'Ordbank',
+          inBank: 'Ligger i ordbanken',
+          tally: 'Ganger skrevet riktig uten hjelp',
+          remove: (word) => `Fjern ${word}`,
+          noBreakdown:
+            'Setningen kom, men oppdelingen stemte ikke med den, så den er utelatt. Prøv en gang til.',
+          failed: 'Noe gikk galt.',
+          offline: 'Fikk ikke kontakt med serveren.',
+        },
+        nb: {
+          target: 'nb',
+          native: 'tr',
+          targetLocale: 'nb-NO',
+          flagFrom: '🇹🇷',
+          flagTo: '🇳🇴',
+          label: 'Norveççe öğreniyorum',
+          nav: 'Norveççe öğren',
+          title: 'Norveççe öğren — Potets Translator',
+          levels: [
+            ['nybegynner', 'Başlangıç'],
+            ['viderekommen', 'Orta'],
+            ['avansert', 'İleri'],
+          ],
+          levelLabel: 'Seviye',
+          switchLevel: 'Seviyeyi değiştir',
+          topic: 'Konu',
+          topicPlaceholder: 'Konu: kafede, aile, seyahat…',
+          flip: 'Yönü değiştir: Norveççeden Türkçe öğren',
+          speak: 'Cümleyi seslendir',
+          keyHelp: ['bulunduğun kelimeyi okur', 'tüm cümleyi'],
+          hint: 'İpucu: bir harf',
+          hintWord: 'İpucu: bir harf daha',
+          blankFor: (native) => `«${native}» için Norveççe`,
+          prev: 'Önceki cümle',
+          next: 'Sonraki cümle',
+          fresh: 'Yeni cümle',
+          browse: 'Cümleler arasında gez',
+          bank: 'Kelime sandığı',
+          inBank: 'Sandıkta var',
+          tally: 'Yardımsız doğru yazma sayısı',
+          remove: (word) => `${word} kelimesini kaldır`,
+          noBreakdown:
+            'Cümle geldi ama parçalara ayırma cümleyle uyuşmadı, o yüzden gösterilmedi. Bir daha dene.',
+          failed: 'Bir şeyler ters gitti.',
+          offline: 'Sunucuya ulaşılamadı.',
+        },
+      };
+
+      const DIRECTION_KEY = 'potets.retning';
       /** How many sentences are kept; the oldest fall off the front. */
       const HISTORY_LIMIT = 100;
+
+      let learning = recall(DIRECTION_KEY) === 'nb' ? 'nb' : 'tr';
+      /** The strings and settings for the current direction. */
+      let D = DIRECTIONS[learning];
+
+      /** Storage is per direction, so each side keeps its own sentences and chest. */
+      function keyFor(name) {
+        // The Turkish-learning keys keep their old names, so nothing saved
+        // before there were two directions is lost.
+        return learning === 'tr' ? `potets.tyrkisk.${name}` : `potets.norsk.${name}`;
+      }
 
       /** The lesson on screen, and which of its chunks is open. */
       let current = { chunks: [] };
@@ -582,25 +718,39 @@
         }
       }
 
+      /** Entries saved before the rename carried turkish/norwegian fields. */
+      function upgrade(entry) {
+        if (!entry || typeof entry !== 'object') return entry;
+        if (entry.target !== undefined) return entry;
+        if (entry.turkish === undefined) return entry;
+        const { turkish, norwegian, chunks, ...rest } = entry;
+        return {
+          ...rest,
+          target: turkish,
+          native: norwegian,
+          ...(Array.isArray(chunks) ? { chunks: chunks.map(upgrade) } : {}),
+        };
+      }
+
       function loadBank() {
         try {
-          const parsed = JSON.parse(recall(BANK_KEY) ?? '[]');
-          return Array.isArray(parsed) ? parsed.filter((entry) => entry?.turkish) : [];
+          const parsed = JSON.parse(recall(keyFor('ordbank')) ?? '[]');
+          return Array.isArray(parsed) ? parsed.map(upgrade).filter((entry) => entry?.target) : [];
         } catch {
           return [];
         }
       }
 
       function saveBank(words) {
-        remember(BANK_KEY, JSON.stringify(words));
+        remember(keyFor('ordbank'), JSON.stringify(words));
         renderBank(words);
       }
 
       function loadHistory() {
         try {
-          const parsed = JSON.parse(recall(HISTORY_KEY) ?? '[]');
+          const parsed = JSON.parse(recall(keyFor('historikk')) ?? '[]');
           return Array.isArray(parsed)
-            ? parsed.filter((entry) => entry?.turkish && Array.isArray(entry.chunks))
+            ? parsed.map(upgrade).filter((entry) => entry?.target && Array.isArray(entry.chunks))
             : [];
         } catch {
           return [];
@@ -608,7 +758,7 @@
       }
 
       function saveHistory() {
-        remember(HISTORY_KEY, JSON.stringify(history));
+        remember(keyFor('historikk'), JSON.stringify(history));
       }
 
       /* Stepping through the history ------------------------------------- */
@@ -616,10 +766,7 @@
       function updateSteps() {
         backButton.disabled = cursor <= 0;
         stepCount.textContent = history.length ? `${cursor + 1} / ${history.length}` : '';
-        submitButton.setAttribute(
-          'aria-label',
-          cursor < history.length - 1 ? 'Neste setning' : 'Ny setning',
-        );
+        submitButton.setAttribute('aria-label', cursor < history.length - 1 ? D.next : D.fresh);
         submitButton.title = submitButton.getAttribute('aria-label');
       }
 
@@ -647,7 +794,7 @@
         const box = comparator.children[index];
         const field = box.querySelector('.tr');
         box.classList.add('helped');
-        const answer = chunk.turkish;
+        const answer = chunk.target;
         const typed = field.textContent.trim();
         let right = 0;
         while (
@@ -698,15 +845,16 @@
         if (field) placeCaretAtEnd(field);
       }
 
-
-      /** Turkish letters folded to their plain Latin base, so ş and s, ı and
-          i, ğ and g, ö and o, ü and u, ç and c all count the same. The point
-          is the word and its order, not fighting the keyboard. */
+      /** Letters folded to their plain Latin base, so ş and s, ı and i, ğ and
+          g, ö and o, ü and u, ç and c, æ and a, ø and o, å and a all count
+          the same. The point is the word and its order, not the keyboard. */
       function fold(text) {
         return text
           .trim()
           .toLocaleLowerCase('tr')
           .replace(/ı/g, 'i')
+          .replace(/æ/g, 'a')
+          .replace(/ø/g, 'o')
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '')
           .replace(/[’'`´]/g, '')
@@ -721,7 +869,7 @@
         const typed = field.textContent;
         const box = field.parentElement;
         const wasSolved = box.classList.contains('correct');
-        box.classList.toggle('correct', sameWord(typed, chunk.turkish));
+        box.classList.toggle('correct', sameWord(typed, chunk.target));
         box.classList.toggle('filled', typed.trim().length > 0);
         const solvedNow = box.classList.contains('correct');
         if (solvedNow === wasSolved) return;
@@ -735,22 +883,22 @@
         else explanations.hidden = true;
       }
 
-      /** The chunk: a blank field to type the Turkish into, standing over the
-          Norwegian it should carry. The Norwegian is the button that opens the
-          word up — and doing so writes the answer into the field. */
+      /** The chunk: a blank field to type the target word into, standing over
+          the native words it should carry. The native text is the button that
+          gives one letter at a time. */
       function chunkField(chunk, index) {
         const box = document.createElement('div');
         box.className = chunk.morphemes?.length ? 'chunk built' : 'chunk';
 
         const field = document.createElement('span');
         field.className = 'tr';
-        field.lang = 'tr';
+        field.lang = D.target;
         field.contentEditable = 'plaintext-only';
         field.spellcheck = false;
         field.setAttribute('role', 'textbox');
-        field.setAttribute('aria-label', `Tyrkisk for «${chunk.norwegian}»`);
+        field.setAttribute('aria-label', D.blankFor(chunk.native));
         // Sized to the answer so the row does not shift as it is filled in.
-        field.style.minWidth = `${Math.max(2, chunk.turkish.length)}ch`;
+        field.style.minWidth = `${Math.max(2, chunk.target.length)}ch`;
 
         // The last right letter moves the caret on, so a sentence can be typed
         // straight through without reaching for Enter.
@@ -758,8 +906,8 @@
           checkField(field, chunk);
           if (isSolved(index)) focusNextOpen();
         });
-        // Enter and Tab both step to the next blank, skipping the Norwegian
-        // buttons in between; Shift+Tab steps back.
+        // Enter and Tab both step to the next blank, skipping the buttons in
+        // between; Shift+Tab steps back.
         field.addEventListener('keydown', (event) => {
           if (event.key !== 'Enter' && event.key !== 'Tab') return;
           const step = event.key === 'Tab' && event.shiftKey ? -1 : 1;
@@ -771,20 +919,21 @@
         });
         field.addEventListener('focus', () => select(index));
 
-        const norwegian = document.createElement('button');
-        norwegian.type = 'button';
-        norwegian.className = 'no';
-        norwegian.textContent = chunk.norwegian;
-        norwegian.title = 'Hint: én bokstav til';
-        norwegian.tabIndex = -1;
+        const native = document.createElement('button');
+        native.type = 'button';
+        native.className = 'no';
+        native.lang = D.native;
+        native.textContent = chunk.native;
+        native.title = D.hintWord;
+        native.tabIndex = -1;
         // Each click gives one more letter; the last one completes the word.
-        norwegian.addEventListener('click', () => {
+        native.addEventListener('click', () => {
           select(index);
           hint(index);
           if (isSolved(index)) focusNextOpen();
         });
 
-        box.append(field, norwegian);
+        box.append(field, native);
         return box;
       }
 
@@ -794,12 +943,13 @@
 
         const formNode = document.createElement('span');
         formNode.className = 'form';
-        formNode.lang = 'tr';
+        formNode.lang = D.target;
         if (solved) formNode.textContent = form;
         else formNode.append(masked(form));
 
         const meansNode = document.createElement('span');
         meansNode.className = 'means';
+        meansNode.lang = D.native;
         meansNode.textContent = means;
 
         piece.append(formNode, meansNode);
@@ -814,26 +964,23 @@
         return span;
       }
 
-      function renderDetail(chunk) {
-        detail.replaceChildren();
-        if (!chunk) return;
-        const solved = isSolved(current.chunks.indexOf(chunk));
+      /** The word opened up: its two sides, its pieces, and its note. */
+      function wordBlock(chunk, solved) {
+        const block = document.createDocumentFragment();
 
         const head = document.createElement('div');
         head.className = 'detail-head';
-
-        const turkish = document.createElement('span');
-        turkish.className = 'tr';
-        turkish.lang = 'tr';
-        if (solved) turkish.textContent = chunk.turkish;
-        else turkish.append(masked(chunk.turkish));
-
-        const norwegian = document.createElement('span');
-        norwegian.className = 'no';
-        norwegian.textContent = chunk.norwegian;
-
-        head.append(turkish, norwegian);
-        detail.append(head);
+        const target = document.createElement('span');
+        target.className = 'tr';
+        target.lang = D.target;
+        if (solved) target.textContent = chunk.target;
+        else target.append(masked(chunk.target));
+        const native = document.createElement('span');
+        native.className = 'no';
+        native.lang = D.native;
+        native.textContent = chunk.native;
+        head.append(target, native);
+        block.append(head);
 
         if (chunk.morphemes?.length) {
           const strip = document.createElement('div');
@@ -847,23 +994,30 @@
             }
             strip.append(morphemeNode(morpheme, solved));
           });
-          detail.append(strip);
+          block.append(strip);
         }
 
         if (chunk.note) {
           const note = document.createElement('p');
           note.className = 'note';
+          note.lang = D.native;
           note.textContent = chunk.note;
-          detail.append(note);
+          block.append(note);
         }
 
-        const inBank = loadBank().some(
-          (word) => word.turkish.toLocaleLowerCase('tr') === chunk.turkish.toLocaleLowerCase('tr'),
-        );
+        return block;
+      }
+
+      function renderDetail(chunk) {
+        detail.replaceChildren();
+        if (!chunk) return;
+        detail.append(wordBlock(chunk, isSolved(current.chunks.indexOf(chunk))));
+
+        const inBank = loadBank().some((word) => fold(word.target) === fold(chunk.target));
         if (inBank) {
           const mark = document.createElement('p');
           mark.className = 'detail-actions hint-text';
-          mark.textContent = 'Ligger i ordbanken';
+          mark.textContent = D.inBank;
           detail.append(mark);
         }
       }
@@ -873,44 +1027,9 @@
         explanations.replaceChildren();
         for (const chunk of current.chunks) {
           if (!chunk.morphemes?.length && !chunk.note) continue;
-
           const block = document.createElement('div');
           block.className = 'explanation';
-
-          const head = document.createElement('div');
-          head.className = 'detail-head';
-          const turkish = document.createElement('span');
-          turkish.className = 'tr';
-          turkish.lang = 'tr';
-          turkish.textContent = chunk.turkish;
-          const norwegian = document.createElement('span');
-          norwegian.className = 'no';
-          norwegian.textContent = chunk.norwegian;
-          head.append(turkish, norwegian);
-          block.append(head);
-
-          if (chunk.morphemes?.length) {
-            const strip = document.createElement('div');
-            strip.className = 'morphemes';
-            chunk.morphemes.forEach((morpheme, index) => {
-              if (index > 0) {
-                const joint = document.createElement('span');
-                joint.className = 'joint';
-                joint.textContent = '+';
-                strip.append(joint);
-              }
-              strip.append(morphemeNode(morpheme, true));
-            });
-            block.append(strip);
-          }
-
-          if (chunk.note) {
-            const note = document.createElement('p');
-            note.className = 'note';
-            note.textContent = chunk.note;
-            block.append(note);
-          }
-
+          block.append(wordBlock(chunk, true));
           explanations.append(block);
         }
         explanations.hidden = explanations.childElementCount === 0;
@@ -927,9 +1046,7 @@
           there already, has its tally bumped. Only the first time is a drop. */
       function bankEarned(chunk) {
         const words = loadBank();
-        const at = words.findIndex(
-          (word) => word.turkish.toLocaleLowerCase('tr') === chunk.turkish.toLocaleLowerCase('tr'),
-        );
+        const at = words.findIndex((word) => fold(word.target) === fold(chunk.target));
         if (at >= 0) {
           words[at] = { ...words[at], count: (words[at].count ?? 1) + 1 };
           saveBank(words);
@@ -939,8 +1056,8 @@
         saveBank([
           ...words,
           {
-            turkish: chunk.turkish,
-            norwegian: chunk.norwegian,
+            target: chunk.target,
+            native: chunk.native,
             count: 1,
             ...(chunk.note ? { note: chunk.note } : {}),
           },
@@ -982,8 +1099,8 @@
 
       document.addEventListener('keydown', (event) => {
         // The | key reads the word in focus aloud; pressed twice quickly it
-        // reads the whole sentence. No Turkish word needs the key, so it can
-        // be swallowed even while the caret sits in a blank.
+        // reads the whole sentence. No word in either language needs the key,
+        // so it can be swallowed even while the caret sits in a blank.
         if (event.key !== '|' || event.ctrlKey || event.altKey || event.metaKey || lessonCard.hidden) return;
         event.preventDefault();
         if (event.repeat) return;
@@ -991,10 +1108,10 @@
         const double = now - lastPipe < DOUBLE_TAP_MS;
         lastPipe = double ? 0 : now;
         if (double) {
-          speak(current.turkish);
+          speak(current.target);
           return;
         }
-        const word = current.chunks[selected]?.turkish;
+        const word = current.chunks[selected]?.target;
         if (word) speak(word);
       });
 
@@ -1006,21 +1123,22 @@
         explanations.replaceChildren();
         explanations.hidden = true;
 
-        naturalLine.textContent = result.norwegian;
+        naturalLine.textContent = result.native;
+        naturalLine.lang = D.native;
         naturalRow.hidden = false;
 
         for (const [index, chunk] of result.chunks.entries()) {
           comparator.append(chunkField(chunk, index));
         }
 
-        // With no breakdown there is nothing to line up, so the Turkish is
+        // With no breakdown there is nothing to line up, so the sentence is
         // shown as one piece rather than pretending to a word-by-word split.
         if (result.chunks.length === 0) {
           const whole = document.createElement('p');
           whole.className = 'chunk';
-          whole.lang = 'tr';
+          whole.lang = D.target;
           whole.style.fontSize = '1.4rem';
-          whole.textContent = result.turkish;
+          whole.textContent = result.target;
           comparator.append(whole);
         }
 
@@ -1039,19 +1157,19 @@
       let serverSpeech = true;
       const player = new Audio();
 
-      function turkishVoice() {
+      function localVoice() {
         const voices = speechSynthesis.getVoices();
-        const turkish = voices.filter((voice) => voice.lang.toLowerCase().startsWith('tr'));
-        return turkish.find((voice) => voice.localService) ?? turkish[0] ?? null;
+        const matching = voices.filter((voice) => voice.lang.toLowerCase().startsWith(D.target));
+        return matching.find((voice) => voice.localService) ?? matching[0] ?? null;
       }
 
       function speakLocally(text) {
         if (!canSpeakLocally) return;
         speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'tr-TR';
+        utterance.lang = D.targetLocale;
         utterance.rate = 0.9;
-        const voice = turkishVoice();
+        const voice = localVoice();
         if (voice) utterance.voice = voice;
         speechSynthesis.speak(utterance);
       }
@@ -1063,7 +1181,9 @@
 
         if (serverSpeech) {
           try {
-            const response = await fetch(`/api/speak?text=${encodeURIComponent(text)}`);
+            const response = await fetch(
+              `/api/speak?lang=${D.target}&text=${encodeURIComponent(text)}`,
+            );
             if (response.status === 503) {
               serverSpeech = false;
             } else if (response.ok) {
@@ -1081,7 +1201,7 @@
         speakLocally(text);
       }
 
-      speakButton.addEventListener('click', () => speak(current.turkish));
+      speakButton.addEventListener('click', () => speak(current.target));
 
       // A click on nothing in particular is taken as "back to the exercise":
       // the caret goes to the first blank still open. Controls, links, the
@@ -1104,31 +1224,32 @@
         for (const [index, word] of words.entries()) {
           const item = document.createElement('li');
 
-          const turkish = document.createElement('span');
-          turkish.className = 'tr';
-          turkish.lang = 'tr';
-          turkish.textContent = word.turkish;
+          const target = document.createElement('span');
+          target.className = 'tr';
+          target.lang = D.target;
+          target.textContent = word.target;
 
-          const norwegian = document.createElement('span');
-          norwegian.className = 'no';
-          norwegian.textContent = word.norwegian;
+          const native = document.createElement('span');
+          native.className = 'no';
+          native.lang = D.native;
+          native.textContent = word.native;
 
           const tally = document.createElement('span');
           tally.className = 'tally';
           tally.textContent = `×${word.count ?? 1}`;
-          tally.title = 'Ganger skrevet riktig uten hjelp';
+          tally.title = D.tally;
 
           const remove = document.createElement('button');
           remove.type = 'button';
           remove.className = 'ghost';
           remove.textContent = '−';
-          remove.setAttribute('aria-label', `Fjern ${word.turkish}`);
+          remove.setAttribute('aria-label', D.remove(word.target));
           remove.addEventListener('click', () => {
             saveBank(words.filter((_, at) => at !== index));
             if (selected >= 0) renderDetail(current.chunks[selected]);
           });
 
-          item.append(turkish, norwegian, tally, remove);
+          item.append(target, native, tally, remove);
           bankList.append(item);
         }
       }
@@ -1145,6 +1266,7 @@
         }
 
         const attempt = ++pending;
+        const asked = learning;
         submitButton.disabled = true;
         submitButton.classList.add('busy');
         setStatus('');
@@ -1153,13 +1275,14 @@
           const response = await fetch('/api/lesson', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ level, topic: topicField.value.trim() }),
+            body: JSON.stringify({ learning, level, topic: topicField.value.trim() }),
           });
           const result = await response.json().catch(() => ({}));
-          if (attempt !== pending) return;
+          // A flip while waiting means this answer belongs to the other side.
+          if (attempt !== pending || asked !== learning) return;
 
           if (!response.ok) {
-            setStatus(result.error ?? 'Noe gikk galt.', true);
+            setStatus(result.error ?? D.failed, true);
             return;
           }
           history.push(result);
@@ -1168,14 +1291,9 @@
           saveHistory();
           renderLesson(result);
           updateSteps();
-          setStatus(
-            result.chunks.length === 0
-              ? 'Setningen kom, men oppdelingen stemte ikke med den, så den er utelatt. Prøv en gang til.'
-              : '',
-            result.chunks.length === 0,
-          );
+          setStatus(result.chunks.length === 0 ? D.noBreakdown : '', result.chunks.length === 0);
         } catch {
-          if (attempt === pending) setStatus('Fikk ikke kontakt med serveren.', true);
+          if (attempt === pending) setStatus(D.offline, true);
         } finally {
           if (attempt === pending) {
             submitButton.disabled = false;
@@ -1186,38 +1304,87 @@
 
       /* Level ------------------------------------------------------------ */
 
-      const LEVELS = [
-        ['nybegynner', 'Nybegynner'],
-        ['viderekommen', 'Viderekommen'],
-        ['avansert', 'Avansert'],
-      ];
-      let level = LEVELS[0][0];
+      let level = 'nybegynner';
 
       function setLevel(value) {
-        const [key, label] = LEVELS.find(([candidate]) => candidate === value) ?? LEVELS[0];
+        const [key, label] = D.levels.find(([candidate]) => candidate === value) ?? D.levels[0];
         level = key;
         levelButton.textContent = label;
-        levelButton.setAttribute('aria-label', `Nivå: ${label}`);
-        remember(LEVEL_KEY, key);
+        levelButton.setAttribute('aria-label', `${D.levelLabel}: ${label}`);
+        remember(keyFor('niva'), key);
       }
 
       levelButton.addEventListener('click', () => {
-        const at = LEVELS.findIndex(([key]) => key === level);
-        setLevel(LEVELS[(at + 1) % LEVELS.length][0]);
+        const at = D.levels.findIndex(([key]) => key === level);
+        setLevel(D.levels[(at + 1) % D.levels.length][0]);
       });
 
-      setLevel(recall(LEVEL_KEY) ?? level);
-      renderBank(loadBank());
+      /* Direction switch ------------------------------------------------- */
 
-      // Come back to the sentence that was last on screen. A first visit has
-      // nothing to come back to, so it fetches one rather than sit empty.
-      history = loadHistory();
-      if (history.length) {
-        showAt(history.length - 1);
-      } else {
-        updateSteps();
-        form.requestSubmit();
+      /** Writes every label on the page in the learner's own language. */
+      function applyDirection() {
+        D = DIRECTIONS[learning];
+        document.documentElement.lang = D.native;
+        document.title = D.title;
+        navLearn.textContent = D.nav;
+        flagFrom.textContent = D.flagFrom;
+        flagTo.textContent = D.flagTo;
+        directionLabel.textContent = D.label;
+        flipButton.title = D.flip;
+        flipButton.setAttribute('aria-label', D.flip);
+        levelButton.title = D.switchLevel;
+        topicField.placeholder = D.topicPlaceholder;
+        topicField.setAttribute('aria-label', D.topic);
+        speakButton.title = D.speak;
+        speakButton.setAttribute('aria-label', D.speak);
+        keyHelp.replaceChildren();
+        keyHelp.append(kbd('|'), ` ${D.keyHelp[0]} · `, kbd('|'), kbd('|'), ` ${D.keyHelp[1]}`);
+        hintButton.textContent = D.hint;
+        backButton.title = D.prev;
+        backButton.setAttribute('aria-label', D.prev);
+        document.querySelector('.steps').setAttribute('aria-label', D.browse);
+        document.querySelector('#bank .sr-only').textContent = D.bank;
       }
+
+      function kbd(text) {
+        const key = document.createElement('kbd');
+        key.textContent = text;
+        return key;
+      }
+
+      /** Switches sides: own labels, own level, own history, own chest. */
+      function setDirection(value) {
+        learning = value === 'nb' ? 'nb' : 'tr';
+        remember(DIRECTION_KEY, learning);
+        pending += 1;
+        player.pause();
+        if (canSpeakLocally) speechSynthesis.cancel();
+        submitButton.disabled = false;
+        submitButton.classList.remove('busy');
+        setStatus('');
+
+        applyDirection();
+        setLevel(recall(keyFor('niva')) ?? 'nybegynner');
+        renderBank(loadBank());
+
+        history = loadHistory();
+        if (history.length) {
+          showAt(history.length - 1);
+        } else {
+          lessonCard.hidden = true;
+          naturalRow.hidden = true;
+          cursor = -1;
+          updateSteps();
+          form.requestSubmit();
+        }
+      }
+
+      flipButton.addEventListener('click', () => setDirection(learning === 'tr' ? 'nb' : 'tr'));
+
+      // Come back to the side and sentence that were last on screen. A first
+      // visit has nothing to come back to, so it fetches one rather than sit
+      // empty.
+      setDirection(learning);
     </script>
   </body>
 </html>

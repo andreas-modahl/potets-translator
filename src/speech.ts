@@ -35,16 +35,24 @@ function escapeXml(text: string): string {
   });
 }
 
-function cachePath(text: string): string {
-  const key = createHash('sha256').update(`${config.azureSpeechVoice}\n${text}`).digest('hex');
+export type SpeechLang = 'tr' | 'nb';
+
+const VOICES: Record<SpeechLang, { voice: string; locale: string }> = {
+  tr: { voice: config.azureSpeechVoice, locale: 'tr-TR' },
+  nb: { voice: config.azureSpeechVoiceNb, locale: 'nb-NO' },
+};
+
+function cachePath(text: string, lang: SpeechLang): string {
+  const key = createHash('sha256').update(`${VOICES[lang].voice}\n${text}`).digest('hex');
   return join(config.speechCacheDir, `${key}.mp3`);
 }
 
-async function synthesise(text: string): Promise<Buffer> {
+async function synthesise(text: string, lang: SpeechLang): Promise<Buffer> {
+  const { voice, locale } = VOICES[lang];
   const url = `https://${config.azureSpeechRegion}.tts.speech.microsoft.com/cognitiveservices/v1`;
   const ssml =
-    `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="tr-TR">` +
-    `<voice name="${config.azureSpeechVoice}">` +
+    `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${locale}">` +
+    `<voice name="${voice}">` +
     `<prosody rate="-10%">${escapeXml(text)}</prosody>` +
     `</voice></speak>`;
 
@@ -66,7 +74,7 @@ async function synthesise(text: string): Promise<Buffer> {
 }
 
 /** MP3 bytes for the text, from the cache when it has been asked for before. */
-export async function speak(text: string): Promise<Buffer> {
+export async function speak(text: string, lang: SpeechLang = 'tr'): Promise<Buffer> {
   if (!speechConfigured) throw new SpeechUnavailable('Azure Speech is not configured.');
   const trimmed = text.trim();
   if (!trimmed) throw new SpeechUnavailable('Nothing to say.');
@@ -74,14 +82,14 @@ export async function speak(text: string): Promise<Buffer> {
     throw new SpeechUnavailable(`Text is longer than the ${MAX_TEXT_CHARS} character limit.`);
   }
 
-  const file = cachePath(trimmed);
+  const file = cachePath(trimmed, lang);
   try {
     return await readFile(file);
   } catch {
     // Not cached yet.
   }
 
-  const audio = await synthesise(trimmed);
+  const audio = await synthesise(trimmed, lang);
   await mkdir(config.speechCacheDir, { recursive: true });
   await writeFile(file, audio);
   return audio;

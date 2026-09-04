@@ -4,7 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { fileURLToPath } from 'node:url';
 import { assertTranslatorConfigured, config, type ExplainMode } from './config.js';
 import { parseTargets } from './languages.js';
-import { LEVELS, lesson, type Level } from './lesson.js';
+import { LEARNINGS, LEVELS, lesson, type Learning, type Level } from './lesson.js';
 import { Limiter } from './limiter.js';
 import { speak, speechConfigured, SpeechUnavailable } from './speech.js';
 import { translate } from './translate.js';
@@ -186,7 +186,12 @@ async function handleAsset(response: ServerResponse, asset: Asset): Promise<void
  * Reads the learn page's form: either a sentence the learner typed, or the
  * topic and level to build one from.
  */
-function parseLesson(raw: string): { text?: string; topic?: string; level: Level } {
+function parseLesson(raw: string): {
+  learning: Learning;
+  text?: string;
+  topic?: string;
+  level: Level;
+} {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -195,13 +200,14 @@ function parseLesson(raw: string): { text?: string; topic?: string; level: Level
   }
   if (!parsed || typeof parsed !== 'object') throw new BadRequest('Expected a JSON object.');
 
-  const { text, topic, level } = parsed as Record<string, unknown>;
+  const { learning, text, topic, level } = parsed as Record<string, unknown>;
   const sentence = typeof text === 'string' ? text.trim() : '';
   if (sentence.length > config.maxInputChars) {
     throw new BadRequest(`Setningen er lengre enn grensen på ${config.maxInputChars} tegn.`);
   }
 
   return {
+    learning: LEARNINGS.find((candidate) => candidate === learning) ?? 'tr',
     ...(sentence ? { text: sentence } : {}),
     ...(typeof topic === 'string' && topic.trim() ? { topic: topic.trim().slice(0, 200) } : {}),
     level: LEVELS.find((candidate) => candidate === level) ?? 'nybegynner',
@@ -224,9 +230,10 @@ async function handleSpeak(url: URL, response: ServerResponse): Promise<void> {
     return;
   }
   const text = url.searchParams.get('text') ?? '';
+  const lang = url.searchParams.get('lang') === 'nb' ? 'nb' : 'tr';
   let audio: Buffer;
   try {
-    audio = await speak(text);
+    audio = await speak(text, lang);
   } catch (error) {
     if (error instanceof SpeechUnavailable) throw new BadRequest(error.message);
     throw error;

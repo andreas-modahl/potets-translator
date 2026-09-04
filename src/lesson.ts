@@ -3,22 +3,30 @@ import { align } from './align.js';
 import { client } from './claude.js';
 import { config } from './config.js';
 
-/** One piece of a Turkish word: the root, or a suffix glued onto it. */
+/**
+ * Which language is being learned. The other one is the learner's own, and is
+ * the language every explanation is written in.
+ */
+export type Learning = 'tr' | 'nb';
+
+export const LEARNINGS: readonly Learning[] = ['tr', 'nb'];
+
+/** One piece of a word in the target language: the root, or a suffix glued onto it. */
 export interface Morpheme {
   /** The piece as it is spelled inside the word. */
   form: string;
-  /** What it contributes, in Norwegian. */
+  /** What it contributes, in the learner's language. */
   means: string;
 }
 
 export interface LessonChunk {
-  /** A slice of the Turkish sentence, exactly as it is spelled there. */
-  turkish: string;
-  /** What this piece means on its own, in Norwegian. */
-  norwegian: string;
+  /** A slice of the target sentence, exactly as it is spelled there. */
+  target: string;
+  /** What this piece means on its own, in the learner's language. */
+  native: string;
   /**
-   * A grammar note in Norwegian, present only when the piece has something to
-   * teach: a case ending, a tense, vowel harmony, a word order that surprises.
+   * A grammar note in the learner's language, present only when the piece has
+   * something to teach: a case ending, a tense, a word order that surprises.
    */
   note?: string;
   /** The word broken into root and suffixes, for words that carry any. */
@@ -26,17 +34,18 @@ export interface LessonChunk {
 }
 
 export interface Lesson {
-  /** The Turkish sentence, which is the line the whole page is built around. */
-  turkish: string;
-  /** Natural Norwegian: how you would actually say it, not a word-for-word gloss. */
-  norwegian: string;
+  learning: Learning;
+  /** The sentence in the language being learned; the line the page is built around. */
+  target: string;
+  /** The natural sentence in the learner's language, not a word-for-word gloss. */
+  native: string;
   /**
-   * The sentence cut into pieces that line up under the Turkish, left to right.
+   * The sentence cut into pieces that line up under the target, left to right.
    * Empty when the model could not produce a breakdown that fits the sentence,
    * in which case the page shows the sentence pair without the columns.
    */
   chunks: LessonChunk[];
-  /** The one grammar point this sentence is worth remembering for, in Norwegian. */
+  /** The one grammar point this sentence is worth remembering for. */
   focus?: string;
 }
 
@@ -44,144 +53,188 @@ export type Level = 'nybegynner' | 'viderekommen' | 'avansert';
 
 export const LEVELS: readonly Level[] = ['nybegynner', 'viderekommen', 'avansert'];
 
-const LEVEL_BRIEF: Record<Level, string> = {
-  nybegynner:
-    'A first-year sentence: 4-7 words, present tense, everyday vocabulary, at most one suffix worth explaining.',
-  viderekommen:
-    'An intermediate sentence: 6-12 words. Use past or future tense, case endings, possessives, or a postposition.',
-  avansert:
-    'An advanced sentence: a subordinate clause built with a participle or verbal noun (-dığı, -acağı, -mesi), the constructions Turkish uses where Norwegian would use "at" or "som".',
+interface Direction {
+  /** The language being learned, and the learner's own, as the prompt names them. */
+  target: string;
+  native: string;
+  level: Record<Level, string>;
+  /** How words in the target language are built, with examples for the split. */
+  morphology: string;
+  /** What the grammar notes should dwell on. */
+  notes: string;
+  /** Example focus phrases in the learner's language. */
+  focus: string;
+}
+
+const DIRECTIONS: Record<Learning, Direction> = {
+  tr: {
+    target: 'Turkish',
+    native: 'Norwegian (bokmål)',
+    level: {
+      nybegynner:
+        'A first-year sentence: 4-7 words, present tense, everyday vocabulary, at most one suffix worth explaining.',
+      viderekommen:
+        'An intermediate sentence: 6-12 words. Use past or future tense, case endings, possessives, or a postposition.',
+      avansert:
+        'An advanced sentence: a subordinate clause built with a participle or verbal noun (-dığı, -acağı, -mesi), the constructions Turkish uses where Norwegian would use "at" or "som".',
+    },
+    morphology:
+      'Turkish packs into single words what Norwegian spreads over several, and that is exactly what the student needs to see. ' +
+      'Split every word that carries a suffix, which is most of them: root "oku" = "lese", suffix "-yor" = "presens, pågående", suffix "-um" = "jeg". ' +
+      'Where the stem changes, give the changed form, not the dictionary one: "istiyorum" splits as "ist" + "iyor" + "um", never "iste" + "iyor" + "um", because the e is gone from the word. ' +
+      'Skip the split for bare words that carry nothing: "ben", "çok", "ve".',
+    notes:
+      'which case a suffix is and what it does, why the vowel is "a" and not "e", why the verb is last, why a possessive shows up where Norwegian would use "sin"',
+    focus: '"dativ -a/-e", "presens -iyor", "eiendomssuffiks"',
+  },
+  nb: {
+    target: 'Norwegian (bokmål)',
+    native: 'Turkish',
+    level: {
+      nybegynner:
+        'A first-year sentence: 4-7 words, present tense, everyday vocabulary, at most one grammar point worth explaining.',
+      viderekommen:
+        'An intermediate sentence: 6-12 words. Use past or perfect tense, a definite noun, a possessive, or a preposition that Turkish would express with a case ending.',
+      avansert:
+        'An advanced sentence: a subordinate clause with "at" or "som", inverted word order after a fronted adverbial, or a modal verb, the constructions Norwegian uses where Turkish would use a participle or verbal noun.',
+    },
+    morphology:
+      'Norwegian spreads over several words what Turkish packs into one, and articles, prepositions and word order are what the student needs to see. ' +
+      'Split a word only where it really carries an ending: "skolen" = "skole" (okul) + "n" (belirli tanımlık, -i hali değil), "bøkene" = "bøk" + "ene", "snakket" = "snakk" + "et" (geçmiş zaman). ' +
+      'The forms joined together must spell the word exactly as it stands. Skip the split for words with no ending: "jeg", "og", "til".',
+    notes:
+      'why a noun takes -en or -et, what a preposition does that Turkish would mark with a suffix, why the verb comes second, why "det" or "der" appears where Turkish has no subject',
+    focus: '"belirli tanımlık -en/-et", "geçmiş zaman -te", "ikinci sırada fiil"',
+  },
 };
 
-const SYSTEM_PROMPT = `You are a Turkish teacher writing material for a Norwegian speaker.
+function systemPrompt(learning: Learning): string {
+  const d = DIRECTIONS[learning];
+  return `You are a ${d.target} teacher writing material for a ${d.native} speaker.
 
-Your student reads Norwegian (bokmål) natively and is learning Turkish. Every
-explanation you write is in Norwegian. The Turkish is the thing being learned,
-so it is never explained away in English.
+Your student reads ${d.native} natively and is learning ${d.target}. Every
+explanation you write is in ${d.native}. The ${d.target} is the thing being
+learned, so it is never explained away in English.
 
 You produce one sentence at a time, cut into pieces that can be printed in
-columns underneath the Turkish, so the student can see which Turkish word
-carries which piece of the meaning.
+columns underneath the ${d.target}, so the student can see which ${d.target}
+word carries which piece of the meaning.
 
 The breakdown is the whole point, so it must be exact:
-- Each piece's "turkish" must be spelled exactly as it appears in the sentence,
+- Each piece's "target" must be spelled exactly as it appears in the sentence,
   and be a contiguous run of it. Never normalise, never give a dictionary form,
   never write "..." to skip words.
-- Read left to right through the Turkish sentence. The pieces in order must
+- Read left to right through the ${d.target} sentence. The pieces in order must
   cover all of it, with nothing skipped and nothing repeated. Punctuation
   between pieces is fine to leave out; a word is not.
-- One Turkish word per piece. Turkish packs into single words what Norwegian
-  spreads over several, and that is exactly what the student needs to see.
-  Group two words into one piece only for a fixed expression that is learned as
-  a unit, or for a word plus the postposition that governs it ("okul için").
+- One ${d.target} word per piece. Group two words into one piece only for a
+  fixed expression that is learned as a unit, or for a word plus the particle
+  or postposition that governs it.
 
 For each piece:
-- "norwegian" is what that piece contributes, in Norwegian. It may read as a
-  fragment out of order — "til skolen", "jeg går" — because Turkish and
-  Norwegian arrange a sentence differently. That mismatch is the lesson.
-- "morphemes" splits the Turkish word into its root and each suffix, in the
-  order they are spelled, with what each one does in Norwegian: root "oku"
-  = "lese", suffix "-yor" = "presens, pågående", suffix "-um" = "jeg". The
-  forms joined together must spell the word exactly as it stands in the
-  sentence, letter for letter. Where the stem changes, give the changed form,
-  not the dictionary one: "istiyorum" splits as "ist" + "iyor" + "um", never
-  "iste" + "iyor" + "um", because the e is gone from the word. Give this for
-  every word that carries a suffix, which in Turkish is most of them. Skip it
-  for bare words that carry nothing: "ben", "çok", "ve".
-- "note" is one sentence of Norwegian explaining the grammar, and only when
-  there is something real to say: which case a suffix is and what it does, why
-  the vowel is "a" and not "e", why the verb is last, why a possessive shows up
-  where Norwegian would use "sin". Leave it out entirely for a plain word. A
-  note that only repeats the translation is worse than no note.
+- "native" is what that piece contributes, in ${d.native}. It may read as a
+  fragment out of order, because the two languages arrange a sentence
+  differently. That mismatch is the lesson.
+- "morphemes" splits the ${d.target} word into its root and each ending, in
+  the order they are spelled, with what each one does in ${d.native}.
+  ${d.morphology}
+- "note" is one sentence of ${d.native} explaining the grammar, and only when
+  there is something real to say: ${d.notes}. Leave it out entirely for a plain
+  word. A note that only repeats the translation is worse than no note.
 
-Give "turkish" — the whole sentence on one line — before you give the pieces.
+Give "target" — the whole sentence on one line — before you give the pieces.
 It is the thing the pieces are checked against, so it is never left out, even
 though the pieces repeat it.
 
-"norwegian" at the top level is the natural Norwegian sentence: what a Norwegian
-would actually say, with normal word order, not a word-for-word gloss.
+"native" at the top level is the natural ${d.native} sentence: what a native
+speaker would actually say, with normal word order, not a word-for-word gloss.
 
-"focus" names the one thing this sentence teaches, in Norwegian, in a short
-phrase: "dativ -a/-e", "presens -iyor", "eiendomssuffiks".`;
+"focus" names the one thing this sentence teaches, in ${d.native}, in a short
+phrase: ${d.focus}.`;
+}
 
-const MORPHEME_SCHEMA = {
-  type: 'object',
-  properties: {
-    form: {
-      type: 'string',
-      description: 'The root or suffix as spelled inside the word, e.g. "oku" or "yor".',
-    },
-    means: { type: 'string', description: 'What it contributes, in Norwegian.' },
-  },
-  required: ['form', 'means'],
-} as const;
-
-const TOOL: Anthropic.Tool = {
-  name: 'post_lesson',
-  description: 'Report one Turkish sentence, broken down for a Norwegian-speaking learner.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      turkish: { type: 'string', description: 'The Turkish sentence, exactly as it reads.' },
-      norwegian: {
-        type: 'string',
-        description: 'The natural Norwegian sentence, in normal Norwegian word order.',
-      },
-      focus: {
-        type: 'string',
-        description: 'The one grammar point this sentence teaches, named in Norwegian.',
-      },
-      chunks: {
-        type: 'array',
-        description:
-          'The Turkish sentence cut into pieces, in the order they appear in it, covering all of it.',
-        items: {
-          type: 'object',
-          properties: {
-            turkish: {
-              type: 'string',
-              description: 'A contiguous slice of the Turkish sentence, spelled exactly as it is there.',
+function tool(learning: Learning): Anthropic.Tool {
+  const d = DIRECTIONS[learning];
+  return {
+    name: 'post_lesson',
+    description: `Report one ${d.target} sentence, broken down for a ${d.native}-speaking learner.`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        target: { type: 'string', description: `The ${d.target} sentence, exactly as it reads.` },
+        native: {
+          type: 'string',
+          description: `The natural ${d.native} sentence, in normal word order.`,
+        },
+        focus: {
+          type: 'string',
+          description: `The one grammar point this sentence teaches, named in ${d.native}.`,
+        },
+        chunks: {
+          type: 'array',
+          description: `The ${d.target} sentence cut into pieces, in the order they appear in it, covering all of it.`,
+          items: {
+            type: 'object',
+            properties: {
+              target: {
+                type: 'string',
+                description: `A contiguous slice of the ${d.target} sentence, spelled exactly as it is there.`,
+              },
+              native: { type: 'string', description: `What this piece contributes, in ${d.native}.` },
+              note: {
+                type: 'string',
+                description: `One sentence of grammar explanation in ${d.native}. Omit when the piece has nothing to teach.`,
+              },
+              morphemes: {
+                type: 'array',
+                description:
+                  'Root and endings in spelling order, whose forms joined together spell the word. Omit for words with no ending.',
+                items: {
+                  type: 'object',
+                  properties: {
+                    form: {
+                      type: 'string',
+                      description: 'The root or ending as spelled inside the word.',
+                    },
+                    means: {
+                      type: 'string',
+                      description: `What it contributes, in ${d.native}.`,
+                    },
+                  },
+                  required: ['form', 'means'],
+                },
+              },
             },
-            norwegian: { type: 'string', description: 'What this piece contributes, in Norwegian.' },
-            note: {
-              type: 'string',
-              description:
-                'One sentence of grammar explanation in Norwegian. Omit when the piece has nothing to teach.',
-            },
-            morphemes: {
-              type: 'array',
-              description:
-                'Root and suffixes in spelling order, whose forms joined together spell the word. Omit for words with no suffix.',
-              items: MORPHEME_SCHEMA,
-            },
+            required: ['target', 'native'],
           },
-          required: ['turkish', 'norwegian'],
         },
       },
+      required: ['target', 'native', 'chunks'],
     },
-    required: ['turkish', 'norwegian', 'chunks'],
-  },
-};
+  };
+}
 
 export interface LessonRequest {
-  /** A sentence the learner supplied, in Norwegian or in Turkish. */
+  learning: Learning;
+  /** A sentence the learner supplied, in either language. */
   text?: string;
   /** What a generated sentence should be about. */
   topic?: string;
   level: Level;
 }
 
-function brief({ text, topic, level }: LessonRequest): string {
+function brief({ learning, text, topic, level }: LessonRequest): string {
+  const d = DIRECTIONS[learning];
   if (text) {
     return (
-      'Here is a sentence from the student. It may be written in Norwegian or in Turkish.\n' +
-      'If it is Norwegian, translate it into natural Turkish and break that down.\n' +
-      'If it is already Turkish, keep it as it is and break it down.\n\n' +
+      `Here is a sentence from the student. It may be written in ${d.native} or in ${d.target}.\n` +
+      `If it is ${d.native}, translate it into natural ${d.target} and break that down.\n` +
+      `If it is already ${d.target}, keep it as it is and break it down.\n\n` +
       `<sentence>\n${text}\n</sentence>`
     );
   }
   const about = topic ? `\n\nThe sentence should be about: ${topic}` : '';
-  return `Write one Turkish sentence for the student and break it down.\n\n${LEVEL_BRIEF[level]}${about}`;
+  return `Write one ${d.target} sentence for the student and break it down.\n\n${d.level[level]}${about}`;
 }
 
 function parseMorphemes(value: unknown, word: string): Morpheme[] | undefined {
@@ -235,8 +288,8 @@ function devoice(word: string): string {
 }
 
 interface RawChunk {
-  turkish: string;
-  norwegian: string;
+  target: string;
+  native: string;
   note?: string;
   morphemes?: unknown;
 }
@@ -248,12 +301,12 @@ function parseRawChunks(value: unknown): RawChunk[] {
   const chunks: RawChunk[] = [];
   for (const entry of value) {
     if (!entry || typeof entry !== 'object') continue;
-    const { turkish, norwegian, note, morphemes } = entry as Record<string, unknown>;
-    if (typeof turkish !== 'string' || typeof norwegian !== 'string') continue;
-    if (!turkish.trim() || !norwegian.trim()) continue;
+    const { target, native, note, morphemes } = entry as Record<string, unknown>;
+    if (typeof target !== 'string' || typeof native !== 'string') continue;
+    if (!target.trim() || !native.trim()) continue;
     chunks.push({
-      turkish: turkish.trim(),
-      norwegian: norwegian.trim(),
+      target: target.trim(),
+      native: native.trim(),
       ...(typeof note === 'string' && note.trim() ? { note: note.trim() } : {}),
       morphemes,
     });
@@ -270,7 +323,7 @@ function rejoin(pieces: string[]): string {
  * Checks the breakdown against the sentence with `align`, rather than trusting
  * the model's spelling of it.
  *
- * Each chunk's Turkish is replaced by the exact slice of the sentence it
+ * Each chunk's target text is replaced by the exact slice of the sentence it
  * matched, so what the page prints in the columns is the sentence itself.
  *
  * @returns the chunks, or an empty array when the breakdown does not fit, in
@@ -278,22 +331,22 @@ function rejoin(pieces: string[]): string {
  *   a pairing that is wrong.
  */
 function alignChunks(chunks: RawChunk[], sentence: string): LessonChunk[] {
-  const spans = align(sentence, chunks.map(({ turkish }) => turkish));
+  const spans = align(sentence, chunks.map(({ target }) => target));
   if (!spans) {
     console.warn(
       `Dropping breakdown: pieces do not reconstruct ${JSON.stringify(sentence)}: ` +
-        chunks.map(({ turkish }) => JSON.stringify(turkish)).join(', '),
+        chunks.map(({ target }) => JSON.stringify(target)).join(', '),
     );
     return [];
   }
 
   return chunks.map((chunk, index) => {
     const span = spans[index];
-    const exact = span ? sentence.slice(span.at, span.end) : chunk.turkish;
+    const exact = span ? sentence.slice(span.at, span.end) : chunk.target;
     const morphemes = parseMorphemes(chunk.morphemes, exact);
     return {
-      turkish: exact,
-      norwegian: chunk.norwegian,
+      target: exact,
+      native: chunk.native,
       ...(chunk.note ? { note: chunk.note } : {}),
       ...(morphemes ? { morphemes } : {}),
     };
@@ -301,8 +354,9 @@ function alignChunks(chunks: RawChunk[], sentence: string): LessonChunk[] {
 }
 
 /**
- * Builds one lesson: a Turkish sentence, its natural Norwegian, and the
- * piece-by-piece breakdown that lines the two up.
+ * Builds one lesson: a sentence in the language being learned, its natural
+ * counterpart in the learner's language, and the piece-by-piece breakdown that
+ * lines the two up.
  *
  * A breakdown that does not fit the sentence is dropped rather than shown, so
  * the sentence is asked for twice before giving up: a second attempt usually
@@ -310,6 +364,7 @@ function alignChunks(chunks: RawChunk[], sentence: string): LessonChunk[] {
  */
 export async function lesson(request: LessonRequest, attempts = 2): Promise<Lesson> {
   let last: Lesson | undefined;
+  const postLesson = tool(request.learning);
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const response = await client().messages.create({
@@ -317,9 +372,9 @@ export async function lesson(request: LessonRequest, attempts = 2): Promise<Less
       // A morpheme split for every word adds up, and an advanced sentence is
       // both longer and more heavily suffixed than a beginner's.
       max_tokens: 8192,
-      system: SYSTEM_PROMPT,
-      tools: [TOOL],
-      tool_choice: { type: 'tool', name: TOOL.name },
+      system: systemPrompt(request.learning),
+      tools: [postLesson],
+      tool_choice: { type: 'tool', name: postLesson.name },
       messages: [{ role: 'user', content: brief(request) }],
     });
 
@@ -337,23 +392,24 @@ export async function lesson(request: LessonRequest, attempts = 2): Promise<Less
     }
 
     const input = block.input as Record<string, unknown>;
-    const norwegian = typeof input.norwegian === 'string' ? input.norwegian.trim() : '';
+    const native = typeof input.native === 'string' ? input.native.trim() : '';
     const chunks = parseRawChunks(input.chunks);
     // On a long sentence the model sometimes skips the whole-sentence field and
     // gives only the pieces, which are the sentence anyway. Rebuilding it from
     // them costs a real check — the pieces then line up by construction — but
     // that beats refusing a lesson that is otherwise complete.
-    const given = typeof input.turkish === 'string' ? input.turkish.trim() : '';
-    const turkish = given || rejoin(chunks.map((chunk) => chunk.turkish));
-    if (!turkish || !norwegian) {
+    const given = typeof input.target === 'string' ? input.target.trim() : '';
+    const target = given || rejoin(chunks.map((chunk) => chunk.target));
+    if (!target || !native) {
       console.warn('Claude returned a lesson with neither a sentence nor pieces; asking again.');
       continue;
     }
 
     last = {
-      turkish,
-      norwegian,
-      chunks: alignChunks(chunks, turkish),
+      learning: request.learning,
+      target,
+      native,
+      chunks: alignChunks(chunks, target),
       ...(typeof input.focus === 'string' && input.focus.trim()
         ? { focus: input.focus.trim() }
         : {}),

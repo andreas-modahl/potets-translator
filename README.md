@@ -173,9 +173,14 @@ nothing is stored on the server.
 ### Lær tyrkisk
 
 `/learn` is a subpage for one specific job: learning Turkish as a Norwegian
-speaker. It is in Norwegian throughout, and built around a sentence comparator —
-one Turkish sentence laid out word by word, with the Norwegian each word carries
-printed underneath it.
+speaker, or, flipped with the ⇄ button at the top, learning Norwegian as a
+Turkish speaker. Everything on the page is written in the language the learner
+already knows, and each direction keeps its own history, level and word chest.
+The rest of this section describes the Turkish-learning side; the other side is
+the mirror image, with the Norwegian read aloud by a Norwegian voice.
+
+It is built around a sentence comparator — one Turkish sentence laid out word
+by word, with the Norwegian each word carries printed underneath it.
 
     Yarın      arkadaşımla       yeni    açılan          müzeye       gideceğiz.
     i morgen   med vennen min    nylig   som ble åpnet   til museet   skal vi dra
