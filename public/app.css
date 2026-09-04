@@ -18,6 +18,8 @@
   --muted: #6b5a49;
   --faint: #9c8a75;
   --line: #2b2118;
+  /* The cut-out shadow: the ink itself on paper, a deeper dark on dark. */
+  --shadow: var(--line);
   --accent: #c1552f;
   --accent-soft: #f6d9c4;
   --mark: #f3d98a;
@@ -32,19 +34,23 @@
 }
 
 @media (prefers-color-scheme: dark) {
+  /* Dark: the same paper after dusk. The panels sit a clear step above the
+     page, the ink turns cream, and the cut-out shadow goes near-black so a
+     card still lifts off the page instead of wearing a double outline. */
   :root {
-    --bg: #1f1a16;
-    --panel: #2a231d;
-    --sunk: #241e19;
-    --ink: #f1e6d2;
-    --muted: #b7a48c;
-    --faint: #8a7962;
-    --line: #f1e6d2;
-    --accent: #e8865f;
-    --accent-soft: #4a2f22;
-    --mark: #5a4a22;
+    --bg: #1a1411;
+    --panel: #342b23;
+    --sunk: #2a221b;
+    --ink: #f3e8d4;
+    --muted: #bfac93;
+    --faint: #8d7b64;
+    --line: #e9dcc3;
+    --shadow: #0c0907;
+    --accent: #ec8a60;
+    --accent-soft: #55352a;
+    --mark: #7a6224;
     --bad: #f08a7a;
-    --teal: #6fb2b6;
+    --teal: #74b8bc;
     --ochre: #e6b85a;
   }
 }
@@ -185,7 +191,7 @@ select {
   background: var(--panel);
   border: 2px solid var(--line);
   border-radius: var(--wobble);
-  box-shadow: 3px 3px 0 var(--line);
+  box-shadow: 3px 3px 0 var(--shadow);
 }
 
 textarea {
@@ -230,7 +236,7 @@ button {
   background: var(--accent);
   border: 2px solid var(--line);
   border-radius: var(--wobble-small);
-  box-shadow: 3px 3px 0 var(--line);
+  box-shadow: 3px 3px 0 var(--shadow);
   cursor: pointer;
   transition:
     transform 0.08s ease-out,
@@ -239,12 +245,12 @@ button {
 
 button:hover {
   transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 var(--line);
+  box-shadow: 4px 4px 0 var(--shadow);
 }
 
 button:active {
   transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 var(--line);
+  box-shadow: 1px 1px 0 var(--shadow);
 }
 
 button.ghost {
@@ -263,7 +269,7 @@ button:disabled:hover {
   opacity: 0.45;
   cursor: default;
   transform: none;
-  box-shadow: 3px 3px 0 var(--line);
+  box-shadow: 3px 3px 0 var(--shadow);
 }
 
 .hint {
@@ -278,7 +284,7 @@ button:disabled:hover {
   background: var(--panel);
   border: 2px solid var(--line);
   border-radius: var(--wobble);
-  box-shadow: 5px 5px 0 var(--line);
+  box-shadow: 5px 5px 0 var(--shadow);
 }
 
 label,

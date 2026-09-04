@@ -202,15 +202,15 @@
         letter-spacing: 0.01em;
         color: var(--ink);
         background: var(--mark);
-        box-shadow: 2px 2px 0 var(--line);
+        box-shadow: 2px 2px 0 var(--shadow);
       }
       .level:hover {
         transform: translateY(-50%) rotate(0deg);
-        box-shadow: 2px 2px 0 var(--line);
+        box-shadow: 2px 2px 0 var(--shadow);
       }
       .level:active {
         transform: translateY(-50%) translate(1px, 1px);
-        box-shadow: 1px 1px 0 var(--line);
+        box-shadow: 1px 1px 0 var(--shadow);
       }
       /* A small turning arrow says the tag cycles when clicked. */
       .level {
@@ -305,7 +305,7 @@
       .chunk.open {
         background: var(--accent-soft);
         border-color: var(--line);
-        box-shadow: 2px 2px 0 var(--line);
+        box-shadow: 2px 2px 0 var(--shadow);
       }
       /* The blank to type into: a brush stroke underneath rather than a box,
          so the row still reads as a sentence and not as a form. */
@@ -462,16 +462,16 @@
         background: var(--panel);
         border-color: var(--line);
         border-radius: var(--wobble-small);
-        box-shadow: 3px 3px 0 var(--line);
+        box-shadow: 3px 3px 0 var(--shadow);
       }
       .hint-row .speak:hover {
         background: var(--sunk);
         transform: translate(-1px, -1px);
-        box-shadow: 4px 4px 0 var(--line);
+        box-shadow: 4px 4px 0 var(--shadow);
       }
       .hint-row .speak:active {
         transform: translate(2px, 2px);
-        box-shadow: 1px 1px 0 var(--line);
+        box-shadow: 1px 1px 0 var(--shadow);
       }
       .hint-row .speak .key {
         margin-left: 0.2rem;
@@ -529,7 +529,7 @@
         background: var(--mark);
         border: 1.5px solid var(--line);
         border-radius: 999px;
-        box-shadow: 2px 2px 0 var(--line);
+        box-shadow: 2px 2px 0 var(--shadow);
         transform: rotate(2deg);
         white-space: nowrap;
       }
@@ -604,7 +604,7 @@
         background: var(--sunk);
         border: 2px solid var(--line);
         border-radius: var(--wobble-small);
-        box-shadow: 2px 2px 0 var(--line);
+        box-shadow: 2px 2px 0 var(--shadow);
       }
       .morpheme .form {
         font-weight: 600;
@@ -674,7 +674,7 @@
       }
       .chest {
         display: block;
-        filter: drop-shadow(3px 3px 0 var(--line));
+        filter: drop-shadow(3px 3px 0 var(--shadow));
         transition: transform 0.2s cubic-bezier(0.2, 1.4, 0.4, 1);
       }
       /* An invisible button laid over the chest, so the drawing is the control. */
@@ -772,7 +772,7 @@
         background: var(--panel);
         border: 2px solid var(--line);
         border-radius: var(--wobble-small);
-        box-shadow: 3px 3px 0 var(--line);
+        box-shadow: 3px 3px 0 var(--shadow);
         transform: rotate(var(--tilt, 0deg));
       }
       /* Every other badge leans a touch the other way, like stickers. */
@@ -830,7 +830,7 @@
       .bank-list li.legendarisk {
         background: color-mix(in srgb, var(--ochre) 45%, var(--panel));
         box-shadow:
-          3px 3px 0 var(--line),
+          3px 3px 0 var(--shadow),
           0 0 0 3px color-mix(in srgb, var(--ochre) 45%, transparent);
       }
       .bank-list li.legendarisk .tr {
@@ -844,7 +844,7 @@
         35% {
           transform: rotate(var(--tilt, 0deg)) scale(1.18);
           box-shadow:
-            3px 3px 0 var(--line),
+            3px 3px 0 var(--shadow),
             0 0 0 6px color-mix(in srgb, var(--ochre) 55%, transparent);
         }
       }
