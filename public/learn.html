@@ -7,6 +7,15 @@
     <!-- The tab icon is the ball of the language being learned, drawn from the
          same symbols as the page; the script fills it in. -->
     <link rel="icon" id="favicon" type="image/svg+xml" href="" />
+    <!-- A theme chosen on the page is applied before the first paint. -->
+    <script>
+      try {
+        const theme = localStorage.getItem('potets.tema');
+        if (theme === 'dark' || theme === 'light') document.documentElement.dataset.theme = theme;
+      } catch {
+        // Storage is optional; the system setting decides.
+      }
+    </script>
     <link rel="stylesheet" href="/app.css" />
     <script src="/dev/reload.js"></script>
     <style>
@@ -637,9 +646,6 @@
       }
       #bank h2 {
         --chest-line: var(--line);
-        --chest-lid: #b8743f;
-        --chest-light: #d9a06a;
-        --chest-body: #8c4f2b;
         --chest-latch: var(--ochre);
         display: inline-flex;
         align-items: center;
@@ -672,13 +678,6 @@
       }
       .chest-wrap[data-open='true'] .chest {
         transform: rotate(2deg);
-      }
-      @media (prefers-color-scheme: dark) {
-        #bank h2 {
-          --chest-lid: #c48450;
-          --chest-light: #e2b17e;
-          --chest-body: #9a5a32;
-        }
       }
       .sr-only {
         position: absolute;
@@ -897,6 +896,8 @@
         <span class="flag" id="flag-to" aria-hidden="true"></span>
         <span class="direction-label" id="direction-label"></span>
         <button type="button" id="flip" class="flip ghost" aria-label="Bytt retning" title="Bytt retning">⇄</button>
+        <!-- Light or dark, by hand; otherwise the page follows the system. -->
+        <button type="button" id="theme" class="flip ghost" aria-label="Mørk modus" title="Mørk modus">☾</button>
         <!-- Sign in with Google, so the chest follows the learner between
              devices. Shown only when the server has a Google client. -->
         <button type="button" id="login" class="login ghost" hidden>Logg inn</button>
@@ -1145,6 +1146,8 @@
           topicPlaceholder: 'Tema: på kafé, familie, å reise…',
           defaultTopic: 'hunder',
           flip: 'Bytt retning: lær norsk fra tyrkisk',
+          themeDark: 'Mørk modus',
+          themeLight: 'Lys modus',
           speak: 'Les opp setningen',
           keyHelp: ['leser ordet du står i', 'hele setningen'],
           hint: 'Hint',
@@ -1196,6 +1199,8 @@
           topicPlaceholder: 'Konu: kafede, aile, seyahat…',
           defaultTopic: 'köpekler',
           flip: 'Yönü değiştir: Norveççeden Türkçe öğren',
+          themeDark: 'Koyu tema',
+          themeLight: 'Açık tema',
           speak: 'Cümleyi seslendir',
           keyHelp: ['bulunduğun kelimeyi okur', 'tüm cümleyi'],
           hint: 'İpucu',
@@ -2268,6 +2273,7 @@
         setFavicon(D.flagTo);
         directionLabel.textContent = D.label;
         flipButton.title = D.flip;
+        renderTheme();
         loginButton.textContent = D.login;
         loginButton.title = D.login;
         accountButton.title = account ? `${account.name} · ${D.logout}` : D.logout;
@@ -2360,6 +2366,37 @@
       }
 
       flipButton.addEventListener('click', () => setDirection(learning === 'tr' ? 'nb' : 'tr'));
+
+      /* Theme ------------------------------------------------------------
+         The page follows the system until the switch is used; from then on
+         the choice is kept, for this page and the front page alike. */
+
+      const THEME_KEY = 'potets.tema';
+      const themeButton = document.querySelector('#theme');
+      const systemDark = matchMedia('(prefers-color-scheme: dark)');
+
+      function currentTheme() {
+        const chosen = document.documentElement.dataset.theme;
+        if (chosen === 'dark' || chosen === 'light') return chosen;
+        return systemDark.matches ? 'dark' : 'light';
+      }
+
+      /** The button shows the theme it switches to: a moon by day, a sun by night. */
+      function renderTheme() {
+        const dark = currentTheme() === 'dark';
+        themeButton.textContent = dark ? '☀' : '☾';
+        const label = dark ? D.themeLight : D.themeDark;
+        themeButton.title = label;
+        themeButton.setAttribute('aria-label', label);
+      }
+
+      themeButton.addEventListener('click', () => {
+        const next = currentTheme() === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        remember(THEME_KEY, next);
+        renderTheme();
+      });
+      systemDark.addEventListener('change', renderTheme);
 
       /* Login and sync ------------------------------------------------------
          Logged in, the chest, the history, the hinted words and the level for

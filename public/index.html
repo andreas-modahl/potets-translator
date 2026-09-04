@@ -4,6 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Languageballs — translator</title>
+    <!-- The theme chosen on the learn page, applied before the first paint. -->
+    <script>
+      try {
+        const theme = localStorage.getItem('potets.tema');
+        if (theme === 'dark' || theme === 'light') document.documentElement.dataset.theme = theme;
+      } catch {
+        // Storage is optional; the system setting decides.
+      }
+    </script>
     <link rel="stylesheet" href="/app.css" />
     <script src="/dev/reload.js"></script>
     <style>
