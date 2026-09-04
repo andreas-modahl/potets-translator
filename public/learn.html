@@ -1221,6 +1221,8 @@
         renderLesson(history[index]);
         setStatus('');
         updateSteps();
+        // Back at the newest sentence, the one after it can be readied.
+        if (cursor === history.length - 1) schedulePrefetch();
       }
 
       backButton.addEventListener('click', () => {
@@ -1850,23 +1852,17 @@
         // Nothing on screen yet: hold the space the sentence will take.
         if (current.chunks.length === 0) renderSkeleton();
 
+        // The sentence asked for ahead of time, if it is still the right one.
+        const key = prefetchKey();
+        const ahead = prefetched?.key === key ? prefetched.promise : requestLesson();
+        prefetched = null;
+
         try {
-          const response = await fetch('/api/lesson', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-              learning,
-              level,
-              topic: topicField.value.trim(),
-              // The recent sentences, so the next one is not one of them.
-              avoid: history.slice(-30).map((entry) => entry.target),
-            }),
-          });
-          const result = await response.json().catch(() => ({}));
+          const { ok, result } = await ahead;
           // A flip while waiting means this answer belongs to the other side.
           if (attempt !== pending || asked !== learning) return;
 
-          if (!response.ok) {
+          if (!ok) {
             setStatus(result.error ?? D.failed, true);
             return;
           }
@@ -1877,6 +1873,7 @@
           renderLesson(result);
           updateSteps();
           setStatus(result.chunks.length === 0 ? D.noBreakdown : '', result.chunks.length === 0);
+          schedulePrefetch();
         } catch {
           if (attempt === pending) setStatus(D.offline, true);
         } finally {
@@ -1886,6 +1883,58 @@
           }
         }
       });
+
+      /* Prefetch ---------------------------------------------------------- */
+
+      /** Asks the server for a new sentence for the current settings. */
+      async function requestLesson() {
+        const response = await fetch('/api/lesson', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            learning,
+            level,
+            topic: topicField.value.trim(),
+            // The recent sentences, so the next one is not one of them.
+            avoid: history.slice(-30).map((entry) => entry.target),
+          }),
+        });
+        const result = await response.json().catch(() => ({}));
+        return { ok: response.ok, result };
+      }
+
+      /**
+       * The next sentence is asked for while this one is being solved, so
+       * "Neste" is instant. It is only good for the settings it was asked
+       * under and for following the sentence on screen; the key says which.
+       */
+      let prefetched = null;
+      let prefetchTimer = 0;
+
+      function prefetchKey() {
+        return JSON.stringify([learning, level, topicField.value.trim(), history.at(-1)?.target ?? '']);
+      }
+
+      function prefetch() {
+        if (cursor !== history.length - 1 || history.length === 0) return;
+        const key = prefetchKey();
+        if (prefetched?.key === key) return;
+        const promise = requestLesson();
+        // A failed prefetch is forgotten, so "Neste" asks afresh and shows
+        // the error itself.
+        promise.catch(() => {
+          if (prefetched?.promise === promise) prefetched = null;
+        });
+        prefetched = { key, promise };
+      }
+
+      /** Prefetch shortly, so typing a theme letter by letter asks once. */
+      function schedulePrefetch() {
+        clearTimeout(prefetchTimer);
+        prefetchTimer = setTimeout(prefetch, 1200);
+      }
+
+      topicField.addEventListener('input', schedulePrefetch);
 
       /* Level ------------------------------------------------------------ */
 
@@ -1902,6 +1951,7 @@
       levelButton.addEventListener('click', () => {
         const at = D.levels.findIndex(([key]) => key === level);
         setLevel(D.levels[(at + 1) % D.levels.length][0]);
+        schedulePrefetch();
       });
 
       /* Direction switch ------------------------------------------------- */

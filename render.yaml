@@ -26,10 +26,11 @@ services:
         value: production
       - key: CANONICAL_HOST
         value: languageballs.com
-      # Haiku makes the lessons at roughly a third of Sonnet's price and passes
-      # the breakdown checks just as reliably.
+      # Lessons are pooled and served to many learners, so each one is worth
+      # making well: Sonnet, the code's default. Haiku (claude-haiku-4-5-20251001)
+      # is about a third of the price and passes the checks too, if cost bites.
       - key: CLAUDE_MODEL
-        value: claude-haiku-4-5-20251001
+        value: claude-sonnet-5
       - key: WEB_PORT
         value: 10000
       - key: LESSON_DB
