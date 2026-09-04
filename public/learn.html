@@ -342,20 +342,6 @@
         border-bottom-color: var(--accent);
         color: var(--accent);
       }
-      /* One dot under the line for every letter still to type, so a blank
-         says how long its word is. A space in the answer shows as a gap. */
-      .chunk .marks {
-        min-height: 0.7rem;
-        font-size: 0.7rem;
-        line-height: 1;
-        letter-spacing: 0.15em;
-        white-space: pre;
-        color: var(--faint);
-        pointer-events: none;
-      }
-      .chunk.correct .marks {
-        visibility: hidden;
-      }
       .chunk .no {
         padding: 0;
         font: inherit;
@@ -1498,7 +1484,6 @@
         const wasSolved = box.classList.contains('correct');
         box.classList.toggle('correct', sameWord(typed, chunk.target));
         box.classList.toggle('filled', typed.trim().length > 0);
-        box.querySelector('.marks').textContent = marksFor(chunk.target, typed);
         const solvedNow = box.classList.contains('correct');
         if (solvedNow === wasSolved) return;
 
@@ -1551,12 +1536,6 @@
           void streakPill.offsetWidth;
           streakPill.classList.add('bump');
         }
-      }
-
-      /** One dot per letter of the answer not yet typed; spaces stay gaps. */
-      function marksFor(answer, typed) {
-        const done = typed.trimStart().length;
-        return answer.slice(Math.min(done, answer.length)).replace(/\S/g, '·');
       }
 
       function setReady(ready, filledChest = false) {
@@ -1654,12 +1633,7 @@
           speak(chunk.target);
         });
 
-        const marks = document.createElement('span');
-        marks.className = 'marks';
-        marks.setAttribute('aria-hidden', 'true');
-        marks.textContent = marksFor(chunk.target, '');
-
-        box.append(field, marks, native);
+        box.append(field, native);
         return box;
       }
 
@@ -1882,13 +1856,10 @@
           field.className = 'tr';
           field.style.minWidth = `${width}ch`;
           field.textContent = ' ';
-          const marks = document.createElement('span');
-          marks.className = 'marks';
-          marks.textContent = '·'.repeat(width);
           const under = document.createElement('span');
           under.className = 'no';
           under.append(bone(`${width + 1}ch`));
-          box.append(field, marks, under);
+          box.append(field, under);
           comparator.append(box);
         }
 
