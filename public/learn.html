@@ -932,6 +932,21 @@
         border-radius: var(--wobble-small);
         box-shadow: 3px 3px 0 var(--shadow);
         transform: rotate(var(--tilt, 0deg));
+        cursor: pointer;
+        user-select: none;
+      }
+      /* A badge is pressed like a button: it lifts, then sinks on the click. */
+      .bank-list li:hover {
+        transform: rotate(var(--tilt, 0deg)) translate(-1px, -1px);
+        box-shadow: 4px 4px 0 var(--shadow);
+      }
+      .bank-list li:active {
+        transform: rotate(var(--tilt, 0deg)) translate(2px, 2px);
+        box-shadow: 1px 1px 0 var(--shadow);
+      }
+      .bank-list li:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
       }
       /* Every other badge leans a touch the other way, like stickers. */
       .bank-list li:nth-child(3n + 1) {
@@ -1429,6 +1444,7 @@
           loginFailed: 'Innloggingen gikk ikke. Prøv igjen.',
           inBank: 'Ligger i ordbanken',
           tally: 'Ganger skrevet riktig uten hjelp',
+          sayWord: (word) => `Les opp ${word}`,
           remove: (word) => `Fjern ${word}`,
           noBreakdown:
             'Setningen kom, men oppdelingen stemte ikke med den, så den er utelatt. Prøv en gang til.',
@@ -1514,6 +1530,7 @@
           loginFailed: 'Giriş yapılamadı. Tekrar dene.',
           inBank: 'Sandıkta var',
           tally: 'Yardımsız doğru yazma sayısı',
+          sayWord: (word) => `${word} kelimesini seslendir`,
           remove: (word) => `${word} kelimesini kaldır`,
           noBreakdown:
             'Cümle geldi ama parçalara ayırma cümleyle uyuşmadı, o yüzden gösterilmedi. Bir daha dene.',
@@ -2454,7 +2471,7 @@
       document.addEventListener('click', (event) => {
         if (lessonCard.hidden) return;
         const interactive = event.target.closest(
-          'button, a, input, select, textarea, label, [contenteditable], #lesson',
+          'button, [role="button"], a, input, select, textarea, label, [contenteditable], #lesson',
         );
         if (interactive) return;
         focusNextOpen();
@@ -2561,6 +2578,20 @@
           remove.addEventListener('click', () => {
             saveBank(words.filter((_, at) => at !== index));
             if (selected >= 0) renderDetail(current.chunks[selected]);
+          });
+
+          // The badge reads its word out; the minus is the one part that does not.
+          item.tabIndex = 0;
+          item.setAttribute('role', 'button');
+          item.title = D.sayWord(word.target);
+          item.addEventListener('click', (event) => {
+            if (event.target.closest('button')) return;
+            speak(word.target);
+          });
+          item.addEventListener('keydown', (event) => {
+            if (event.target !== item || (event.key !== 'Enter' && event.key !== ' ')) return;
+            event.preventDefault();
+            speak(word.target);
           });
 
           item.append(target, native, tally, remove);
