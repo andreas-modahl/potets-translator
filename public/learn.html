@@ -1836,8 +1836,22 @@
       function piecesOf(chunk) {
         const parts = chunk.morphemes ?? [];
         if (parts.length < 2) return null;
-        const joined = parts.map((part) => part.form ?? '').join('');
-        return joined.toLocaleLowerCase(D.target) === chunk.target.toLocaleLowerCase(D.target) ? parts : null;
+        // Letters only, lower-cased the Turkish way, with the consonants that
+        // soften before a suffix folded together, as the server checks them:
+        // "köpek" + "im" does spell "köpeğim", the k just turned into ğ.
+        const soft = (text) =>
+          text
+            .replace(/[^\p{L}\p{N}]/gu, '')
+            .toLocaleLowerCase('tr')
+            .replace(/b/g, 'p')
+            .replace(/c/g, 'ç')
+            .replace(/d/g, 't')
+            .replace(/[gğ]/g, 'k');
+        const forms = parts.map((part) => (part.form ?? '').replace(/[^\p{L}\p{N}]/gu, ''));
+        const letters = chunk.target.replace(/[^\p{L}\p{N}]/gu, '');
+        if (forms.some((form) => !form)) return null;
+        if (soft(forms.join('')) !== soft(letters)) return null;
+        return parts.map((part, index) => ({ ...part, length: forms[index].length }));
       }
 
       /* Word classes ------------------------------------------------------
@@ -1892,16 +1906,25 @@
           renderCaption(box, chunk, []);
           return;
         }
+        // Each piece takes its letters from the word as it is spelled there,
+        // so a softened consonant is painted, not the dictionary form; any
+        // punctuation on the end stays plain.
         let at = 0;
         const painted = parts.map((part, index) => {
           const span = document.createElement('span');
           span.className = 'm';
           span.dataset.m = String(index % 4);
-          span.textContent = chunk.target.slice(at, at + part.form.length);
-          at += part.form.length;
+          let taken = 0;
+          let end = at;
+          while (taken < part.length && end < chunk.target.length) {
+            if (/[\p{L}\p{N}]/u.test(chunk.target[end])) taken += 1;
+            end += 1;
+          }
+          span.textContent = chunk.target.slice(at, end);
+          at = end;
           return span;
         });
-        field.replaceChildren(...painted);
+        field.replaceChildren(...painted, chunk.target.slice(at));
         renderCaption(
           box,
           chunk,
