@@ -1350,6 +1350,8 @@
         submitButton.classList.toggle('ready', ready);
         stepLabel.hidden = !ready;
         stepLabel.textContent = ready ? D.done : '';
+        // Nothing left to hint at once every word is in place.
+        hintButton.parentElement.hidden = ready;
       }
 
       /** The chunk: a blank field to type the target word into, standing over
@@ -1577,7 +1579,7 @@
         // blank ever needs a full stop typed into it.
         if (event.key === '.') {
           event.preventDefault();
-          if (!event.repeat) hintButton.click();
+          if (!event.repeat && !hintButton.parentElement.hidden) hintButton.click();
           return;
         }
 
