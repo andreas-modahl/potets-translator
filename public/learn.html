@@ -1918,8 +1918,9 @@
         return span;
       }
 
-      /** The word opened up: its two sides, its pieces, and its note. */
-      function wordBlock(chunk, solved) {
+      /** The word opened up: its two sides, its pieces, and its note. The
+          pieces can be left out where the blank itself already shows them. */
+      function wordBlock(chunk, solved, { pieces = true } = {}) {
         const block = document.createDocumentFragment();
 
         const head = document.createElement('div');
@@ -1936,7 +1937,7 @@
         head.append(target, native);
         block.append(head);
 
-        if (chunk.morphemes?.length) {
+        if (pieces && chunk.morphemes?.length) {
           const strip = document.createElement('div');
           strip.className = 'morphemes';
           chunk.morphemes.forEach((morpheme, index) => {
@@ -1976,14 +1977,15 @@
         }
       }
 
-      /** Every word with a breakdown or a note, opened up in sentence order. */
+      /** Every word with a note, in sentence order. The pieces are already
+          painted in the blanks, so only the word and its note are shown. */
       function renderExplanations() {
         explanations.replaceChildren();
         for (const chunk of current.chunks) {
-          if (!chunk.morphemes?.length && !chunk.note) continue;
+          if (!chunk.note) continue;
           const block = document.createElement('div');
           block.className = 'explanation';
-          block.append(wordBlock(chunk, true));
+          block.append(wordBlock(chunk, true, { pieces: false }));
           explanations.append(block);
         }
         explanations.hidden = explanations.childElementCount === 0;
