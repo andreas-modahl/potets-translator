@@ -13,19 +13,90 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.75rem;
-        margin-top: 1.5rem;
+        gap: 1rem;
+        margin-top: 2.5rem;
       }
-      .card-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
+      /* The small Norwegian word is a fiddly target on a touch screen, so a
+         proper button gives the same one-letter hint for the word in focus.
+         On a keyboard it doubles as the place the shortcut is written down. */
+      /* Tucked behind a ⋯ in the corner, so the card is only the sentence
+         until something more is asked for. */
+      #lesson {
+        position: relative;
+      }
+      .more {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        width: 2rem;
+        height: 2rem;
+        padding: 0;
+        font-size: 1.1rem;
+        line-height: 1;
+        border-color: transparent;
+      }
+      .more[aria-expanded='true'] {
+        color: var(--ink);
+        background: var(--sunk);
+      }
+      .hint-row {
         margin-top: 1rem;
       }
-      .card-actions button {
-        padding: 0.3rem 0.8rem;
-        font-size: 0.85rem;
+      .hint-row button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.5rem 1rem;
       }
+      .hint-row kbd {
+        padding: 0.05rem 0.4rem;
+        font: inherit;
+        font-size: 0.72rem;
+        color: var(--faint);
+        background: var(--sunk);
+        border: 1px solid var(--line);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+      }
+      @media (hover: none), (pointer: coarse) {
+        .hint-row button {
+          width: 100%;
+          justify-content: center;
+          padding: 0.7rem 1rem;
+        }
+        .hint-row kbd {
+          display: none;
+        }
+      }
+
+      /* One field for both: the level is a small toggle that lives inside the
+         topic input, and cycles through the levels on click. */
+      .topic-wrap {
+        position: relative;
+      }
+      .topic-wrap input {
+        padding-left: 8.25rem;
+      }
+      .level {
+        position: absolute;
+        top: 50%;
+        left: 0.4rem;
+        transform: translateY(-50%);
+        width: 7.4rem;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: var(--accent);
+        background: var(--accent-soft);
+        border-color: transparent;
+        border-radius: 7px;
+      }
+      .level:hover {
+        border-color: var(--accent);
+      }
+
       /* The word itself stays hidden in the detail panel until it has been
          typed right or asked for; its parts are still described. */
       .hidden-word {
@@ -48,19 +119,6 @@
         color: var(--muted);
       }
 
-      .focus {
-        display: inline-block;
-        margin: 0 0 1rem;
-        padding: 0.25rem 0.65rem;
-        font-size: 0.76rem;
-        font-weight: 600;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: var(--accent);
-        background: var(--accent-soft);
-        border-radius: 999px;
-      }
-
       /* The comparator ----------------------------------------------------
          Turkish across the top, each word standing over the Norwegian it
          carries. The Norwegian reads in Turkish order, so it comes out
@@ -70,7 +128,10 @@
         display: flex;
         flex-wrap: wrap;
         align-items: flex-end;
-        gap: 0.5rem 0.4rem;
+        gap: 0.75rem 0.6rem;
+        padding: 0.5rem 0;
+        /* Room for the ⋯ in the corner. */
+        margin-right: 2rem;
       }
       .chunk {
         display: grid;
@@ -106,9 +167,6 @@
         border-bottom-color: var(--accent);
         color: var(--accent);
       }
-      .chunk.revealed .tr {
-        color: var(--muted);
-      }
       .chunk .no {
         padding: 0;
         font: inherit;
@@ -134,18 +192,7 @@
       /* The natural Norwegian sentence stands on its own above the card, so
          the card holds nothing but the Turkish and what it is made of. */
       .natural {
-        display: flex;
-        gap: 0.75rem;
-        align-items: baseline;
-        margin: 1.5rem 0 0.75rem;
-      }
-      .natural .tag {
-        font-size: 0.72rem;
-        font-weight: 600;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: var(--faint);
-        white-space: nowrap;
+        margin: 2.5rem 0 1.25rem;
       }
       .natural p {
         margin: 0;
@@ -153,13 +200,13 @@
       }
 
       /* The detail panel for whichever word is selected ------------------- */
+      /* Hidden for now: the breakdown is still rendered, so bringing it back
+         is a matter of dropping this rule. */
       #detail {
+        display: none;
         margin-top: 1.15rem;
         padding-top: 1.15rem;
         border-top: 1px solid var(--line);
-      }
-      #detail:empty {
-        display: none;
       }
       .detail-head {
         display: flex;
@@ -217,35 +264,51 @@
 
       /* Word bank -------------------------------------------------------- */
       #bank {
-        margin-top: 2.75rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid var(--line);
+        margin-top: 3.5rem;
       }
       #bank header {
         display: flex;
         gap: 0.75rem;
-        align-items: baseline;
+        align-items: center;
       }
       #bank h2 {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
         margin: 0 auto 0 0;
-        font-size: 0.85rem;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--muted);
+      }
+      .chest {
+        --chest-line: #5a3a22;
+        --chest-lid: #a0673c;
+        --chest-body: #7c4a2d;
+        --chest-latch: #e9c46a;
+        display: block;
+      }
+      @media (prefers-color-scheme: dark) {
+        .chest {
+          --chest-line: #3a2617;
+          --chest-lid: #b8784a;
+          --chest-body: #8f5535;
+        }
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
       }
       .bank-count {
-        font-size: 0.85rem;
-        color: var(--faint);
-      }
-      .bank-empty {
-        margin: 0.9rem 0 0;
-        color: var(--faint);
+        font-size: 1.1rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
       }
       .bank-list {
         display: grid;
-        gap: 0.4rem;
-        margin: 0.9rem 0 0;
+        gap: 0.5rem;
+        margin: 1.25rem 0 0;
         padding: 0;
         list-style: none;
       }
@@ -268,212 +331,98 @@
         color: var(--muted);
       }
       .bank-list button {
-        padding: 0.1rem 0.5rem;
-        font-size: 0.8rem;
+        width: 1.6rem;
+        height: 1.6rem;
+        padding: 0;
+        font-size: 0.95rem;
+        line-height: 1;
       }
 
-      /* Loot screen ------------------------------------------------------
-         A word earned outright is dropped like treasure: dim the page, burst
-         of confetti, and the card swings in with a glow in its rarity's
-         colour. Rarity is how many pieces the word is built from. */
-      .loot {
-        position: fixed;
-        inset: 0;
-        z-index: 10;
-        display: grid;
-        place-items: center;
-        padding: 1.5rem;
-        background: rgba(10, 8, 6, 0.72);
-        backdrop-filter: blur(3px);
-        cursor: pointer;
-        animation: loot-fade 0.25s ease-out;
-      }
-      .loot[hidden] {
-        display: none;
-      }
-      .loot-card {
-        --glow: var(--accent);
+      /* Fireworks -------------------------------------------------------
+         A word earned outright sends a burst of emoji out of the chest, and
+         the chest gives a little hop. Each piece is scattered by custom
+         properties set when it is made, so the CSS stays one keyframe. */
+      .chest-wrap {
         position: relative;
-        width: min(22rem, 100%);
-        padding: 2rem 1.75rem 1.5rem;
-        text-align: center;
-        color: #f6f1e8;
-        background:
-          radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--glow) 38%, transparent), transparent 70%),
-          #221d19;
-        border: 1px solid color-mix(in srgb, var(--glow) 70%, transparent);
-        border-radius: 16px;
-        box-shadow:
-          0 0 0 1px rgba(255, 255, 255, 0.06) inset,
-          0 0 40px color-mix(in srgb, var(--glow) 55%, transparent),
-          0 30px 60px rgba(0, 0, 0, 0.5);
-        animation: loot-drop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
       }
-      .loot-card::before {
-        content: '';
-        position: absolute;
-        inset: -2px;
-        border-radius: 18px;
-        background: conic-gradient(from 0deg, transparent, var(--glow), transparent 40%);
-        mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
-        mask-composite: exclude;
-        padding: 2px;
-        animation: loot-spin 2.2s linear infinite;
-        opacity: 0.9;
-      }
-      .loot-card p {
-        margin: 0;
-      }
-      .loot-kicker {
-        font-size: 0.72rem;
-        font-weight: 600;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: rgba(246, 241, 232, 0.6);
-      }
-      .loot-rarity {
-        margin-top: 0.35rem !important;
-        font-size: 0.85rem;
-        font-weight: 700;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--glow);
-        text-shadow: 0 0 12px color-mix(in srgb, var(--glow) 80%, transparent);
-      }
-      .loot-word {
-        margin-top: 1.1rem !important;
-        font-size: 2.6rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        line-height: 1.1;
-        animation: loot-shine 1.6s ease-in-out 0.4s infinite alternate;
-      }
-      .loot-meaning {
-        margin-top: 0.4rem !important;
-        font-size: 1.05rem;
-        color: rgba(246, 241, 232, 0.8);
-      }
-      .loot-dismiss {
-        margin-top: 1.6rem !important;
-        font-size: 0.75rem;
-        color: rgba(246, 241, 232, 0.45);
-      }
-      .loot-burst {
-        position: absolute;
-        inset: 0;
-        overflow: hidden;
-        pointer-events: none;
-      }
-      .loot-burst i {
+      .fireworks {
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 0.55rem;
-        height: 0.55rem;
-        background: var(--c);
-        border-radius: 2px;
+        pointer-events: none;
+      }
+      .fireworks span {
+        position: absolute;
+        font-size: var(--s);
+        line-height: 1;
+        transform: translate(-50%, -50%);
         opacity: 0;
-        animation: loot-confetti 1.4s cubic-bezier(0.1, 0.8, 0.4, 1) var(--d) both;
+        animation: firework 1.3s cubic-bezier(0.1, 0.8, 0.3, 1) var(--d) both;
       }
-      .loot-burst i:nth-child(odd) {
-        border-radius: 50%;
+      .chest.hop {
+        animation: chest-hop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1);
       }
-
-      /* Rarity palette. */
-      .loot-card.vanlig { --glow: #b8b1a4; }
-      .loot-card.sjelden { --glow: #5fa8ff; }
-      .loot-card.episk { --glow: #c07cff; }
-      .loot-card.legendarisk { --glow: #ffb340; }
-
-      @keyframes loot-fade {
-        from { opacity: 0; }
-      }
-      @keyframes loot-drop {
-        from {
-          opacity: 0;
-          transform: translateY(-40px) scale(0.6) rotateX(30deg);
-        }
-        to {
-          opacity: 1;
-          transform: none;
-        }
-      }
-      @keyframes loot-spin {
-        to { transform: rotate(1turn); }
-      }
-      @keyframes loot-shine {
-        from { text-shadow: 0 0 6px color-mix(in srgb, var(--glow) 50%, transparent); }
-        to { text-shadow: 0 0 22px var(--glow); }
-      }
-      @keyframes loot-confetti {
+      @keyframes firework {
         0% {
           opacity: 1;
-          transform: translate(0, 0) rotate(0);
+          transform: translate(-50%, -50%) scale(0.4) rotate(0);
+        }
+        70% {
+          opacity: 1;
         }
         100% {
           opacity: 0;
-          transform: translate(var(--x), var(--y)) rotate(var(--r));
+          transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1) rotate(var(--r));
+        }
+      }
+      @keyframes chest-hop {
+        30% {
+          transform: translateY(-8px) rotate(-6deg);
+        }
+        60% {
+          transform: translateY(0) rotate(3deg);
         }
       }
       @media (prefers-reduced-motion: reduce) {
-        .loot,
-        .loot-card,
-        .loot-card::before,
-        .loot-word,
-        .loot-burst i {
+        .fireworks span,
+        .chest.hop {
           animation: none;
-        }
-        .loot-burst {
-          display: none;
         }
       }
     </style>
   </head>
   <body>
     <nav class="site-nav">
-      <span class="brand">Potets Translator</span>
+      <span class="brand" aria-label="Potets Translator">🥔🥔🥔🥔🥔🥔🥔</span>
       <a href="/">Translator</a>
       <a href="/learn" aria-current="page">Lær tyrkisk</a>
     </nav>
 
     <main>
-      <h1>Tyrkisk, ord for ord</h1>
-      <p class="lede">
-        Én setning om gangen. Skriv det tyrkiske ordet over hvert norske ord, i tyrkisk rekkefølge.
-        Trykk på et norsk ord for å få svaret og se hva ordet er bygd av.
-      </p>
-
       <form id="form">
-        <div class="row">
-          <div>
-            <label for="level">Nivå</label>
-            <select id="level">
-              <option value="nybegynner">Nybegynner</option>
-              <option value="viderekommen">Viderekommen</option>
-              <option value="avansert">Avansert</option>
-            </select>
-          </div>
-          <div>
-            <label for="topic">Tema <span class="hint">(valgfritt)</span></label>
-            <input id="topic" placeholder="på kafé, familie, å reise…" />
-          </div>
+        <div class="topic-wrap">
+          <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
+            Nybegynner
+          </button>
+          <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" />
         </div>
       </form>
 
       <p id="status" class="status" hidden></p>
 
       <div class="natural" id="natural-row" hidden>
-        <span class="tag">Norsk</span>
-        <p id="natural"></p>
+        <p id="natural" lang="nb"></p>
       </div>
 
       <article id="lesson" class="card" hidden>
-        <p class="focus" id="focus" hidden></p>
+        <button type="button" id="more" class="more ghost" aria-label="Mer" aria-expanded="false" aria-controls="more-panel">
+          ⋯
+        </button>
         <div class="comparator" id="comparator"></div>
-        <div class="card-actions">
-          <button type="button" id="hint" class="ghost">Hint</button>
-          <button type="button" id="show-word" class="ghost">Vis ordet</button>
-          <button type="button" id="show-all" class="ghost">Vis alt</button>
+        <div class="hint-row" id="more-panel" hidden>
+          <button type="button" id="hint" class="ghost" title="Tasten |">
+            Hint: én bokstav <kbd>|</kbd>
+          </button>
         </div>
         <div id="detail"></div>
       </article>
@@ -494,56 +443,55 @@
 
       <section id="bank">
         <header>
-          <h2>Ordbank</h2>
-          <span class="bank-count" id="bank-count"></span>
-          <button type="button" id="clear-bank" class="ghost" hidden>Tøm</button>
+          <h2 class="chest-wrap">
+            <span class="fireworks" id="fireworks" aria-hidden="true"></span>
+            <svg class="chest" id="chest" viewBox="0 0 48 40" width="44" height="37" aria-hidden="true" focusable="false">
+              <!-- lid -->
+              <path d="M4 16 C4 7 12 3 24 3 S44 7 44 16 V18 H4 Z" fill="var(--chest-lid)" stroke="var(--chest-line)" stroke-width="2" stroke-linejoin="round" />
+              <path d="M16 3.6 V18 M32 3.6 V18" stroke="var(--chest-line)" stroke-width="2" />
+              <!-- body -->
+              <rect x="4" y="18" width="40" height="19" rx="2" fill="var(--chest-body)" stroke="var(--chest-line)" stroke-width="2" />
+              <path d="M16 18 V37 M32 18 V37" stroke="var(--chest-line)" stroke-width="2" />
+              <!-- latch -->
+              <rect x="20" y="15" width="8" height="9" rx="1.5" fill="var(--chest-latch)" stroke="var(--chest-line)" stroke-width="2" />
+              <circle cx="24" cy="20" r="1.4" fill="var(--chest-line)" />
+            </svg>
+            <span class="sr-only">Ordbank</span>
+            <span class="bank-count" id="bank-count"></span>
+          </h2>
         </header>
-        <p class="bank-empty" id="bank-empty">
-          Ord du skriver riktig uten hint eller fasit havner her.
-        </p>
         <ul class="bank-list" id="bank-list"></ul>
       </section>
     </main>
 
-    <div class="loot" id="loot" hidden role="dialog" aria-live="assertive" aria-label="Nytt ord">
-      <div class="loot-burst" id="loot-burst" aria-hidden="true"></div>
-      <div class="loot-card" id="loot-card">
-        <p class="loot-kicker">Nytt ord i ordbanken</p>
-        <p class="loot-rarity" id="loot-rarity"></p>
-        <p class="loot-word" id="loot-word" lang="tr"></p>
-        <p class="loot-meaning" id="loot-meaning"></p>
-        <p class="loot-dismiss">Trykk hvor som helst for å fortsette</p>
-      </div>
-    </div>
 
     <script type="module">
       const form = document.querySelector('#form');
-      const levelField = document.querySelector('#level');
+      const levelButton = document.querySelector('#level');
       const topicField = document.querySelector('#topic');
       const submitButton = document.querySelector('#submit');
       const backButton = document.querySelector('#back');
       const stepCount = document.querySelector('#step-count');
       const statusLine = document.querySelector('#status');
       const lessonCard = document.querySelector('#lesson');
-      const focusLine = document.querySelector('#focus');
       const comparator = document.querySelector('#comparator');
       const hintButton = document.querySelector('#hint');
-      const showWordButton = document.querySelector('#show-word');
-      const showAllButton = document.querySelector('#show-all');
+      const moreButton = document.querySelector('#more');
+      const morePanel = document.querySelector('#more-panel');
+
+      moreButton.addEventListener('click', () => {
+        const open = morePanel.hidden;
+        morePanel.hidden = !open;
+        moreButton.setAttribute('aria-expanded', String(open));
+      });
       const naturalRow = document.querySelector('#natural-row');
       const naturalLine = document.querySelector('#natural');
       const detail = document.querySelector('#detail');
       const bank = document.querySelector('#bank');
       const bankList = document.querySelector('#bank-list');
       const bankCount = document.querySelector('#bank-count');
-      const bankEmpty = document.querySelector('#bank-empty');
-      const loot = document.querySelector('#loot');
-      const lootBurst = document.querySelector('#loot-burst');
-      const lootCard = document.querySelector('#loot-card');
-      const lootRarity = document.querySelector('#loot-rarity');
-      const lootWord = document.querySelector('#loot-word');
-      const lootMeaning = document.querySelector('#loot-meaning');
-      const clearBankButton = document.querySelector('#clear-bank');
+      const chest = document.querySelector('#chest');
+      const fireworksBox = document.querySelector('#fireworks');
 
       const LEVEL_KEY = 'potets.tyrkisk.niva';
       const BANK_KEY = 'potets.tyrkisk.ordbank';
@@ -639,20 +587,9 @@
 
       /* The comparator --------------------------------------------------- */
 
-      /** A word counts as solved once typed right or given away. */
+      /** A word counts as solved once the field holds it, typed or hinted. */
       function isSolved(index) {
-        const box = comparator.children[index];
-        return Boolean(box?.classList.contains('correct') || box?.classList.contains('revealed'));
-      }
-
-      function reveal(index) {
-        const chunk = current.chunks[index];
-        const box = comparator.children[index];
-        const field = box.querySelector('.tr');
-        box.classList.add('helped');
-        field.textContent = chunk.turkish;
-        box.classList.add('revealed');
-        checkField(field, chunk);
+        return Boolean(comparator.children[index]?.classList.contains('correct'));
       }
 
       /** One more letter of the answer than is already right at the start. */
@@ -686,14 +623,24 @@
         selection.addRange(range);
       }
 
-      function select(index, { reveal: giveAway }) {
+      function select(index) {
         selected = index;
         for (const [at, box] of [...comparator.children].entries()) {
           box.classList.toggle('open', at === index);
         }
-        if (giveAway) reveal(index);
         renderDetail(current.chunks[index]);
       }
+
+      // The hint button works on the selected word, or failing that the
+      // first one still open, which is where the caret sits anyway.
+      hintButton.addEventListener('click', () => {
+        let index = selected >= 0 && !isSolved(selected) ? selected : -1;
+        if (index < 0) index = [...comparator.children].findIndex((box) => !box.classList.contains('correct'));
+        if (index < 0) return;
+        select(index);
+        hint(index);
+        if (isSolved(index)) focusNextOpen();
+      });
 
       /** After help, the caret goes to the first blank still to be done. */
       function focusNextOpen() {
@@ -702,19 +649,6 @@
         if (field) placeCaretAtEnd(field);
       }
 
-      hintButton.addEventListener('click', () => {
-        if (selected >= 0) hint(selected);
-        if (selected < 0 || isSolved(selected)) focusNextOpen();
-      });
-      showWordButton.addEventListener('click', () => {
-        if (selected >= 0) select(selected, { reveal: true });
-        focusNextOpen();
-      });
-      showAllButton.addEventListener('click', () => {
-        current.chunks.forEach((_, index) => reveal(index));
-        if (selected >= 0) renderDetail(current.chunks[selected]);
-        focusNextOpen();
-      });
 
       /** Turkish spelling compared loosely: case and stray spaces do not count,
           but ı/i and the other letters do — that is the thing being learned. */
@@ -725,10 +659,10 @@
       function checkField(field, chunk) {
         const typed = field.textContent;
         const box = field.parentElement;
-        const wasSolved = box.classList.contains('correct') || box.classList.contains('revealed');
+        const wasSolved = box.classList.contains('correct');
         box.classList.toggle('correct', sameWord(typed, chunk.turkish));
         box.classList.toggle('filled', typed.trim().length > 0);
-        const solvedNow = box.classList.contains('correct') || box.classList.contains('revealed');
+        const solvedNow = box.classList.contains('correct');
         if (solvedNow === wasSolved) return;
 
         // Earned outright — no hint, not shown — so it goes in the bank.
@@ -766,17 +700,19 @@
           if (next) placeCaretAtEnd(next);
           else field.blur();
         });
-        field.addEventListener('focus', () => select(index, { reveal: false }));
+        field.addEventListener('focus', () => select(index));
 
         const norwegian = document.createElement('button');
         norwegian.type = 'button';
         norwegian.className = 'no';
         norwegian.textContent = chunk.norwegian;
-        norwegian.title = 'Vis ordet';
+        norwegian.title = 'Hint: én bokstav til';
         norwegian.tabIndex = -1;
+        // Each click gives one more letter; the last one completes the word.
         norwegian.addEventListener('click', () => {
-          select(index, { reveal: true });
-          focusNextOpen();
+          select(index);
+          hint(index);
+          if (isSolved(index)) focusNextOpen();
         });
 
         box.append(field, norwegian);
@@ -863,7 +799,7 @@
         }
       }
 
-      /** A word typed right with no hint and no reveal goes into the bank. */
+      /** A word typed right with no hint goes into the bank. */
       function bankEarned(chunk) {
         const words = loadBank();
         const already = words.some(
@@ -878,66 +814,43 @@
             ...(chunk.note ? { note: chunk.note } : {}),
           },
         ]);
-        showLoot(chunk);
+        fireworks(chunk);
       }
 
-      /* Loot screen ------------------------------------------------------ */
+      /* Fireworks -------------------------------------------------------- */
 
-      const RARITIES = [
-        { name: 'vanlig', label: 'Vanlig', pieces: 0 },
-        { name: 'sjelden', label: 'Sjelden', pieces: 2 },
-        { name: 'episk', label: 'Episk', pieces: 3 },
-        { name: 'legendarisk', label: 'Legendarisk', pieces: 4 },
-      ];
+      const SPARKS = ['✨', '🎉', '⭐', '💎', '🪙', '🔥', '🎊', '💫'];
 
-      /** The more suffixes stacked on the root, the rarer the drop. */
-      function rarityOf(chunk) {
-        const pieces = chunk.morphemes?.length ?? 0;
-        return [...RARITIES].reverse().find((tier) => pieces >= tier.pieces) ?? RARITIES[0];
-      }
-
-      function showLoot(chunk) {
-        const tier = rarityOf(chunk);
-        lootCard.className = `loot-card ${tier.name}`;
-        lootRarity.textContent = tier.label;
-        lootWord.textContent = chunk.turkish;
-        lootMeaning.textContent = chunk.norwegian;
-
-        // A fresh burst each time: the pieces are scattered by CSS custom
-        // properties set here, so the CSS stays one keyframe.
-        lootBurst.replaceChildren();
-        const colours = ['#ffb340', '#5fa8ff', '#c07cff', '#ff6b6b', '#6ee7a8', '#f6f1e8'];
-        const count = 48 + RARITIES.indexOf(tier) * 24;
+      /** A burst of emoji out of the chest; more pieces for a longer word. */
+      function fireworks(chunk) {
+        const count = 10 + Math.min(10, (chunk.morphemes?.length ?? 0) * 3);
         for (let at = 0; at < count; at += 1) {
-          const piece = document.createElement('i');
-          const angle = Math.random() * Math.PI * 2;
-          const distance = 120 + Math.random() * 380;
-          piece.style.setProperty('--x', `${Math.cos(angle) * distance}px`);
-          piece.style.setProperty('--y', `${Math.sin(angle) * distance + 160}px`);
-          piece.style.setProperty('--r', `${Math.round(Math.random() * 900 - 450)}deg`);
-          piece.style.setProperty('--d', `${Math.round(Math.random() * 250)}ms`);
-          piece.style.setProperty('--c', colours[at % colours.length]);
-          lootBurst.append(piece);
+          const spark = document.createElement('span');
+          spark.textContent = SPARKS[Math.floor(Math.random() * SPARKS.length)];
+          // Mostly upward, like a fountain, with some spread to the sides.
+          const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.9;
+          const distance = 60 + Math.random() * 110;
+          spark.style.setProperty('--x', `${Math.cos(angle) * distance}px`);
+          spark.style.setProperty('--y', `${Math.sin(angle) * distance}px`);
+          spark.style.setProperty('--r', `${Math.round(Math.random() * 360 - 180)}deg`);
+          spark.style.setProperty('--d', `${Math.round(Math.random() * 200)}ms`);
+          spark.style.setProperty('--s', `${(0.9 + Math.random() * 0.7).toFixed(2)}rem`);
+          spark.addEventListener('animationend', () => spark.remove());
+          fireworksBox.append(spark);
         }
-
-        loot.hidden = false;
-        // Restart the card animation even when the previous card is still up.
-        lootCard.style.animation = 'none';
-        void lootCard.offsetWidth;
-        lootCard.style.animation = '';
+        chest.classList.remove('hop');
+        void chest.getBBox();
+        chest.classList.add('hop');
       }
 
-      function hideLoot() {
-        loot.hidden = true;
-        lootBurst.replaceChildren();
-        focusNextOpen();
-      }
+      chest.addEventListener('animationend', () => chest.classList.remove('hop'));
 
-      loot.addEventListener('click', hideLoot);
       document.addEventListener('keydown', (event) => {
-        if (!loot.hidden && (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ')) {
+        // The | key is the hint. No Turkish word contains it, so it can be
+        // swallowed even while the caret sits in a blank.
+        if (event.key === '|' && !event.ctrlKey && !event.altKey && !event.metaKey && !lessonCard.hidden) {
           event.preventDefault();
-          hideLoot();
+          hintButton.click();
         }
       });
 
@@ -947,8 +860,6 @@
         comparator.replaceChildren();
         detail.replaceChildren();
 
-        focusLine.textContent = result.focus ?? '';
-        focusLine.hidden = !result.focus;
         naturalLine.textContent = result.norwegian;
         naturalRow.hidden = false;
 
@@ -973,11 +884,11 @@
 
       // A click on nothing in particular is taken as "back to the exercise":
       // the caret goes to the first blank still open. Controls, links, the
-      // loot screen and the card itself keep their own behaviour.
+      // card itself keep their own behaviour.
       document.addEventListener('click', (event) => {
-        if (lessonCard.hidden || !loot.hidden) return;
+        if (lessonCard.hidden) return;
         const interactive = event.target.closest(
-          'button, a, input, select, textarea, label, [contenteditable], .loot, #lesson',
+          'button, a, input, select, textarea, label, [contenteditable], #lesson',
         );
         if (interactive) return;
         focusNextOpen();
@@ -987,9 +898,7 @@
 
       function renderBank(words) {
         bankList.replaceChildren();
-        bankEmpty.hidden = words.length > 0;
-        clearBankButton.hidden = words.length === 0;
-        bankCount.textContent = words.length ? `${words.length} ord` : '';
+        bankCount.textContent = words.length ? String(words.length) : '';
 
         for (const [index, word] of words.entries()) {
           const item = document.createElement('li');
@@ -1006,7 +915,7 @@
           const remove = document.createElement('button');
           remove.type = 'button';
           remove.className = 'ghost';
-          remove.textContent = 'Fjern';
+          remove.textContent = '−';
           remove.setAttribute('aria-label', `Fjern ${word.turkish}`);
           remove.addEventListener('click', () => {
             saveBank(words.filter((_, at) => at !== index));
@@ -1017,12 +926,6 @@
           bankList.append(item);
         }
       }
-
-      clearBankButton.addEventListener('click', () => {
-        if (!confirm('Tømme ordbanken?')) return;
-        saveBank([]);
-        if (selected >= 0) renderDetail(current.chunks[selected]);
-      });
 
       /* Fetching --------------------------------------------------------- */
 
@@ -1043,7 +946,7 @@
           const response = await fetch('/api/lesson', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ level: levelField.value, topic: topicField.value.trim() }),
+            body: JSON.stringify({ level, topic: topicField.value.trim() }),
           });
           const result = await response.json().catch(() => ({}));
           if (attempt !== pending) return;
@@ -1071,10 +974,29 @@
         }
       });
 
-      levelField.addEventListener('change', () => remember(LEVEL_KEY, levelField.value));
+      /* Level ------------------------------------------------------------ */
 
-      const savedLevel = recall(LEVEL_KEY);
-      if (savedLevel) levelField.value = savedLevel;
+      const LEVELS = [
+        ['nybegynner', 'Nybegynner'],
+        ['viderekommen', 'Viderekommen'],
+        ['avansert', 'Avansert'],
+      ];
+      let level = LEVELS[0][0];
+
+      function setLevel(value) {
+        const [key, label] = LEVELS.find(([candidate]) => candidate === value) ?? LEVELS[0];
+        level = key;
+        levelButton.textContent = label;
+        levelButton.setAttribute('aria-label', `Nivå: ${label}`);
+        remember(LEVEL_KEY, key);
+      }
+
+      levelButton.addEventListener('click', () => {
+        const at = LEVELS.findIndex(([key]) => key === level);
+        setLevel(LEVELS[(at + 1) % LEVELS.length][0]);
+      });
+
+      setLevel(recall(LEVEL_KEY) ?? level);
       renderBank(loadBank());
 
       // Come back to the sentence that was last on screen, not a blank page.
