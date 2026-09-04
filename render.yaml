@@ -13,9 +13,13 @@ services:
     domains:
       - languageballs.com
       - www.languageballs.com
+      - languageballs.net
+      - www.languageballs.net
     envVars:
       - key: NODE_ENV
         value: production
+      - key: CANONICAL_HOST
+        value: languageballs.com
       - key: WEB_PORT
         value: 10000
       - key: ANTHROPIC_API_KEY

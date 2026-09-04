@@ -285,9 +285,28 @@ async function handleSpeak(url: URL, response: ServerResponse): Promise<void> {
   response.end(audio);
 }
 
+/**
+ * The one address the site answers to. Any other custom domain that reaches
+ * us (the .net spelling, a www prefix) is sent here so links and bookmarks all
+ * end up in the same place. Empty means answer to anything, which is what
+ * local development wants. The host's own name (onrender.com) is left alone,
+ * because that is what its health checks arrive under.
+ */
+const CANONICAL_HOST = process.env.CANONICAL_HOST?.trim() ?? '';
+
+function redirectHost(request: IncomingMessage, response: ServerResponse, path: string, search: string): boolean {
+  if (!CANONICAL_HOST) return false;
+  const host = request.headers.host?.split(':')[0] ?? '';
+  if (host === CANONICAL_HOST || host === 'localhost' || host.endsWith('.onrender.com')) return false;
+  response.writeHead(301, { location: `https://${CANONICAL_HOST}${path}${search}` });
+  response.end();
+  return true;
+}
+
 const server = createServer((request, response) => {
   const url = new URL(request.url ?? '/', 'http://localhost');
   const path = url.pathname;
+  if (redirectHost(request, response, path, url.search)) return;
 
   void (async () => {
     try {

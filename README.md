@@ -242,7 +242,10 @@ settings → Custom records*) the records are:
 | CNAME | www  | `potets-translator.onrender.com` |
 
 Delete the Squarespace defaults for `@` and `www` first, or the site parks on
-their placeholder page. Render's own domain keeps working alongside.
+their placeholder page. **languageballs.net** gets the same two records and is
+also declared in the blueprint; the server redirects every other custom host,
+including the `.net` and `www` spellings, to the one in `CANONICAL_HOST`.
+Leave that variable unset locally so any host works.
 
 ## Configuration
 
