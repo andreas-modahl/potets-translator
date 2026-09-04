@@ -1363,6 +1363,19 @@
             interjection: 'interjeksjon',
             particle: 'partikkel',
           },
+          posHelp: {
+            noun: 'Substantiv: navn på ting, personer og steder. Hund, park, Ayşe.',
+            verb: 'Verb: det som gjøres eller skjer. Løpe, sove, være.',
+            adjective: 'Adjektiv: beskriver et substantiv. Stor, glad, ny.',
+            adverb: 'Adverb: sier hvordan, når eller hvor noe skjer. Fort, alltid, her.',
+            pronoun: 'Pronomen: står i stedet for et substantiv. Jeg, du, den.',
+            adposition: 'Postposisjon: står etter ordet det hører til, der norsk har en preposisjon foran. Med, for, etter.',
+            conjunction: 'Konjunksjon: binder sammen ord eller setninger. Og, men, fordi.',
+            numeral: 'Tallord: et tall eller en rekkefølge. To, fem, første.',
+            determiner: 'Determinativ: peker ut eller mengdeangir et substantiv. Denne, hver, noen.',
+            interjection: 'Interjeksjon: et utrop. Hei, au, ja.',
+            particle: 'Partikkel: et lite ord som endrer tonen eller betydningen. Også, bare, vel.',
+          },
           topic: 'Tema',
           topicPlaceholder: 'Tema: på kafé, familie, å reise…',
           defaultTopic: 'hunder',
@@ -1432,6 +1445,19 @@
             determiner: 'belirleyici',
             interjection: 'ünlem',
             particle: 'edat',
+          },
+          posHelp: {
+            noun: 'İsim: varlıkların, kişilerin ve yerlerin adı. Köpek, park, Ola.',
+            verb: 'Fiil: yapılan ya da olan şey. Koşmak, uyumak, olmak.',
+            adjective: 'Sıfat: bir ismi niteler. Büyük, mutlu, yeni.',
+            adverb: 'Zarf: nasıl, ne zaman ya da nerede olduğunu söyler. Hızlı, her zaman, burada.',
+            pronoun: 'Zamir: bir ismin yerine geçer. Ben, sen, o.',
+            adposition: 'Edat: Norveççede isimden önce gelir, Türkçedeki eklerin ve sonra gelen edatların yerine. Med, for, etter.',
+            conjunction: 'Bağlaç: kelimeleri ya da cümleleri birbirine bağlar. Og, men, fordi.',
+            numeral: 'Sayı: bir sayı ya da sıra. To, fem, første.',
+            determiner: 'Belirleyici: bir ismi işaret eder ya da miktarını söyler. Denne, hver, noen.',
+            interjection: 'Ünlem: bir seslenme. Hei, au, ja.',
+            particle: 'Edat/ilgeç: tonu ya da anlamı değiştiren küçük bir kelime. Også, bare, vel.',
           },
           topic: 'Konu',
           topicPlaceholder: 'Konu: kafede, aile, seyahat…',
@@ -1832,6 +1858,8 @@
           kind.className = 'pos';
           kind.lang = D.native;
           kind.textContent = D.pos[chunk.pos];
+          // What the class means, with a few examples, on hover.
+          kind.title = D.posHelp[chunk.pos] ?? '';
           caption.append(kind);
         }
         caption.append(...tags);
