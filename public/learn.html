@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Languageballs</title>
+    <!-- The tab icon is the ball of the language being learned, drawn from the
+         same symbols as the page; the script fills it in. -->
+    <link rel="icon" id="favicon" type="image/svg+xml" href="" />
     <link rel="stylesheet" href="/app.css" />
     <script src="/dev/reload.js"></script>
     <style>
@@ -90,6 +93,14 @@
         font-size: 1.1rem;
         line-height: 1;
         border-color: transparent;
+      }
+      /* The name, small and out of the way at the end of the direction row. */
+      .direction .wordmark {
+        margin-left: auto;
+        font-size: 0.85rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--faint);
       }
 
       /* One field for both: the level is a small toggle that lives inside the
@@ -281,15 +292,30 @@
         gap: 0.35rem 0.75rem;
         margin: 2.25rem 0 1rem;
       }
+      /* The speaker: the target ball with a couple of sound waves beside it. */
       .speak {
         flex: 0 0 auto;
-        width: 2rem;
-        height: 2rem;
-        padding: 0;
         display: inline-flex;
         align-items: center;
-        justify-content: center;
+        gap: 0.15rem;
+        height: 2.2rem;
+        padding: 0 0.35rem 0 0.1rem;
+        color: var(--muted);
+        background: transparent;
         border-color: transparent;
+        border-radius: 999px;
+      }
+      .speak .flag svg {
+        width: 1.7rem;
+        height: 1.7rem;
+        transition: transform 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
+      }
+      .speak:hover {
+        background: var(--sunk);
+        color: var(--ink);
+      }
+      .speak:hover .flag svg {
+        transform: scale(1.1) rotate(-6deg);
       }
       /* The speaker sits right after the sentence; a long sentence wraps
          inside its own box rather than pushing the speaker off the line. */
@@ -460,7 +486,6 @@
       }
       .bank-list li {
         display: flex;
-        flex-wrap: wrap;
         gap: 0.4rem 0.75rem;
         align-items: baseline;
         padding: 0.5rem 0.75rem;
@@ -469,12 +494,19 @@
         border-radius: 8px;
       }
       .bank-list .tr {
-        min-width: 7rem;
+        flex: 0 0 auto;
+        min-width: 5rem;
         font-weight: 600;
       }
+      /* The gloss gives way first, so the tally and the button stay on the line. */
       .bank-list .no {
-        flex: 1 1 10rem;
+        flex: 1 1 4rem;
+        min-width: 0;
         color: var(--muted);
+      }
+      .bank-list .tally,
+      .bank-list button {
+        flex: 0 0 auto;
       }
       .bank-list .tally {
         font-size: 0.8rem;
@@ -509,6 +541,11 @@
         transform: translate(-50%, -50%);
         opacity: 0;
         animation: firework 1.3s cubic-bezier(0.1, 0.8, 0.3, 1) var(--d) both;
+      }
+      .fireworks span svg {
+        width: 1em;
+        height: 1em;
+        display: block;
       }
       .chest.hop {
         animation: chest-hop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1);
@@ -552,6 +589,7 @@
         <span class="flag" id="flag-to" aria-hidden="true"></span>
         <span class="direction-label" id="direction-label"></span>
         <button type="button" id="flip" class="flip ghost" aria-label="Bytt retning" title="Bytt retning">⇄</button>
+        <span class="wordmark" aria-hidden="true">languageballs</span>
       </div>
 
       <!-- Norwayball and Turkeyball: the flags as countryballs, drawn rather
@@ -597,10 +635,11 @@
 
       <div class="natural" id="natural-row" hidden>
         <p id="natural" lang="nb"></p>
-        <button type="button" id="speak" class="speak ghost" aria-label="Les opp setningen" title="Les opp setningen">
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-            <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" />
-            <path d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        <!-- The ball of the language being learned does the talking. -->
+        <button type="button" id="speak" class="speak" aria-label="Les opp setningen" title="Les opp setningen">
+          <span class="flag" id="speak-ball" aria-hidden="true"></span>
+          <svg class="waves" viewBox="0 0 12 16" width="9" height="12" aria-hidden="true" focusable="false">
+            <path d="M2 5.5a4 4 0 0 1 0 5M5.5 3a8 8 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
           </svg>
         </button>
         <span class="key-help" id="key-help"></span>
@@ -669,6 +708,7 @@
       const naturalRow = document.querySelector('#natural-row');
       const naturalLine = document.querySelector('#natural');
       const speakButton = document.querySelector('#speak');
+      const speakBall = document.querySelector('#speak-ball');
       const keyHelp = document.querySelector('#key-help');
       const detail = document.querySelector('#detail');
       const explanations = document.querySelector('#explanations');
@@ -1166,12 +1206,14 @@
 
       const SPARKS = ['✨', '🎉', '⭐', '💎', '🪙', '🔥', '🎊', '💫'];
 
-      /** A burst of emoji out of the chest; more pieces for a longer word. */
+      /** A burst of emoji and little balls out of the chest; more pieces for
+          a longer word. Every third piece is the ball of the language learned. */
       function fireworks(chunk) {
         const count = 10 + Math.min(10, (chunk.morphemes?.length ?? 0) * 3);
         for (let at = 0; at < count; at += 1) {
           const spark = document.createElement('span');
-          spark.textContent = SPARKS[Math.floor(Math.random() * SPARKS.length)];
+          if (at % 3 === 0) spark.append(flag(D.flagTo));
+          else spark.textContent = SPARKS[Math.floor(Math.random() * SPARKS.length)];
           // Mostly upward, like a fountain, with some spread to the sides.
           const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.9;
           const distance = 60 + Math.random() * 110;
@@ -1465,6 +1507,8 @@
         document.title = D.title;
         flagFrom.replaceChildren(flag(D.flagFrom));
         flagTo.replaceChildren(flag(D.flagTo));
+        speakBall.replaceChildren(flag(D.flagTo));
+        setFavicon(D.flagTo);
         directionLabel.textContent = D.label;
         flipButton.title = D.flip;
         flipButton.setAttribute('aria-label', D.flip);
@@ -1495,6 +1539,23 @@
         use.setAttribute('href', `#${id}`);
         svg.append(use);
         return svg;
+      }
+
+      /** One ball as a self-contained SVG file, for the tab icon. The symbol
+          on the page leans on shared clip and eyes; both are copied in. */
+      function ballDataUrl(id) {
+        const symbol = document.querySelector(`#${id}`);
+        const clip = document.querySelector('#ball-clip');
+        const eyes = document.querySelector('#ball-eyes');
+        const body = symbol.innerHTML.replace('<use href="#ball-eyes"></use>', eyes.innerHTML);
+        const svg =
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">` +
+          `<defs>${clip.outerHTML}</defs>${body}</svg>`;
+        return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+      }
+
+      function setFavicon(id) {
+        document.querySelector('#favicon').href = ballDataUrl(id);
       }
 
       /** Switches sides: own labels, own level, own history, own chest. */
