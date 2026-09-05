@@ -151,7 +151,6 @@ const DIRECTIONS = {
     },
     topic: 'Tema',
     topicPlaceholder: 'Tema: på kafé, familie, å reise…',
-    defaultTopic: 'hunder',
     flip: 'Bytt retning: lær norsk fra tyrkisk',
     themeDark: 'Mørk modus',
     themeLight: 'Lys modus',
@@ -241,7 +240,6 @@ const DIRECTIONS = {
     },
     topic: 'Konu',
     topicPlaceholder: 'Konu: kafede, aile, seyahat…',
-    defaultTopic: 'köpekler',
     flip: 'Yönü değiştir: Norveççeden Türkçe öğren',
     themeDark: 'Koyu tema',
     themeLight: 'Açık tema',
@@ -1721,15 +1719,9 @@ function applyDirection() {
   renderClassesToggle();
   topicField.placeholder = D.topicPlaceholder;
   topicField.setAttribute('aria-label', D.topic);
-  // Each side remembers its own topic. Without one, start on the default,
-  // carrying it over when flipping, but leave a typed topic alone.
-  const saved = recall(keyFor('emne'));
-  const defaults = Object.values(DIRECTIONS).map((d) => d.defaultTopic);
-  if (saved) {
-    topicField.value = saved;
-  } else if (!topicField.value.trim() || defaults.includes(topicField.value.trim())) {
-    topicField.value = D.defaultTopic;
-  }
+  // Each side remembers its own topic, an emptied one included. With none
+  // saved the field is empty, and the server picks a situation itself.
+  topicField.value = recall(keyFor('emne')) ?? '';
   // The shortcuts ride in the tooltip: | for the word in focus, || for the sentence.
   speakButton.title = `${D.speak} · | ${D.keyHelp[0]} · || ${D.keyHelp[1]}`;
   speakButton.setAttribute('aria-label', D.speak);
@@ -1943,14 +1935,14 @@ function applyRemote(direction, blob) {
     localStorage.setItem(key('slit'), JSON.stringify(merged));
   }
   if (typeof blob.niva === 'string' && !local.niva) localStorage.setItem(key('niva'), blob.niva);
-  if (typeof blob.emne === 'string' && !local.emne) localStorage.setItem(key('emne'), blob.emne);
+  if (typeof blob.emne === 'string' && local.emne === undefined) localStorage.setItem(key('emne'), blob.emne);
 }
 
 /** Re-reads storage for the side on screen after a merge, gently. */
 function refreshFromStorage() {
   renderBank(loadBank());
   const topic = recall(keyFor('emne'));
-  if (topic && topic !== topicField.value.trim()) topicField.value = topic;
+  if (topic !== null && topic !== topicField.value.trim()) topicField.value = topic;
   const merged = loadHistory();
   if (merged.at(-1)?.target !== history.at(-1)?.target && merged.length) {
     history = merged;
