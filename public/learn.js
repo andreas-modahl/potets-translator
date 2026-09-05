@@ -623,6 +623,34 @@ function sameWord(typed, answer) {
   return fold(typed) === fold(answer);
 }
 
+/**
+ * A letter that is nearly right is made right as it is typed: s for ş,
+ * o for ø, i for ı, and k for K. Letter by letter against the answer, as
+ * long as each one folds to the same; the first real miss ends it, and
+ * the rest is left as typed. The caret goes to the end, which is where
+ * it was, since this happens on the letter just typed.
+ */
+function straighten(field, answer) {
+  const typed = field.textContent;
+  let fixed = '';
+  for (const [at, letter] of [...typed].entries()) {
+    const wanted = [...answer][at];
+    if (wanted === undefined || letter === wanted) {
+      fixed += letter;
+      continue;
+    }
+    const alike = fold(letter) !== '' && fold(letter) === fold(wanted);
+    if (!alike) {
+      fixed += typed.slice(fixed.length);
+      break;
+    }
+    fixed += wanted;
+  }
+  if (fixed === typed) return;
+  field.textContent = fixed;
+  placeCaretAtEnd(field);
+}
+
 function checkField(field, chunk) {
   const typed = field.textContent;
   const box = field.parentElement;
@@ -885,7 +913,8 @@ function chunkField(chunk, index) {
 
   // The last right letter moves the caret on, so a sentence can be typed
   // straight through without reaching for Enter.
-  field.addEventListener('input', () => {
+  field.addEventListener('input', (event) => {
+    if (!event.isComposing) straighten(field, chunk.target);
     checkField(field, chunk);
     if (isSolved(index)) focusNextOpen();
   });
