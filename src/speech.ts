@@ -50,30 +50,51 @@ const VOICES: Record<SpeechLang, { voice: string; locale: string }> = {
 const PROSODY = { pitch: config.speechPitch, rate: config.speechRate };
 
 /**
+ * The generative MAI voices read a mood into the text and act it out, which
+ * on a lone word can come out as a laugh. A style keeps them even. The older
+ * neural voices take no style, so they get none.
+ */
+function styleFor(voice: string): string {
+  return voice.includes(':MAI-') ? config.speechStyle : '';
+}
+
+/**
  * A short fingerprint of the voices and delivery. The page puts it in every
  * speech URL, so audio the browser cached under the old settings is never
  * replayed after the settings change.
  */
 export const speechFingerprint = createHash('sha256')
-  .update(`${VOICES.tr.voice}\n${VOICES.nb.voice}\n${PROSODY.pitch}\n${PROSODY.rate}`)
+  .update(
+    `${VOICES.tr.voice}\n${VOICES.nb.voice}\n${PROSODY.pitch}\n${PROSODY.rate}\n${config.speechStyle}`,
+  )
   .digest('hex')
   .slice(0, 8);
 
 function cachePath(text: string, lang: SpeechLang): string {
   const key = createHash('sha256')
-    .update(`${VOICES[lang].voice}\n${PROSODY.pitch}\n${PROSODY.rate}\n${text}`)
+    .update(
+      `${VOICES[lang].voice}\n${PROSODY.pitch}\n${PROSODY.rate}\n${styleFor(VOICES[lang].voice)}\n${text}`,
+    )
     .digest('hex');
   return join(config.speechCacheDir, `${key}.mp3`);
+}
+
+/** The SSML for one voice: the text in its prosody, inside a style when the voice takes one. */
+export function ssmlFor(text: string, voice: string, locale: string): string {
+  const style = styleFor(voice);
+  const spoken = `<prosody pitch="${PROSODY.pitch}" rate="${PROSODY.rate}">${escapeXml(text)}</prosody>`;
+  const styled = style ? `<mstts:express-as style="${style}">${spoken}</mstts:express-as>` : spoken;
+  return (
+    `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" ` +
+    `xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="${locale}">` +
+    `<voice name="${voice}">${styled}</voice></speak>`
+  );
 }
 
 async function synthesise(text: string, lang: SpeechLang): Promise<Buffer> {
   const { voice, locale } = VOICES[lang];
   const url = `https://${config.azureSpeechRegion}.tts.speech.microsoft.com/cognitiveservices/v1`;
-  const ssml =
-    `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${locale}">` +
-    `<voice name="${voice}">` +
-    `<prosody pitch="${PROSODY.pitch}" rate="${PROSODY.rate}">${escapeXml(text)}</prosody>` +
-    `</voice></speak>`;
+  const ssml = ssmlFor(text, voice, locale);
 
   const response = await fetch(url, {
     method: 'POST',

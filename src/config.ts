@@ -106,6 +106,11 @@ export const config = {
   /** SSML prosody for the ball voice: pitch and rate as Azure accepts them. */
   speechPitch: optional('SPEECH_PITCH') ?? '+0%',
   speechRate: optional('SPEECH_RATE') ?? '-15%',
+  /**
+   * A speaking style for voices that take one (the MAI voices). "serious"
+   * keeps Elif from laughing at a lone word; empty means none.
+   */
+  speechStyle: optional('SPEECH_STYLE') ?? 'serious',
 } as const;
 
 /**
