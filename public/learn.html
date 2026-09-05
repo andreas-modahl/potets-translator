@@ -147,14 +147,6 @@
         <span class="streak" id="streak" hidden></span>
       </div>
 
-      <!-- The sentences seen so far, newest first. A row reopens its sentence
-           in the card above, to be done again. -->
-      <section id="log" hidden>
-        <h2 id="log-title">Tidligere setninger</h2>
-        <ol class="log-list" id="log-list"></ol>
-        <button type="button" id="log-more" class="ghost log-more" aria-expanded="false" aria-controls="log-list" hidden>Vis alle</button>
-      </section>
-
       <section id="bank">
         <header>
           <h2 class="chest-wrap">
@@ -188,6 +180,14 @@
         </header>
         <ul class="bank-list" id="bank-list"></ul>
         <p class="bank-empty" id="bank-empty" hidden></p>
+      </section>
+
+      <!-- The sentences seen so far, newest first. A row reopens its sentence
+           in the card at the top, to be done again. -->
+      <section id="log" hidden>
+        <h2 id="log-title">Tidligere setninger</h2>
+        <ol class="log-list" id="log-list"></ol>
+        <button type="button" id="log-more" class="ghost log-more" aria-expanded="false" aria-controls="log-list" hidden>Vis alle</button>
       </section>
     </main>
 

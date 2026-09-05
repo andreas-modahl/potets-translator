@@ -772,7 +772,7 @@ body.muted .chunk .say {
    Plain rows under the card; the one on screen is marked, the finished
    ones carry a tick. */
 #log {
-  margin-top: 2.5rem;
+  margin-top: 3.5rem;
 }
 #log h2 {
   margin: 0 0 0.5rem;
