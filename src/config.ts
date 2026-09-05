@@ -85,6 +85,14 @@ export const config = {
   azureSpeechVoice: optional('AZURE_SPEECH_VOICE') ?? 'tr-TR-Elif:MAI-Voice-2',
   azureSpeechVoiceNb: optional('AZURE_SPEECH_VOICE_NB') ?? 'nb-NO-PernilleNeural',
   speechCacheDir: optional('SPEECH_CACHE_DIR') ?? 'data/speech',
+  /** Recraft, for a small cartoon per noun on the learn page. Optional. */
+  recraftApiKey: optional('RECRAFT_API_KEY'),
+  recraftModel: optional('RECRAFT_MODEL') ?? 'recraftv4_1_vector',
+  /** A style made from reference images in Recraft, so every drawing matches. */
+  recraftStyleId: optional('RECRAFT_STYLE_ID'),
+  pictureCacheDir: optional('PICTURE_CACHE_DIR') ?? 'data/pictures',
+  /** New drawings a day, at most; each costs a few cents. */
+  pictureDailyCap: positiveInt('PICTURE_DAILY_CAP', 300),
   /**
    * The SQLite file: the lesson pool and, when login is on, users and their
    * synced state. "off" turns the pool off and disables login.

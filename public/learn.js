@@ -865,11 +865,46 @@ function masked(word) {
 
 /** The word opened up: its two sides, its pieces, and its note. The
     pieces can be left out where the blank itself already shows them. */
+/* Pictures ------------------------------------------------------------------
+   A noun earns a small cartoon, drawn by the server on first sight. Only a
+   solved word shows it: for an open blank it would give the answer away. */
+
+/** The fingerprint of the drawing settings, or '' while the server has none. */
+let pictureVersion = '';
+
+/** The word a noun is drawn as: its root, so "köpeğim" and "köpekler" share one dog. */
+function pictureWord(chunk) {
+  if (chunk?.pos !== 'noun') return '';
+  const root = chunk.morphemes?.[0]?.form ?? chunk.target;
+  return root.replace(/[^\p{L}\p{M}'’-]/gu, '').toLocaleLowerCase(D.target);
+}
+
+/** The picture for a word, or nothing while pictures are off; a failed drawing takes itself away. */
+function pictureNode(word) {
+  if (!pictureVersion || !word) return null;
+  const image = document.createElement('img');
+  image.className = 'pic';
+  image.alt = '';
+  image.loading = 'lazy';
+  image.decoding = 'async';
+  image.src = `/api/picture?v=${pictureVersion}&word=${encodeURIComponent(word)}`;
+  image.addEventListener('error', () => {
+    image.closest('.pictured')?.classList.remove('pictured');
+    image.remove();
+  });
+  return image;
+}
+
 function wordBlock(chunk, solved, { pieces = true } = {}) {
   const block = document.createDocumentFragment();
 
   const head = document.createElement('div');
   head.className = 'detail-head';
+  const picture = solved ? pictureNode(pictureWord(chunk)) : null;
+  if (picture) {
+    head.classList.add('pictured');
+    head.append(picture);
+  }
   const target = document.createElement('span');
   target.className = 'tr';
   target.lang = D.target;
@@ -968,6 +1003,8 @@ function bankEarned(chunk) {
       pieces: chunk.morphemes?.length ?? 0,
       at: Date.now(),
       ...(chunk.note ? { note: chunk.note } : {}),
+      ...(chunk.pos ? { pos: chunk.pos } : {}),
+      ...(pictureWord(chunk) ? { pic: pictureWord(chunk) } : {}),
     },
   ]);
   // A chest filled to 25 gets a bigger show, and a star on the lid.
@@ -1293,6 +1330,12 @@ function renderBank(words) {
       item.addEventListener('animationend', () => item.classList.remove('upgraded'));
     }
 
+    const picture = pictureNode(word.pic);
+    if (picture) {
+      item.classList.add('pictured');
+      item.append(picture);
+    }
+
     const target = document.createElement('span');
     target.className = 'tr';
     target.lang = D.target;
@@ -1480,6 +1523,11 @@ fetch('/api/version')
   .then((response) => (response.ok ? response.json() : null))
   .then((body) => {
     if (typeof body?.speech === 'string') speechVersion = body.speech;
+    if (typeof body?.pictures === 'string') {
+      pictureVersion = body.pictures;
+      renderBank(loadBank());
+      if (selected >= 0) renderDetail(current.chunks[selected]);
+    }
     if (typeof body?.version === 'string') {
       version = body.version;
       setTitle();

@@ -180,6 +180,9 @@ already knows, and each direction keeps its own history, level and word chest.
 The rest of this section describes the Turkish-learning side; the other side is
 the mirror image, with the Norwegian read aloud by a Norwegian voice.
 
+With a Recraft key set, every noun that lands in the chest gets a small cartoon,
+drawn once and kept on disk beside the speech clips; see `.env.example`.
+
 It is built around a sentence comparator — one Turkish sentence laid out word
 by word, with the Norwegian each word carries printed underneath it.
 
@@ -321,6 +324,8 @@ If cost is the main constraint, set `CLAUDE_MODEL=claude-haiku-4-5-20251001`.
 | `src/lesson.ts` | The lesson call: Turkish sentence, breakdown, morphemes |
 | `src/align.ts` | Checking that a breakdown really fits its sentence |
 | `src/pool.ts` | The lesson pool: generated lessons kept in SQLite and shared |
+| `src/speech.ts` | Sentences read aloud by Azure, cached as MP3 |
+| `src/pictures.ts` | A cartoon per noun from Recraft, cached as SVG |
 | `src/google.ts` | Sign in with Google: the redirect and the code exchange |
 | `src/session.ts` | Signed session cookies |
 | `src/users.ts` | Logged-in learners and their synced chests |

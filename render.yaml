@@ -37,6 +37,10 @@ services:
         value: /var/data/lessons.db
       - key: SPEECH_CACHE_DIR
         value: /var/data/speech
+      - key: PICTURE_CACHE_DIR
+        value: /var/data/pictures
+      - key: RECRAFT_API_KEY
+        sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: AZURE_SPEECH_KEY

@@ -28,6 +28,7 @@ import {
   SESSION_DAYS,
 } from './session.js';
 import { UserStore, type User } from './users.js';
+import { picture, pictureFingerprint, picturesConfigured, PictureUnavailable } from './pictures.js';
 import { speak, speechConfigured, speechFingerprint, SpeechUnavailable } from './speech.js';
 import { translate } from './translate.js';
 
@@ -363,6 +364,33 @@ async function handleSpeak(url: URL, response: ServerResponse): Promise<void> {
 }
 
 /**
+ * A cartoon for a noun. Drawn on first sight and kept, so the browser can cache
+ * it for good. An SVG is served with a policy that lets it run nothing, since
+ * it was drawn by a third party.
+ */
+async function handlePicture(url: URL, response: ServerResponse): Promise<void> {
+  if (!picturesConfigured) {
+    send(response, 503, { error: 'Pictures are not configured on this server.' });
+    return;
+  }
+  let drawn;
+  try {
+    drawn = await picture(url.searchParams.get('word') ?? '');
+  } catch (error) {
+    if (error instanceof PictureUnavailable) throw new BadRequest(error.message);
+    throw error;
+  }
+  response.writeHead(200, {
+    'content-type': drawn.type,
+    'content-length': drawn.body.byteLength,
+    'cache-control': 'private, max-age=31536000, immutable',
+    'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'",
+    'x-content-type-options': 'nosniff',
+  });
+  response.end(drawn.body);
+}
+
+/**
  * The one address the site answers to. Any other custom domain that reaches
  * us (the .net spelling, a www prefix) is sent here so links and bookmarks all
  * end up in the same place. Empty means answer to anything, which is what
@@ -554,7 +582,11 @@ const server = createServer((request, response) => {
         return;
       }
       if (request.method === 'GET' && path === '/api/version') {
-        send(response, 200, { version: VERSION, speech: speechFingerprint });
+        send(response, 200, {
+          version: VERSION,
+          speech: speechFingerprint,
+          pictures: picturesConfigured ? pictureFingerprint : null,
+        });
         return;
       }
       if (request.method === 'POST' && path === '/api/translate') {
@@ -567,6 +599,10 @@ const server = createServer((request, response) => {
       }
       if (request.method === 'GET' && path === '/api/speak') {
         await handleSpeak(url, response);
+        return;
+      }
+      if (request.method === 'GET' && path === '/api/picture') {
+        await handlePicture(url, response);
         return;
       }
       send(response, 404, { error: 'Not found.' });
