@@ -55,6 +55,11 @@ export interface LessonChunk {
   /** The word class of the piece's main word. */
   pos?: WordClass;
   /**
+   * For a noun, its dictionary form in English: what the drawing of it is
+   * asked for as, since the picture model knows English best.
+   */
+  english?: string;
+  /**
    * A grammar note in the learner's language, present only when the piece has
    * something to teach: a case ending, a tense, a word order that surprises.
    */
@@ -176,6 +181,8 @@ For each piece:
   adverb, pronoun, adposition, conjunction, numeral, determiner, interjection
   or particle. For a word plus its postposition or particle, give the class of
   the word.
+- "english" is given for nouns only: the noun's dictionary form in English, one
+  or two words, as in "dog" or "school bag". Leave it out for every other class.
 - "note" is one sentence of ${d.native} explaining the grammar, and only when
   there is something real to say: ${d.notes}. Leave it out entirely for a plain
   word. A note that only repeats the translation is worse than no note.
@@ -249,6 +256,11 @@ function lessonSchema(d: Direction): Record<string, unknown> {
               type: 'string',
               enum: [...WORD_CLASSES],
               description: "The word class of the piece's main word.",
+            },
+            english: {
+              type: 'string',
+              description:
+                'Nouns only: the dictionary form of the noun in English, one or two words. Omit for other classes.',
             },
             note: {
               type: 'string',
@@ -447,12 +459,20 @@ interface RawChunk {
   target: string;
   native: string;
   pos?: WordClass;
+  english?: string;
   note?: string;
   morphemes?: unknown;
 }
 
 function wordClass(value: unknown): WordClass | undefined {
   return WORD_CLASSES.find((candidate) => candidate === value);
+}
+
+/** A short English noun phrase, letters and spaces only; anything else is dropped. */
+function englishNoun(value: unknown, pos: WordClass | undefined): string | undefined {
+  if (pos !== 'noun' || typeof value !== 'string') return undefined;
+  const word = value.trim().toLowerCase().replace(/\s+/g, ' ');
+  return /^[a-z][a-z' -]{0,39}$/.test(word) ? word : undefined;
 }
 
 /** Keeps the breakdown entries that have both sides filled in. */
@@ -462,14 +482,16 @@ function parseRawChunks(value: unknown): RawChunk[] {
   const chunks: RawChunk[] = [];
   for (const entry of value) {
     if (!entry || typeof entry !== 'object') continue;
-    const { target, native, pos, note, morphemes } = entry as Record<string, unknown>;
+    const { target, native, pos, english, note, morphemes } = entry as Record<string, unknown>;
     if (typeof target !== 'string' || typeof native !== 'string') continue;
     if (!target.trim() || !native.trim()) continue;
     const kind = wordClass(pos);
+    const gloss = englishNoun(english, kind);
     chunks.push({
       target: target.trim(),
       native: native.trim(),
       ...(kind ? { pos: kind } : {}),
+      ...(gloss ? { english: gloss } : {}),
       ...(typeof note === 'string' && note.trim() ? { note: note.trim() } : {}),
       morphemes,
     });
@@ -511,6 +533,7 @@ function alignChunks(chunks: RawChunk[], sentence: string): LessonChunk[] {
       target: exact,
       native: chunk.native,
       ...(chunk.pos ? { pos: chunk.pos } : {}),
+      ...(chunk.english ? { english: chunk.english } : {}),
       ...(chunk.note ? { note: chunk.note } : {}),
       ...(morphemes ? { morphemes } : {}),
     };

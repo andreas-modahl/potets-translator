@@ -1039,9 +1039,10 @@ function pictureWord(chunk) {
   return root.replace(/[^\p{L}\p{M}'’-]/gu, '').toLocaleLowerCase(D.target);
 }
 
-/** What the root means, to go with the word: a short word alone can be too little to draw from. */
+/** What to draw, in words the picture model knows: the English the lesson
+    gives for a noun, or failing that what the root means in the other language. */
 function pictureHint(chunk) {
-  return (chunk?.morphemes?.[0]?.means ?? chunk?.native ?? '').trim();
+  return (chunk?.english ?? chunk?.morphemes?.[0]?.means ?? chunk?.native ?? '').trim();
 }
 
 /** The picture for a word, or nothing while pictures are off; a failed drawing takes itself away. */
