@@ -307,31 +307,22 @@
         transform: translate(1px, 1px);
         box-shadow: 1px 1px 0 var(--shadow);
       }
-      /* A small turning arrow says the tag cycles when clicked. */
       .level {
         display: inline-flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 0.3rem;
+        justify-content: center;
       }
-      /* A tag that is a checkbox: the same paint, a small box that ticks. */
-      .level.toggle {
-        width: auto;
-        justify-content: flex-start;
-        transform: rotate(1deg);
-      }
-      .level.toggle:hover {
-        transform: rotate(0deg);
-      }
-      .level.toggle .box {
-        flex: 0 0 auto;
+      /* A menu entry that is a checkbox: a small box in the icon slot that ticks. */
+      .menu-panel .box {
+        display: inline-block;
         width: 0.85rem;
         height: 0.85rem;
+        vertical-align: -0.1rem;
         border: 2px solid var(--line);
         border-radius: 3px;
         background: var(--panel);
       }
-      .level.toggle[aria-pressed='true'] .box {
+      .menu-panel [aria-checked='true'] .box {
         background: var(--accent);
         box-shadow: inset 0 0 0 2px var(--panel);
       }
@@ -343,16 +334,6 @@
         color: var(--muted);
         white-space: nowrap;
       }
-      .level .cycle {
-        flex: 0 0 auto;
-        opacity: 0.6;
-        transition: transform 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
-      }
-      .level:hover .cycle {
-        opacity: 1;
-        transform: rotate(90deg);
-      }
-
       /* The word itself stays hidden in the detail panel until it has been
          typed right or asked for; its parts are still described. */
       .hidden-word {
@@ -1115,6 +1096,11 @@
               <span class="icon" id="theme-icon" aria-hidden="true">☾</span>
               <span id="theme-label">Mørk modus</span>
             </button>
+            <!-- Whether each blank says what kind of word it wants. -->
+            <button type="button" id="classes" role="menuitemcheckbox" aria-checked="false" title="Vis om ordet er substantiv, verb, adjektiv …">
+              <span class="icon" aria-hidden="true"><span class="box"></span></span>
+              <span id="classes-name">Ordklasser</span>
+            </button>
             <!-- Silence: no word or sentence is read out until it is lifted. -->
             <button type="button" id="mute" role="menuitem" aria-pressed="false">
               <span class="icon" id="mute-icon" aria-hidden="true">🔇</span>
@@ -1168,17 +1154,8 @@
         <div class="topic-wrap">
           <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
             <span id="level-name">Nybegynner</span>
-            <svg class="cycle" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
-              <path d="M13 8a5 5 0 1 1-1.5-3.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-              <path d="M12.5 1.5v3.5H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
           </button>
           <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" />
-          <!-- Whether each blank says what kind of word it wants. -->
-          <button type="button" id="classes" class="level toggle" aria-pressed="false" title="Vis om ordet er substantiv, verb, adjektiv …">
-            <span class="box" aria-hidden="true"></span>
-            <span id="classes-name">Ordklasser</span>
-          </button>
         </div>
       </form>
 
@@ -1893,7 +1870,7 @@
       let showClasses = recall(CLASSES_KEY) === 'on';
 
       function renderClassesToggle() {
-        classesButton.setAttribute('aria-pressed', String(showClasses));
+        classesButton.setAttribute('aria-checked', String(showClasses));
       }
 
       classesButton.addEventListener('click', () => {
@@ -1901,6 +1878,7 @@
         remember(CLASSES_KEY, showClasses ? 'on' : 'off');
         renderClassesToggle();
         refreshCaptions();
+        closeMenu();
       });
 
       /** The caption row above a blank: the word class, then whatever tags follow. */
