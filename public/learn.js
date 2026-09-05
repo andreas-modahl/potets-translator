@@ -753,6 +753,34 @@ function overcame(chunk) {
 /** The chunk: a blank field to type the target word into, standing over
     the native words it should carry. The native text is a button that
     reads the target word aloud. */
+/** The blank's font, read once from a blank so the measure matches what is drawn. */
+let blankFont = '';
+
+/**
+ * How wide the answer will be, measured in the blank's own font, so the
+ * line underneath is exactly as long as the word. Counting letters would
+ * make "iyidir" as wide as "mmmmmm".
+ */
+function blankWidth(word) {
+  if (!blankFont) {
+    const probe = document.createElement('span');
+    probe.className = 'tr';
+    probe.textContent = word;
+    const box = document.createElement('div');
+    box.className = 'chunk';
+    box.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none';
+    box.append(probe);
+    comparator.append(box);
+    const style = getComputedStyle(probe);
+    blankFont = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    box.remove();
+  }
+  const context = document.createElement('canvas').getContext('2d');
+  context.font = blankFont;
+  const measured = context.measureText(word || ' ').width;
+  return `${Math.ceil(Math.max(measured, 16)) + 4}px`;
+}
+
 function chunkField(chunk, index) {
   const box = document.createElement('div');
   box.className = 'chunk';
@@ -765,7 +793,7 @@ function chunkField(chunk, index) {
   field.setAttribute('role', 'textbox');
   field.setAttribute('aria-label', D.blankFor(chunk.native));
   // Sized to the answer so the row does not shift as it is filled in.
-  field.style.minWidth = `${Math.max(2, chunk.target.length)}ch`;
+  field.style.minWidth = blankWidth(chunk.target);
 
   // The last right letter moves the caret on, so a sentence can be typed
   // straight through without reaching for Enter.
