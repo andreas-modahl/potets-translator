@@ -832,7 +832,15 @@ body.muted .chunk .say {
   align-self: center;
   font-size: 1.1rem;
   font-weight: 700;
+  letter-spacing: 0.05em;
   color: var(--good);
+}
+/* One dot a word: full for unaided, hollow for hinted. */
+.log-row .mark .hit {
+  color: var(--good);
+}
+.log-row .mark .miss {
+  color: var(--faint);
 }
 .log-more {
   margin-top: 0.6rem;

@@ -170,6 +170,7 @@ const DIRECTIONS = {
     logFewer: 'Vis færre',
     logOpen: (target) => `Åpne «${target}» igjen`,
     logDone: 'Fullført',
+    logScore: (n, total) => `${n} av ${total} ord uten hint`,
     streak: (n) => `${n} på rad`,
     streakHelp: 'Setninger på rad uten hint',
     fresh: 'Ny setning',
@@ -259,6 +260,7 @@ const DIRECTIONS = {
     logFewer: 'Daha az göster',
     logOpen: (target) => `«${target}» cümlesini yeniden aç`,
     logDone: 'Tamamlandı',
+    logScore: (n, total) => `${total} kelimeden ${n} tanesi ipucusuz`,
     streak: (n) => `${n} üst üste`,
     streakHelp: 'İpucu almadan üst üste bitirilen cümleler',
     fresh: 'Yeni cümle',
@@ -410,10 +412,35 @@ function showAt(index) {
 /** The sentence on screen is finished: remembered, so its row gets a mark. */
 function markDone() {
   const entry = history[cursor];
-  if (!entry || entry.done) return;
+  if (!entry) return;
   entry.done = true;
+  // Which words came unaided, in order, so the row can show how it went.
+  // Done again, the newest attempt is the one that counts.
+  entry.words = [...comparator.children].map((box) => (box.classList.contains('helped') ? 0 : 1));
   saveHistory();
   renderLog();
+}
+
+/** A tick for a finished sentence, or one dot per word: full when it came
+    unaided, hollow when it needed a hint. */
+function scoreMark(entry) {
+  const mark = document.createElement('span');
+  mark.className = 'mark';
+  const words = Array.isArray(entry.words) ? entry.words : [];
+  if (words.length === 0) {
+    mark.title = D.logDone;
+    mark.textContent = '✓';
+    return mark;
+  }
+  const unaided = words.filter(Boolean).length;
+  mark.title = D.logScore(unaided, words.length);
+  for (const hit of words) {
+    const dot = document.createElement('span');
+    dot.className = hit ? 'hit' : 'miss';
+    dot.textContent = hit ? '●' : '○';
+    mark.append(dot);
+  }
+  return mark;
 }
 
 function renderLog() {
@@ -440,13 +467,7 @@ function renderLog() {
       native.textContent = entry.native;
       row.append(target, native);
 
-      if (entry.done) {
-        const mark = document.createElement('span');
-        mark.className = 'mark';
-        mark.title = D.logDone;
-        mark.textContent = '✓';
-        row.append(mark);
-      }
+      if (entry.done) row.append(scoreMark(entry));
       row.addEventListener('click', () => {
         if (index !== cursor) showAt(index);
         lessonCard.scrollIntoView({ block: 'start', behavior: 'smooth' });
