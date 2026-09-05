@@ -1635,6 +1635,7 @@ function topicSettled() {
 }
 
 topicField.addEventListener('input', () => {
+  remember(keyFor('emne'), topicField.value.trim());
   clearTimeout(topicTimer);
   topicTimer = setTimeout(topicSettled, TOPIC_SETTLE_MS);
 });
@@ -1720,10 +1721,13 @@ function applyDirection() {
   renderClassesToggle();
   topicField.placeholder = D.topicPlaceholder;
   topicField.setAttribute('aria-label', D.topic);
-  // Start on the default theme, and carry it over when flipping, but
-  // leave a theme the learner typed themselves alone.
+  // Each side remembers its own topic. Without one, start on the default,
+  // carrying it over when flipping, but leave a typed topic alone.
+  const saved = recall(keyFor('emne'));
   const defaults = Object.values(DIRECTIONS).map((d) => d.defaultTopic);
-  if (!topicField.value.trim() || defaults.includes(topicField.value.trim())) {
+  if (saved) {
+    topicField.value = saved;
+  } else if (!topicField.value.trim() || defaults.includes(topicField.value.trim())) {
     topicField.value = D.defaultTopic;
   }
   // The shortcuts ride in the tooltip: | for the word in focus, || for the sentence.
@@ -1870,7 +1874,9 @@ muteButton.addEventListener('click', () => {
    are merged, so nothing is lost whichever device was used last; after
    that every change is pushed a moment later. */
 
-const SYNC_NAMES = ['ordbank', 'historikk', 'slit', 'niva'];
+const SYNC_NAMES = ['ordbank', 'historikk', 'slit', 'niva', 'emne'];
+/** The names kept as plain strings rather than JSON. */
+const PLAIN_NAMES = ['niva', 'emne'];
 let syncTimer = 0;
 
 function directionKey(direction, name) {
@@ -1883,7 +1889,7 @@ function snapshot(direction) {
   for (const name of SYNC_NAMES) {
     const raw = recall(directionKey(direction, name));
     if (raw === null) continue;
-    if (name === 'niva') {
+    if (PLAIN_NAMES.includes(name)) {
       blob[name] = raw;
       continue;
     }
@@ -1937,11 +1943,14 @@ function applyRemote(direction, blob) {
     localStorage.setItem(key('slit'), JSON.stringify(merged));
   }
   if (typeof blob.niva === 'string' && !local.niva) localStorage.setItem(key('niva'), blob.niva);
+  if (typeof blob.emne === 'string' && !local.emne) localStorage.setItem(key('emne'), blob.emne);
 }
 
 /** Re-reads storage for the side on screen after a merge, gently. */
 function refreshFromStorage() {
   renderBank(loadBank());
+  const topic = recall(keyFor('emne'));
+  if (topic && topic !== topicField.value.trim()) topicField.value = topic;
   const merged = loadHistory();
   if (merged.at(-1)?.target !== history.at(-1)?.target && merged.length) {
     history = merged;
