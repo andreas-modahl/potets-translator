@@ -375,7 +375,7 @@ async function handlePicture(url: URL, response: ServerResponse): Promise<void> 
   }
   let drawn;
   try {
-    drawn = await picture(url.searchParams.get('word') ?? '');
+    drawn = await picture(url.searchParams.get('word') ?? '', url.searchParams.get('hint') ?? '');
   } catch (error) {
     if (error instanceof PictureUnavailable) throw new BadRequest(error.message);
     throw error;

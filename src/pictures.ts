@@ -43,13 +43,25 @@ export function cleanWord(raw: string): string | undefined {
   return word;
 }
 
-function prompt(word: string): string {
-  return `${word}, ${PROMPT_TAIL}`;
+/**
+ * The word's meaning in the other language, a few words at most, as a hint:
+ * a short Turkish word alone ("ev", "su") is too little to go on, and the
+ * translation beside it settles what is meant. Anything odd is dropped.
+ */
+export function cleanHint(raw: string): string {
+  const hint = raw.trim().normalize('NFC').replace(/\s+/g, ' ');
+  if (!hint || hint.length > MAX_WORD_CHARS) return '';
+  if (!/^[\p{L}\p{M}][\p{L}\p{M}'’ -]*$/u.test(hint)) return '';
+  return hint;
 }
 
-function cachePath(word: string): string {
+export function prompt(word: string, hint = ''): string {
+  return hint ? `${word} (${hint}), ${PROMPT_TAIL}` : `${word}, ${PROMPT_TAIL}`;
+}
+
+function cachePath(word: string, hint: string): string {
   const key = createHash('sha256')
-    .update(`${config.recraftModel}\n${config.recraftStyleId ?? ''}\n${prompt(word)}`)
+    .update(`${config.recraftModel}\n${config.recraftStyleId ?? ''}\n${prompt(word, hint)}`)
     .digest('hex');
   return join(config.pictureCacheDir, `${key}.${isVector ? 'svg' : 'png'}`);
 }
@@ -92,6 +104,10 @@ async function slot<T>(task: () => Promise<T>): Promise<T> {
 let dayStamp = '';
 let drawnToday = 0;
 
+/** With the account empty, asking again every time only fills the log. */
+const CREDITS_RETRY_MS = 60 * 60 * 1000;
+let outOfCreditsUntil = 0;
+
 function underDailyCap(): boolean {
   const today = new Date().toISOString().slice(0, 10);
   if (today !== dayStamp) {
@@ -104,9 +120,9 @@ function underDailyCap(): boolean {
 /** The same word asked for twice while it is being drawn is drawn once. */
 const pending = new Map<string, Promise<Picture>>();
 
-async function draw(word: string): Promise<Picture> {
+async function draw(word: string, hint: string): Promise<Picture> {
   const body: Record<string, unknown> = {
-    prompt: prompt(word),
+    prompt: prompt(word, hint),
     model: config.recraftModel,
     size: '1024x1024',
     response_format: 'url',
@@ -123,6 +139,11 @@ async function draw(word: string): Promise<Picture> {
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
+    if (detail.includes('not_enough_credits')) {
+      outOfCreditsUntil = Date.now() + CREDITS_RETRY_MS;
+      console.warn('Recraft has no API units left; not drawing for an hour.');
+      throw new PictureUnavailable('No drawing credits left.');
+    }
     throw new Error(`Recraft returned ${response.status}: ${detail || response.statusText}`);
   }
   const result = (await response.json()) as { data?: Array<{ url?: string }> };
@@ -138,13 +159,14 @@ async function draw(word: string): Promise<Picture> {
 }
 
 /** The drawing for a word, from the cache when it has been asked for before. */
-export async function picture(raw: string): Promise<Picture> {
+export async function picture(raw: string, rawHint = ''): Promise<Picture> {
   if (!picturesConfigured) throw new PictureUnavailable('Pictures are not configured on this server.');
   const word = cleanWord(raw);
   if (!word) throw new PictureUnavailable('Not a word that can be drawn.');
+  const hint = cleanHint(rawHint);
   const type = isVector ? 'image/svg+xml' : 'image/png';
 
-  const file = cachePath(word);
+  const file = cachePath(word, hint);
   try {
     return { body: await readFile(file), type };
   } catch {
@@ -157,7 +179,8 @@ export async function picture(raw: string): Promise<Picture> {
 
   const job = (async () => {
     if (!underDailyCap()) throw new PictureUnavailable('No more drawings today.');
-    const drawn = await slot(() => draw(word));
+    if (Date.now() < outOfCreditsUntil) throw new PictureUnavailable('No drawing credits left.');
+    const drawn = await slot(() => draw(word, hint));
     drawnToday += 1;
     await mkdir(config.pictureCacheDir, { recursive: true });
     await writeFile(file, drawn.body);

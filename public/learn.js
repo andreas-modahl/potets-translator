@@ -398,9 +398,9 @@ function updateSteps() {
   renderLog();
 }
 
-function showAt(index) {
+function showAt(index, { read = false } = {}) {
   cursor = index;
-  renderLesson(history[index]);
+  renderLesson(history[index], { read });
   setStatus('');
   updateSteps();
   // Back at the newest sentence, the one after it can be readied.
@@ -467,7 +467,8 @@ function renderLog() {
 
       if (entry.done) row.append(scoreMark(entry));
       row.addEventListener('click', () => {
-        if (index !== cursor) showAt(index);
+        // The sentence on screen included: a click starts it over.
+        showAt(index, { read: true });
         lessonCard.scrollIntoView({ block: 'start', behavior: 'smooth' });
       });
       item.append(row);
@@ -666,8 +667,13 @@ function checkField(field, chunk) {
   if (solvedNow && typed.trim() !== chunk.target) field.textContent = chunk.target;
   if (solvedNow) paintWord(box, field, chunk);
   else renderCaption(box, chunk, []);
-  // A completed word reads itself out, unless it was just heard.
-  if (solvedNow) speakOnDone(chunk);
+  // A completed word reads itself out, unless it was just heard. The last
+  // word of the sentence reads the whole sentence instead; but not over a
+  // reading still going, and not again within moments of one ending.
+  if (solvedNow) {
+    if (!sentenceDone()) speakOnDone(chunk);
+    else if (!sentenceJustHeard()) speak(current.target);
+  }
 
   // Earned outright — no hint, not shown — so it goes in the bank, and
   // the list jumps to the chest it landed in.
@@ -1033,15 +1039,21 @@ function pictureWord(chunk) {
   return root.replace(/[^\p{L}\p{M}'’-]/gu, '').toLocaleLowerCase(D.target);
 }
 
+/** What the root means, to go with the word: a short word alone can be too little to draw from. */
+function pictureHint(chunk) {
+  return (chunk?.morphemes?.[0]?.means ?? chunk?.native ?? '').trim();
+}
+
 /** The picture for a word, or nothing while pictures are off; a failed drawing takes itself away. */
-function pictureNode(word) {
+function pictureNode(word, hint = '') {
   if (!pictureVersion || !word) return null;
   const image = document.createElement('img');
   image.className = 'pic';
   image.alt = '';
   image.loading = 'lazy';
   image.decoding = 'async';
-  image.src = `/api/picture?v=${pictureVersion}&word=${encodeURIComponent(word)}`;
+  const query = new URLSearchParams({ v: pictureVersion, word, ...(hint ? { hint } : {}) });
+  image.src = `/api/picture?${query}`;
   image.addEventListener('error', () => {
     image.closest('.pictured')?.classList.remove('pictured');
     image.remove();
@@ -1054,7 +1066,7 @@ function wordBlock(chunk, solved, { pieces = true } = {}) {
 
   const head = document.createElement('div');
   head.className = 'detail-head';
-  const picture = solved ? pictureNode(pictureWord(chunk)) : null;
+  const picture = solved ? pictureNode(pictureWord(chunk), pictureHint(chunk)) : null;
   if (picture) {
     head.classList.add('pictured');
     head.append(picture);
@@ -1158,7 +1170,7 @@ function bankEarned(chunk) {
       at: Date.now(),
       ...(chunk.note ? { note: chunk.note } : {}),
       ...(chunk.pos ? { pos: chunk.pos } : {}),
-      ...(pictureWord(chunk) ? { pic: pictureWord(chunk) } : {}),
+      ...(pictureWord(chunk) ? { pic: pictureWord(chunk), hint: pictureHint(chunk) } : {}),
     },
   ]);
   // A chest filled to 25 gets a bigger show, and a star on the lid.
@@ -1267,7 +1279,12 @@ function bone(width) {
   return span;
 }
 
-function renderLesson(result) {
+/**
+ * Puts a sentence on screen. Read aloud when asked, which is when it is new
+ * or reopened by hand; not when restored on arrival, which the browser would
+ * not let play unprompted anyway.
+ */
+function renderLesson(result, { read = false } = {}) {
   current = result;
   selected = -1;
   chestFilled = false;
@@ -1299,6 +1316,7 @@ function renderLesson(result) {
 
   lessonCard.hidden = false;
   focusNextOpen();
+  if (read) speak(result.target);
 }
 
 /* Speech -----------------------------------------------------------
@@ -1342,8 +1360,32 @@ function speakLocally(text, tempo = 1) {
   utterance.rate = 0.9 * tempo;
   const voice = localVoice();
   if (voice) utterance.voice = voice;
+  utterance.addEventListener('end', () => finishedSaying(text));
   speechSynthesis.speak(utterance);
 }
+
+/* The sentence is read when it appears and again when it is finished, but
+   not on top of itself: a reading still going is left to end, and one that
+   ended moments ago is not repeated. */
+const SENTENCE_ECHO_MS = 5000;
+/** What is being said right now, folded, or '' between readings. */
+let saying = '';
+/** When the sentence on screen was last heard to the end. */
+let sentenceEndedAt = 0;
+
+function finishedSaying(text) {
+  if (fold(text) !== saying) return;
+  saying = '';
+  if (fold(text) === fold(current.target ?? '')) sentenceEndedAt = Date.now();
+}
+
+/** True while the sentence is being read, or within moments of it ending. */
+function sentenceJustHeard() {
+  const sentence = fold(current.target ?? '');
+  return saying === sentence || Date.now() - sentenceEndedAt < SENTENCE_ECHO_MS;
+}
+
+player.addEventListener('ended', () => finishedSaying(saying));
 
 /* A word reads itself out when it is completed, unless it was already
    read aloud while this blank had the focus: then the learner has just
@@ -1367,6 +1409,9 @@ async function speak(text) {
   const tempo = tempoFor(text);
   player.pause();
   if (canSpeakLocally) speechSynthesis.cancel();
+  // A sentence cut short by a word counts as heard up to here.
+  if (saying && saying === fold(current.target ?? '')) sentenceEndedAt = Date.now();
+  saying = fold(text);
 
   if (serverSpeech) {
     try {
@@ -1383,13 +1428,15 @@ async function speak(text) {
         await player.play();
         return;
       } else {
+        saying = '';
         return;
       }
     } catch {
       // Fall through to the local voice for this one sentence.
     }
   }
-  speakLocally(text, tempo);
+  if (canSpeakLocally) speakLocally(text, tempo);
+  else saying = '';
 }
 
 speakButton.addEventListener('click', () => speak(current.target));
@@ -1481,7 +1528,7 @@ function renderBank(words) {
       item.addEventListener('animationend', () => item.classList.remove('upgraded'));
     }
 
-    const picture = pictureNode(word.pic);
+    const picture = pictureNode(word.pic, word.hint ?? word.native);
     if (picture) {
       item.classList.add('pictured');
       item.append(picture);
@@ -1573,7 +1620,7 @@ form.addEventListener('submit', async (event) => {
     if (history.length > HISTORY_LIMIT) history.splice(0, history.length - HISTORY_LIMIT);
     cursor = history.length - 1;
     saveHistory();
-    renderLesson(result);
+    renderLesson(result, { read: true });
     updateSteps();
     setStatus(result.chunks.length === 0 ? D.noBreakdown : '', result.chunks.length === 0);
     schedulePrefetch();
