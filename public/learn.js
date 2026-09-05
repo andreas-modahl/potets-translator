@@ -1514,8 +1514,16 @@ function renderBank(words) {
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
+  // Enter in the topic field, with the topic already the one on screen,
+  // is "done typing": the caret goes to the blank, no new sentence.
+  if (document.activeElement === topicField && topicField.value.trim() === askedTopic) {
+    focusNextOpen();
+    return;
+  }
+
   const attempt = ++pending;
   const asked = learning;
+  const topic = topicField.value.trim();
   submitButton.disabled = true;
   submitButton.classList.add('busy');
   setStatus('');
@@ -1536,6 +1544,7 @@ form.addEventListener('submit', async (event) => {
       setStatus(result.error ?? D.failed, true);
       return;
     }
+    askedTopic = topic;
     history.push(result);
     if (history.length > HISTORY_LIMIT) history.splice(0, history.length - HISTORY_LIMIT);
     cursor = history.length - 1;
@@ -1607,6 +1616,29 @@ function schedulePrefetch() {
 }
 
 topicField.addEventListener('input', schedulePrefetch);
+
+/* A new topic ------------------------------------------------------
+   Typing a topic and stopping is enough: once the field has been still
+   for a moment, or is left, a sentence on the new topic replaces the one
+   on screen. The prefetch above has usually fetched it already. */
+
+const TOPIC_SETTLE_MS = 1500;
+/** The topic the sentence on screen was asked with; null before the first. */
+let askedTopic = null;
+let topicTimer = 0;
+
+function topicSettled() {
+  clearTimeout(topicTimer);
+  const topic = topicField.value.trim();
+  if (!topic || topic === askedTopic || submitButton.disabled) return;
+  form.requestSubmit();
+}
+
+topicField.addEventListener('input', () => {
+  clearTimeout(topicTimer);
+  topicTimer = setTimeout(topicSettled, TOPIC_SETTLE_MS);
+});
+topicField.addEventListener('change', topicSettled);
 
 /* Level ------------------------------------------------------------ */
 
