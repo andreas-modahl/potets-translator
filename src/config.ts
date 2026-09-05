@@ -82,7 +82,7 @@ export const config = {
   /** Azure Speech, for reading Turkish aloud on the learn page. Optional. */
   azureSpeechKey: optional('AZURE_SPEECH_KEY'),
   azureSpeechRegion: optional('AZURE_SPEECH_REGION'),
-  azureSpeechVoice: optional('AZURE_SPEECH_VOICE') ?? 'tr-TR-Elif:MAI-Voice-2',
+  azureSpeechVoice: optional('AZURE_SPEECH_VOICE') ?? 'tr-TR-AhmetNeural',
   azureSpeechVoiceNb: optional('AZURE_SPEECH_VOICE_NB') ?? 'nb-NO-PernilleNeural',
   speechCacheDir: optional('SPEECH_CACHE_DIR') ?? 'data/speech',
   /** Recraft, for a small cartoon per noun on the learn page. Optional. */
