@@ -1365,15 +1365,12 @@ async function speak(text) {
 
 speakButton.addEventListener('click', () => speak(current.target));
 
-// A click on nothing in particular is taken as "back to the exercise":
-// the caret goes to the first blank still open. Controls, links, the
-// card itself keep their own behaviour.
-document.addEventListener('click', (event) => {
-  if (lessonCard.hidden) return;
-  const interactive = event.target.closest(
-    'button, [role="button"], a, input, select, textarea, label, [contenteditable], #lesson',
-  );
-  if (interactive) return;
+// A click on the card's empty space puts the caret in the first blank
+// still open. The word boxes, the buttons and the links in it keep their
+// own behaviour, and a click outside the card moves nothing.
+lessonCard.addEventListener('mousedown', (event) => {
+  if (event.target.closest('button, [role="button"], a, [contenteditable], .chunk')) return;
+  event.preventDefault();
   focusNextOpen();
 });
 
