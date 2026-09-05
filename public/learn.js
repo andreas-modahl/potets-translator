@@ -6,8 +6,11 @@ const topicField = document.querySelector('#topic');
 const classesButton = document.querySelector('#classes');
 const classesName = document.querySelector('#classes-name');
 const submitButton = document.querySelector('#submit');
-const backButton = document.querySelector('#back');
 const stepLabel = document.querySelector('#step-label');
+const log = document.querySelector('#log');
+const logTitle = document.querySelector('#log-title');
+const logList = document.querySelector('#log-list');
+const logMore = document.querySelector('#log-more');
 const statusLine = document.querySelector('#status');
 const lessonCard = document.querySelector('#lesson');
 const comparator = document.querySelector('#comparator');
@@ -161,9 +164,12 @@ const DIRECTIONS = {
     typeLetter: (letter) => `Skriv ${letter}`,
     hearWord: 'Hør ordet',
     blankFor: (native) => `Tyrkisk for «${native}»`,
-    prev: 'Forrige setning',
-    next: 'Neste setning',
     done: 'Flott! Neste',
+    log: 'Tidligere setninger',
+    logAll: 'Vis alle',
+    logFewer: 'Vis færre',
+    logOpen: (target) => `Åpne «${target}» igjen`,
+    logDone: 'Fullført',
     streak: (n) => `${n} på rad`,
     streakHelp: 'Setninger på rad uten hint',
     fresh: 'Ny setning',
@@ -247,9 +253,12 @@ const DIRECTIONS = {
     typeLetter: (letter) => `${letter} yaz`,
     hearWord: 'Kelimeyi dinle',
     blankFor: (native) => `«${native}» için Norveççe`,
-    prev: 'Önceki cümle',
-    next: 'Sonraki cümle',
     done: 'Harika! Sıradaki',
+    log: 'Önceki cümleler',
+    logAll: 'Tümünü göster',
+    logFewer: 'Daha az göster',
+    logOpen: (target) => `«${target}» cümlesini yeniden aç`,
+    logDone: 'Tamamlandı',
     streak: (n) => `${n} üst üste`,
     streakHelp: 'İpucu almadan üst üste bitirilen cümleler',
     fresh: 'Yeni cümle',
@@ -375,12 +384,18 @@ function saveHistory() {
   remember(keyFor('historikk'), JSON.stringify(history));
 }
 
-/* Stepping through the history ------------------------------------- */
+/* The sentences so far ------------------------------------------------
+   Listed under the card, newest first, with a mark on the finished ones.
+   A row brings its sentence back into the card to be done again; the
+   next button always asks for a new one. */
+
+const LOG_PEEK = 5;
+let logOpen = false;
 
 function updateSteps() {
-  backButton.disabled = cursor <= 0;
-  submitButton.setAttribute('aria-label', cursor < history.length - 1 ? D.next : D.fresh);
-  submitButton.title = submitButton.getAttribute('aria-label');
+  submitButton.setAttribute('aria-label', D.fresh);
+  submitButton.title = D.fresh;
+  renderLog();
 }
 
 function showAt(index) {
@@ -392,8 +407,62 @@ function showAt(index) {
   if (cursor === history.length - 1) schedulePrefetch();
 }
 
-backButton.addEventListener('click', () => {
-  if (cursor > 0) showAt(cursor - 1);
+/** The sentence on screen is finished: remembered, so its row gets a mark. */
+function markDone() {
+  const entry = history[cursor];
+  if (!entry || entry.done) return;
+  entry.done = true;
+  saveHistory();
+  renderLog();
+}
+
+function renderLog() {
+  logTitle.textContent = D.log;
+  log.hidden = history.length === 0;
+  const rows = history.map((entry, index) => [index, entry]).reverse();
+  const shown = logOpen ? rows : rows.slice(0, LOG_PEEK);
+  logList.replaceChildren(
+    ...shown.map(([index, entry]) => {
+      const item = document.createElement('li');
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'log-row';
+      row.setAttribute('aria-label', D.logOpen(entry.target));
+      if (index === cursor) row.setAttribute('aria-current', 'true');
+
+      const target = document.createElement('span');
+      target.className = 'tr';
+      target.lang = D.target;
+      target.textContent = entry.target;
+      const native = document.createElement('span');
+      native.className = 'no';
+      native.lang = D.native;
+      native.textContent = entry.native;
+      row.append(target, native);
+
+      if (entry.done) {
+        const mark = document.createElement('span');
+        mark.className = 'mark';
+        mark.title = D.logDone;
+        mark.textContent = '✓';
+        row.append(mark);
+      }
+      row.addEventListener('click', () => {
+        if (index !== cursor) showAt(index);
+        lessonCard.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      });
+      item.append(row);
+      return item;
+    }),
+  );
+  logMore.hidden = rows.length <= LOG_PEEK;
+  logMore.textContent = logOpen ? D.logFewer : D.logAll;
+  logMore.setAttribute('aria-expanded', String(logOpen));
+}
+
+logMore.addEventListener('click', () => {
+  logOpen = !logOpen;
+  renderLog();
 });
 
 /* The comparator --------------------------------------------------- */
@@ -567,6 +636,7 @@ function checkField(field, chunk) {
     renderExplanations();
     setReady(true, chestFilled);
     countSentence();
+    markDone();
     submitButton.focus();
   } else {
     explanations.hidden = true;
@@ -710,8 +780,7 @@ function paintWord(box, field, chunk) {
 
 function setReady(ready, filledChest = false) {
   submitButton.classList.toggle('ready', ready);
-  stepLabel.hidden = !ready;
-  stepLabel.textContent = ready ? (filledChest ? D.chestFull : D.done) : '';
+  stepLabel.textContent = ready ? (filledChest ? D.chestFull : D.done) : D.fresh;
   // Nothing left to hint at once every word is in place.
   hintButton.parentElement.hidden = ready;
 }
@@ -1424,12 +1493,6 @@ function renderBank(words) {
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
-  // Forward within the history is just a step; past its end is a fetch.
-  if (cursor < history.length - 1) {
-    showAt(cursor + 1);
-    return;
-  }
-
   const attempt = ++pending;
   const asked = learning;
   submitButton.disabled = true;
@@ -1546,6 +1609,7 @@ levelButton.addEventListener('click', () => {
   cursor = -1;
   current = { chunks: [] };
   prefetched = null;
+  renderLog();
   form.requestSubmit();
 });
 
@@ -1614,8 +1678,6 @@ function applyDirection() {
   speakButton.setAttribute('aria-label', D.speak);
   hintButton.replaceChildren(`${D.hint} `, Object.assign(kbd('.'), { className: 'key' }));
   renderSpecialKeys();
-  backButton.title = D.prev;
-  backButton.setAttribute('aria-label', D.prev);
   document.querySelector('.steps').setAttribute('aria-label', D.browse);
   document.querySelector('#bank .sr-only').textContent = D.bank;
 }

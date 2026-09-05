@@ -137,13 +137,8 @@
       </article>
 
       <div class="steps" role="group" aria-label="Bla i setninger">
-        <button type="button" id="back" class="step ghost" aria-label="Forrige setning" title="Forrige setning" disabled>
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-            <path d="M16 4.5v15l-12-7.5z" fill="currentColor" />
-          </svg>
-        </button>
-        <button id="submit" type="submit" form="form" class="step" aria-label="Neste setning" title="Neste setning">
-          <span class="step-label" id="step-label" hidden></span>
+        <button id="submit" type="submit" form="form" class="step" aria-label="Ny setning" title="Ny setning">
+          <span class="step-label" id="step-label">Ny setning</span>
           <svg class="play-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
             <path d="M8 4.5v15l12-7.5z" fill="currentColor" />
           </svg>
@@ -151,6 +146,14 @@
         </button>
         <span class="streak" id="streak" hidden></span>
       </div>
+
+      <!-- The sentences seen so far, newest first. A row reopens its sentence
+           in the card above, to be done again. -->
+      <section id="log" hidden>
+        <h2 id="log-title">Tidligere setninger</h2>
+        <ol class="log-list" id="log-list"></ol>
+        <button type="button" id="log-more" class="ghost log-more" aria-expanded="false" aria-controls="log-list" hidden>Vis alle</button>
+      </section>
 
       <section id="bank">
         <header>
