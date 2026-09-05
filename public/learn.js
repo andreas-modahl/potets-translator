@@ -623,11 +623,11 @@ function piecesOf(chunk) {
 }
 
 /* Word classes ------------------------------------------------------
-   Off by default; on, every blank says what kind of word it wants,
-   in the caption row above it, before the painted pieces. */
+   On by default: every blank says what kind of word it wants, in the
+   caption row above it, before the painted pieces. Off stays off. */
 
 const CLASSES_KEY = 'potets.ordklasser';
-let showClasses = recall(CLASSES_KEY) === 'on';
+let showClasses = recall(CLASSES_KEY) !== 'off';
 
 function renderClassesToggle() {
   classesButton.setAttribute('aria-checked', String(showClasses));
