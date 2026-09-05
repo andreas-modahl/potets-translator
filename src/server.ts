@@ -57,6 +57,8 @@ const ASSETS = new Map<string, Asset>(
       ['/translate', 'index.html', HTML],
       ['/index.html', 'index.html', HTML],
       ['/app.css', 'app.css', 'text/css; charset=utf-8'],
+      ['/learn.css', 'learn.css', 'text/css; charset=utf-8'],
+      ['/learn.js', 'learn.js', 'text/javascript; charset=utf-8'],
     ] satisfies Array<[string, string, string]>
   ).map(([path, file, type]) => [
     path,

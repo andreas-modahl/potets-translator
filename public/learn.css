@@ -1,0 +1,1047 @@
+/* Back and forward through the sentences seen so far. Forward past the
+   end of the list asks for a new one. */
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+/* The small Norwegian word is a fiddly target on a touch screen, so a
+   proper button gives the same one-letter hint for the word in focus.
+   On a keyboard it doubles as the place the shortcut is written down. */
+.hint-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.hint-row button {
+  padding: 0.5rem 1rem;
+}
+/* The letters the language has and a foreign keyboard may not: one
+   key each, typed into the blank in focus. */
+.special-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-left: 0.5rem;
+}
+.hint-row .special {
+  min-width: 2.4rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+.hint-row .key {
+  margin-left: 0.35rem;
+  padding: 0 0.45rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: var(--mark);
+  border: 1.5px solid var(--line);
+  border-radius: var(--wobble-small);
+}
+@media (hover: none), (pointer: coarse) {
+  .hint-row .key {
+    display: none;
+  }
+}
+@media (hover: none), (pointer: coarse) {
+  .hint-row #hint {
+    flex: 1 1 auto;
+    padding: 0.7rem 1rem;
+  }
+  .special-keys {
+    width: 100%;
+    margin-left: 0;
+  }
+  .hint-row .special {
+    flex: 1 1 0;
+    padding: 0.6rem 0.4rem;
+  }
+}
+
+/* The top bar: the name on the left; the direction and the menu on
+   the right. */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+/* Which way round the lesson goes: the two balls with the swap between. */
+.direction {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.15rem;
+  margin-right: 0.5rem;
+}
+.topbar .wordmark {
+  margin-right: auto;
+  font-family: var(--hand);
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  line-height: 1;
+}
+/* The git hash, small and faint after the name, so a tester can see
+   which build they are on. */
+/* The build hash sits under the wordmark rather than beside it, so the
+   name keeps its room on a narrow screen. */
+.wordmark .build {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1;
+  color: var(--muted);
+}
+.wordmark .build:empty {
+  display: none;
+}
+.direction-label {
+  font-family: var(--hand);
+  font-size: 1.05rem;
+}
+/* The menu: a round button that is a burger, or the learner's picture
+   once signed in, and a small painted panel under it. */
+.menu-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+.menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.menu img {
+  display: none;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.menu.signed-in img {
+  display: block;
+}
+.menu.signed-in .burger {
+  display: none;
+}
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 5;
+  display: grid;
+  min-width: 11rem;
+  padding: 0.35rem;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: var(--wobble-small);
+  box-shadow: 3px 3px 0 var(--shadow);
+}
+.menu-panel[hidden] {
+  display: none;
+}
+.menu-panel button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  font-size: 1rem;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--ink);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.menu-panel button[hidden] {
+  display: none;
+}
+.menu-panel button:hover {
+  background: var(--sunk);
+  transform: none;
+  box-shadow: none;
+}
+.menu-panel button:active {
+  transform: none;
+  box-shadow: none;
+}
+.menu-panel .icon {
+  width: 1.2rem;
+  text-align: center;
+  color: var(--muted);
+}
+.menu-panel .who {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.flag {
+  display: inline-flex;
+  line-height: 0;
+}
+.flag svg {
+  width: 2.1rem;
+  height: 2.1rem;
+  overflow: visible;
+  transition: transform 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+/* The ball you are learning from leans in when the direction is swapped. */
+.direction:hover #flag-to svg {
+  transform: rotate(8deg);
+}
+.direction-label {
+  margin-left: 0.35rem;
+  color: var(--muted);
+}
+@media (max-width: 40rem) {
+  .direction-label {
+    display: none;
+  }
+}
+.flip {
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  border-color: transparent;
+}
+.flip {
+  box-shadow: none;
+  background: transparent;
+}
+.flip:hover {
+  box-shadow: none;
+  background: var(--sunk);
+}
+
+/* Two painted tags side by side: the level, which cycles on click,
+   and the topic, which is written on. Settings, not the work, so
+   they are small; the card below is what fills the page. */
+.topic-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.topic-wrap input {
+  flex: 0 1 auto;
+  width: 7.4rem;
+  min-width: 0;
+  height: 2.1rem;
+  padding: 0 0.6rem;
+  font-family: var(--hand);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  background: var(--mark);
+  border: 2px solid var(--line);
+  border-radius: var(--wobble-small);
+  box-shadow: 2px 2px 0 var(--shadow);
+  transform: rotate(1deg);
+}
+.topic-wrap input:focus {
+  transform: rotate(0deg);
+}
+.topic-wrap input::placeholder {
+  font-weight: 400;
+  color: var(--muted);
+}
+/* The level: a painted tag, slightly askew. */
+.level {
+  flex: 0 0 auto;
+  transform: rotate(-1.5deg);
+  width: 7.4rem;
+  height: 2.1rem;
+  padding: 0 0.6rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  background: var(--mark);
+  box-shadow: 2px 2px 0 var(--shadow);
+}
+.level:hover {
+  transform: rotate(0deg);
+  box-shadow: 2px 2px 0 var(--shadow);
+}
+.level:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--shadow);
+}
+.level {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* A menu entry that is a checkbox: a small box in the icon slot that ticks. */
+.menu-panel .box {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  vertical-align: -0.1rem;
+  border: 2px solid var(--line);
+  border-radius: 3px;
+  background: var(--panel);
+}
+.menu-panel [aria-checked='true'] .box {
+  background: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--panel);
+}
+/* The word class, in the caption row above the blank, in outline. */
+.chunk .parts .pos {
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--faint);
+  border-radius: 4px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+/* The word itself stays hidden in the detail panel until it has been
+   typed right or asked for; its parts are still described. */
+.hidden-word {
+  color: var(--faint);
+  letter-spacing: 0.15em;
+}
+.step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 2.9rem;
+  height: 2.9rem;
+  padding: 0;
+}
+/* Once the sentence is done, the next button grows a word of praise and
+   takes the focus, so Enter moves on. */
+.step.ready {
+  padding: 0 0.6rem 0 1rem;
+  animation: nudge 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.step-label {
+  white-space: nowrap;
+}
+@keyframes nudge {
+  40% {
+    transform: translate(-1px, -1px) scale(1.06);
+  }
+}
+/* While a sentence is being made, the play icon gives way to a ring. */
+.spinner {
+  display: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.step.busy .play-icon {
+  display: none;
+}
+.step.busy .spinner {
+  display: block;
+}
+.step.busy:disabled {
+  opacity: 1;
+}
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+/* The comparator ----------------------------------------------------
+   Turkish across the top, each word standing over the Norwegian it
+   carries. The Norwegian reads in Turkish order, so it comes out
+   scrambled — that mismatch is exactly what there is to learn, and the
+   natural Norwegian sentence sits underneath to put it back together. */
+.comparator {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 0.6rem;
+  padding: 0.5rem 0;
+}
+.chunk {
+  display: grid;
+  gap: 0.15rem;
+  justify-items: start;
+  padding: 0.4rem 0.5rem;
+  border: 2px solid transparent;
+  border-radius: var(--wobble-small);
+}
+.chunk.open {
+  background: var(--accent-soft);
+  border-color: var(--line);
+  box-shadow: 2px 2px 0 var(--shadow);
+}
+/* The blank to type into: a brush stroke underneath rather than a box,
+   so the row still reads as a sentence and not as a form. */
+.chunk .tr {
+  display: block;
+  padding: 0 0.1rem 0.1rem;
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  white-space: pre; /* so a space given as a hint stays visible */
+  border-bottom: 3px solid var(--faint);
+  border-radius: 0 0 40% 60% / 0 0 6px 4px;
+  outline: none;
+}
+.chunk .tr:focus {
+  border-bottom-color: var(--teal);
+}
+/* While typing, the line says how it is going: green as long as what
+   is there is a right start of the word, red once it is not. */
+.chunk.filled .tr {
+  border-bottom-color: var(--bad);
+}
+.chunk.filled.ontrack .tr {
+  border-bottom-color: var(--good);
+}
+.chunk.filled.ontrack.correct .tr {
+  border-bottom-color: var(--accent);
+}
+.chunk.correct .tr {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+}
+/* A solved word is painted piece by piece: the root and each suffix
+   in its own tint, and the same tints above the blank carry what each
+   piece means. The row above is always there, so nothing shifts. */
+.chunk .parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.2rem;
+  min-height: 1.05rem;
+  max-width: 14rem;
+  font-size: 0.7rem;
+  line-height: 1.25;
+  color: var(--ink);
+}
+.chunk .parts .m {
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.chunk .tr .m {
+  padding: 0 0.02em;
+  border-radius: 3px;
+}
+.m[data-m='0'],
+.morpheme[data-m='0'] {
+  background: var(--m0);
+}
+.m[data-m='1'],
+.morpheme[data-m='1'] {
+  background: var(--m1);
+}
+.m[data-m='2'],
+.morpheme[data-m='2'] {
+  background: var(--m2);
+}
+.m[data-m='3'],
+.morpheme[data-m='3'] {
+  background: var(--m3);
+}
+/* Under the blank: the native word, and for the blank in focus a tiny
+   speaker ball that reads the target word. */
+.chunk .under {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.chunk .say {
+  display: inline-flex;
+  /* Present in every chunk, so nothing shifts when it shows. */
+  visibility: hidden;
+  align-items: center;
+  gap: 0.05rem;
+  padding: 0.1rem 0.15rem;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: none;
+  line-height: 0;
+}
+.chunk.open .say {
+  visibility: visible;
+}
+.chunk .say svg:first-child {
+  width: 1.15rem;
+  height: 1.15rem;
+  overflow: visible;
+}
+.chunk .say .waves {
+  width: 0.5rem;
+  height: 0.7rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.chunk .say:hover,
+.chunk .say:active {
+  color: var(--ink);
+  background: var(--sunk);
+  transform: none;
+  box-shadow: none;
+}
+.chunk .no {
+  padding: 0;
+  font: inherit;
+  font-family: var(--hand);
+  font-size: 0.95rem;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+.chunk .no:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  transform: none;
+  box-shadow: none;
+}
+.chunk .no:active {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Placeholders ------------------------------------------------------
+   While a sentence is on its way, the row and the card are drawn at
+   the size they will be, with shimmering bars where the words go, so
+   nothing jumps when the real thing lands. */
+.bone {
+  display: inline-block;
+  height: 0.9em;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--sunk) 25%, var(--line) 50%, var(--sunk) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+.chunk.bone-chunk .tr {
+  color: transparent;
+  border-bottom-color: var(--line);
+}
+.chunk.bone-chunk .no {
+  cursor: default;
+}
+.chunk.bone-chunk .no .bone {
+  height: 0.75em;
+  vertical-align: middle;
+}
+.natural .bone {
+  height: 1em;
+  vertical-align: middle;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bone {
+    animation: none;
+  }
+}
+
+/* The natural Norwegian sentence stands on its own above the card, so
+   the card holds nothing but the Turkish and what it is made of. */
+.natural {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  margin: 2.25rem 0 1rem;
+}
+/* The speaker: the target ball with a couple of sound waves beside it. */
+.speak {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  height: 2.2rem;
+  padding: 0 0.35rem 0 0.1rem;
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  border-radius: 999px;
+  box-shadow: none;
+}
+.speak:hover,
+.speak:active {
+  box-shadow: none;
+  transform: none;
+}
+.speak .flag svg {
+  width: 1.7rem;
+  height: 1.7rem;
+  transition: transform 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.speak:hover {
+  background: var(--sunk);
+  color: var(--ink);
+}
+.speak:hover .flag svg {
+  transform: scale(1.1) rotate(-6deg);
+}
+/* In the hint row the ball is a button like the hint beside it: same
+   paper cut-out, same press. */
+.hint-row .speak {
+  height: auto;
+  gap: 0.25rem;
+  padding: 0.3rem 0.65rem 0.3rem 0.4rem;
+  color: var(--ink);
+  background: var(--panel);
+  border-color: var(--line);
+  border-radius: var(--wobble-small);
+  box-shadow: 3px 3px 0 var(--shadow);
+}
+.hint-row .speak:hover {
+  background: var(--sunk);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+.hint-row .speak:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--shadow);
+}
+.hint-row .speak .key {
+  margin-left: 0.2rem;
+}
+/* Muted, the speakers fade: still there, saying nothing. */
+body.muted .hint-row .speak,
+body.muted .chunk .say {
+  opacity: 0.4;
+}
+/* The sentence to translate: the one thing on the page to read, so
+   it is set bold. */
+.natural p {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+/* Sentences finished in a row without a hint, beside the next button. */
+.streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.7rem;
+  font-family: var(--hand);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--mark);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 var(--shadow);
+  transform: rotate(2deg);
+  white-space: nowrap;
+}
+.streak[hidden] {
+  display: none;
+}
+.streak.bump {
+  animation: nudge 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+/* Once the whole sentence is in, every word that has something inside
+   it is opened up underneath: root plus suffixes, and the grammar note. */
+#explanations {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 2px dashed var(--faint);
+}
+#explanations[hidden] {
+  display: none;
+}
+.explanation .detail-head {
+  gap: 0.2rem 0.6rem;
+}
+.explanation .detail-head .tr {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.explanation .morphemes {
+  margin-top: 0.5rem;
+}
+.explanation .note {
+  margin-top: 0.6rem;
+  font-size: 0.95rem;
+}
+
+/* The detail panel for whichever word is selected ------------------- */
+/* Hidden for now: the breakdown is still rendered, so bringing it back
+   is a matter of dropping this rule. */
+#detail {
+  display: none;
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--line);
+}
+.detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.75rem;
+  align-items: baseline;
+}
+.detail-head .tr {
+  font-size: 1.3rem;
+}
+.detail-head .no {
+  color: var(--muted);
+}
+
+/* The word taken apart: root, then each suffix, with what it does. */
+.morphemes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.35rem 0.2rem;
+  margin-top: 0.9rem;
+}
+.morpheme {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.35rem 0.6rem;
+  background: var(--sunk);
+  border: 2px solid var(--line);
+  border-radius: var(--wobble-small);
+  box-shadow: 2px 2px 0 var(--shadow);
+}
+.morpheme .form {
+  font-weight: 600;
+}
+.morpheme .means {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.joint {
+  padding-bottom: 0.4rem;
+  color: var(--faint);
+}
+
+.note {
+  margin: 0.9rem 0 0;
+  padding-left: 0.85rem;
+  border-left: 4px solid var(--ochre);
+  border-radius: 3px 0 0 3px;
+}
+
+.detail-actions {
+  margin: 1rem 0 0;
+}
+.hint-text {
+  font-size: 0.8rem;
+  color: var(--faint);
+}
+
+/* Word bank -------------------------------------------------------- */
+#bank {
+  margin-top: 3.5rem;
+}
+#bank header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+#bank h2 {
+  flex: 0 0 auto;
+}
+.group {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 0.35rem 0.6rem;
+  font-family: var(--hand);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+@media (max-width: 40rem) {
+  #bank header {
+    flex-wrap: wrap;
+  }
+  .group {
+    flex: 1 0 100%;
+  }
+}
+#bank h2 {
+  --chest-line: var(--line);
+  --chest-latch: var(--ochre);
+  display: inline-flex;
+  align-items: center;
+  margin: 0 auto 0 0;
+}
+.chest {
+  display: block;
+  filter: drop-shadow(3px 3px 0 var(--shadow));
+  transition: transform 0.2s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+/* An invisible button laid over the chest, so the drawing is the control. */
+.chest-toggle {
+  position: absolute;
+  inset: -0.25rem;
+  z-index: 1;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.chest-toggle:hover,
+.chest-toggle:active {
+  transform: none;
+  box-shadow: none;
+}
+.chest-wrap:hover .chest {
+  transform: translateY(-2px) rotate(-2deg);
+}
+.chest-wrap[data-open='true'] .chest {
+  transform: rotate(2deg);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+/* A star on the lid for every level gained. */
+.chest-stars {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  transform: translate(-50%, -50%);
+  font-size: 0.6rem;
+  letter-spacing: -0.1em;
+  white-space: nowrap;
+  color: var(--chest-latch, #e9c46a);
+  font-weight: 800;
+  pointer-events: none;
+}
+/* How full this chest is, painted on its front in the latch's gold. */
+.bank-count {
+  position: absolute;
+  left: 50%;
+  top: 70%;
+  transform: translate(-50%, -50%);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--chest-latch, #e9c46a);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+/* The words as badges: painted tags that wrap across the row, each
+   with the word, its gloss underneath, a tally, and a tiny remove. */
+.bank-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 0.6rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+/* What the chest is for, shown while it is still empty. */
+.bank-empty {
+  margin: 0.75rem 0 0;
+  font-family: var(--hand);
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.bank-list li {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  column-gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.35rem 1.7rem 0.4rem 0.75rem;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: var(--wobble-small);
+  box-shadow: 3px 3px 0 var(--shadow);
+  transform: rotate(var(--tilt, 0deg));
+  cursor: pointer;
+  user-select: none;
+}
+/* A badge is pressed like a button: it lifts, then sinks on the click. */
+.bank-list li:hover {
+  transform: rotate(var(--tilt, 0deg)) translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+.bank-list li:active {
+  transform: rotate(var(--tilt, 0deg)) translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--shadow);
+}
+.bank-list li:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* Every other badge leans a touch the other way, like stickers. */
+.bank-list li:nth-child(3n + 1) {
+  --tilt: -1deg;
+}
+.bank-list li:nth-child(3n) {
+  --tilt: 1deg;
+}
+.bank-list .tr {
+  grid-column: 1;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.bank-list .no {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  font-family: var(--hand);
+  font-size: 0.85rem;
+  line-height: 1.2;
+  color: var(--muted);
+}
+.bank-list .tally {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+.bank-list button {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.15rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  opacity: 0.5;
+}
+.bank-list li:hover button {
+  opacity: 1;
+}
+/* Rarity, by how many pieces the word is built from. */
+.bank-list li.sjelden {
+  background: color-mix(in srgb, var(--teal) 18%, var(--panel));
+}
+.bank-list li.episk {
+  background: color-mix(in srgb, #7c5cbf 22%, var(--panel));
+}
+.bank-list li.legendarisk {
+  background: color-mix(in srgb, var(--ochre) 45%, var(--panel));
+  box-shadow:
+    3px 3px 0 var(--shadow),
+    0 0 0 3px color-mix(in srgb, var(--ochre) 45%, transparent);
+}
+.bank-list li.legendarisk .tr {
+  color: var(--accent);
+}
+/* A badge that just rose a tier. */
+.bank-list li.upgraded {
+  animation: upgrade 0.9s cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+@keyframes upgrade {
+  35% {
+    transform: rotate(var(--tilt, 0deg)) scale(1.18);
+    box-shadow:
+      3px 3px 0 var(--shadow),
+      0 0 0 6px color-mix(in srgb, var(--ochre) 55%, transparent);
+  }
+}
+.bank-list button:hover,
+.bank-list button:active {
+  color: var(--bad);
+  background: var(--sunk);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Fireworks -------------------------------------------------------
+   A word earned outright sends a burst of emoji out of the chest, and
+   the chest gives a little hop. Each piece is scattered by custom
+   properties set when it is made, so the CSS stays one keyframe. */
+.chest-wrap {
+  position: relative;
+}
+.fireworks {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+}
+.fireworks span {
+  position: absolute;
+  font-size: var(--s);
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  animation: firework 1.3s cubic-bezier(0.1, 0.8, 0.3, 1) var(--d) both;
+}
+.fireworks span svg {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+.chest.hop {
+  animation: chest-hop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes firework {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.4) rotate(0);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1) rotate(var(--r));
+  }
+}
+@keyframes chest-hop {
+  30% {
+    transform: translateY(-8px) rotate(-6deg);
+  }
+  60% {
+    transform: translateY(0) rotate(3deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fireworks span,
+  .chest.hop {
+    animation: none;
+  }
+}

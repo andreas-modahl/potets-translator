@@ -312,7 +312,9 @@ If cost is the main constraint, set `CLAUDE_MODEL=claude-haiku-4-5-20251001`.
 | `src/index.ts` | Discord client setup and event wiring |
 | `src/server.ts` | The web app's HTTP server and JSON API |
 | `public/index.html` | The translator page |
-| `public/learn.html` | The Turkish lesson page and its comparator |
+| `public/learn.html` | The lesson page's markup |
+| `public/learn.css` | The lesson page's own styles |
+| `public/learn.js` | The lesson page: the comparator, the chest, speech, sync |
 | `public/app.css` | Colour tokens and chrome shared by both pages |
 | `src/claude.ts` | The shared Anthropic client |
 | `src/translate.ts` | The Claude call, prompt, and structured output |
