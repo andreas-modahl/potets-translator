@@ -929,7 +929,10 @@ body.muted .chunk .say {
   padding-right: 0.9rem;
   color: var(--ink);
 }
-.forms-table thead th .hint {
+.forms-table tbody th {
+  vertical-align: top;
+}
+.forms-table th .hint {
   display: block;
   font-size: 0.75rem;
   color: var(--faint);

@@ -1710,36 +1710,34 @@ function formsRowHead(label) {
   return head;
 }
 
-/** Groups that share their labels, in order, make one table: labels down, groups across. */
+/** Groups that share their labels, in order, make one table: labels across, groups down. */
 function formsMatrix(groups) {
   const table = document.createElement('table');
   table.className = 'forms-table';
   const thead = table.createTHead();
   const headRow = thead.insertRow();
   headRow.append(document.createElement('th'));
-  for (const group of groups) {
+  for (const entry of groups[0].forms) {
     const cell = document.createElement('th');
     cell.scope = 'col';
-    cell.textContent = group.name;
+    cell.textContent = entry.label;
+    headRow.append(cell);
+  }
+  const tbody = table.createTBody();
+  for (const group of groups) {
+    const row = tbody.insertRow();
+    const head = formsRowHead(group.name);
     // The ending under the name, unless the name already carries it.
     if (group.hint && !group.name.includes(group.hint)) {
       const hint = document.createElement('span');
       hint.className = 'hint';
       hint.lang = D.target;
       hint.textContent = group.hint;
-      cell.append(hint);
+      head.append(hint);
     }
-    headRow.append(cell);
+    row.append(head);
+    for (const entry of group.forms) row.insertCell().append(formButton(entry));
   }
-  const tbody = table.createTBody();
-  groups[0].forms.forEach((first, index) => {
-    const row = tbody.insertRow();
-    row.append(formsRowHead(first.label));
-    for (const group of groups) {
-      const cell = row.insertCell();
-      cell.append(formButton(group.forms[index]));
-    }
-  });
   return table;
 }
 
