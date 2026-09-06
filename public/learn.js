@@ -14,6 +14,7 @@ const formsPanel = document.querySelector('#forms');
 const formsTitle = document.querySelector('#forms-title');
 const formsBody = document.querySelector('#forms-body');
 const formsClose = document.querySelector('#forms-close');
+const formsFlip = document.querySelector('#forms-flip');
 const logList = document.querySelector('#log-list');
 const logMore = document.querySelector('#log-more');
 const statusLine = document.querySelector('#status');
@@ -205,6 +206,7 @@ const DIRECTIONS = {
     formsLoading: 'Henter bøyningen …',
     formsFailed: 'Fikk ikke tak i bøyningen. Prøv igjen.',
     formsNone: 'Dette ordet bøyes ikke.',
+    formsFlip: 'Bytt akser',
     close: 'Lukk',
   },
   nb: {
@@ -302,6 +304,7 @@ const DIRECTIONS = {
     formsLoading: 'Çekim getiriliyor …',
     formsFailed: 'Çekim alınamadı. Tekrar dene.',
     formsNone: 'Bu kelime çekimlenmez.',
+    formsFlip: 'Eksenleri değiştir',
     close: 'Kapat',
   },
 };
@@ -1630,10 +1633,17 @@ function renderBank(words) {
 const formsCache = new Map();
 /** The chest word whose forms are open, or '' while the panel is closed. */
 let formsFor = '';
+/** The table on screen, kept so a flip of the axes can draw it again. */
+let formsShown = null;
+/** Which way the matrix lies: groups down the side (the default) or across the top. */
+const FORMS_AXES = 'potets.forms.axes';
+let formsGroupsAcross = recall(FORMS_AXES) === 'across';
 
 function closeForms() {
   formsFor = '';
+  formsShown = null;
   formsPanel.hidden = true;
+  formsFlip.hidden = true;
   formsBody.replaceChildren();
 }
 
@@ -1652,6 +1662,8 @@ async function openForms(word, pos) {
   }
   formsFor = word;
   formsPanel.hidden = false;
+  formsShown = null;
+  formsFlip.hidden = true;
   formsTitle.textContent = `${D.forms}: ${word}`;
   formsBody.replaceChildren(formsNote(D.formsLoading));
   formsPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -1710,33 +1722,48 @@ function formsRowHead(label) {
   return head;
 }
 
-/** Groups that share their labels, in order, make one table: labels across, groups down. */
+/** A heading for a group: its name, with the ending under it unless the name carries it. */
+function formsGroupHead(group, scope) {
+  const head = document.createElement('th');
+  head.scope = scope;
+  head.textContent = group.name;
+  if (group.hint && !group.name.includes(group.hint)) {
+    const hint = document.createElement('span');
+    hint.className = 'hint';
+    hint.lang = D.target;
+    hint.textContent = group.hint;
+    head.append(hint);
+  }
+  return head;
+}
+
+/** Groups that share their labels, in order, make one table. Groups lie down
+    the side and labels across the top, or the other way round when flipped. */
 function formsMatrix(groups) {
   const table = document.createElement('table');
   table.className = 'forms-table';
-  const thead = table.createTHead();
-  const headRow = thead.insertRow();
+  const headRow = table.createTHead().insertRow();
   headRow.append(document.createElement('th'));
-  for (const entry of groups[0].forms) {
-    const cell = document.createElement('th');
-    cell.scope = 'col';
-    cell.textContent = entry.label;
-    headRow.append(cell);
-  }
   const tbody = table.createTBody();
-  for (const group of groups) {
-    const row = tbody.insertRow();
-    const head = formsRowHead(group.name);
-    // The ending under the name, unless the name already carries it.
-    if (group.hint && !group.name.includes(group.hint)) {
-      const hint = document.createElement('span');
-      hint.className = 'hint';
-      hint.lang = D.target;
-      hint.textContent = group.hint;
-      head.append(hint);
+  if (formsGroupsAcross) {
+    for (const group of groups) headRow.append(formsGroupHead(group, 'col'));
+    groups[0].forms.forEach((first, index) => {
+      const row = tbody.insertRow();
+      row.append(formsRowHead(first.label));
+      for (const group of groups) row.insertCell().append(formButton(group.forms[index]));
+    });
+  } else {
+    for (const entry of groups[0].forms) {
+      const cell = document.createElement('th');
+      cell.scope = 'col';
+      cell.textContent = entry.label;
+      headRow.append(cell);
     }
-    row.append(head);
-    for (const entry of group.forms) row.insertCell().append(formButton(entry));
+    for (const group of groups) {
+      const row = tbody.insertRow();
+      row.append(formsGroupHead(group, 'row'));
+      for (const entry of group.forms) row.insertCell().append(formButton(entry));
+    }
   }
   return table;
 }
@@ -1787,9 +1814,17 @@ function renderForms(table) {
   if (aligned) scroll.append(formsMatrix(groups));
   else scroll.append(...groups.map(formsList));
   formsBody.append(scroll);
+  formsShown = table;
+  // Only a matrix has axes to swap.
+  formsFlip.hidden = !aligned;
 }
 
 formsClose.addEventListener('click', closeForms);
+formsFlip.addEventListener('click', () => {
+  formsGroupsAcross = !formsGroupsAcross;
+  remember(FORMS_AXES, formsGroupsAcross ? 'across' : 'down');
+  if (formsShown) renderForms(formsShown);
+});
 
 /* Fetching --------------------------------------------------------- */
 
@@ -1995,6 +2030,8 @@ function applyDirection() {
   closeForms();
   formsClose.title = D.close;
   formsClose.setAttribute('aria-label', D.close);
+  formsFlip.title = D.formsFlip;
+  formsFlip.setAttribute('aria-label', D.formsFlip);
   loginLabel.textContent = D.login;
   renderAccount();
   menuButton.title = D.menu;

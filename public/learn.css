@@ -879,10 +879,18 @@ body.muted .chunk .say {
   margin: 0;
   font-size: 1.1rem;
 }
+.forms-tools {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
 .forms header .ghost {
   padding: 0.1rem 0.55rem;
   font-size: 1.1rem;
   line-height: 1;
+}
+.forms header .ghost[hidden] {
+  display: none;
 }
 .forms-head {
   display: flex;
