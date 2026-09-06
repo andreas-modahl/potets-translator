@@ -936,14 +936,29 @@ body.muted .chunk .say {
 .forms-table thead th {
   padding-right: 0.9rem;
   color: var(--ink);
+  vertical-align: top;
 }
 .forms-table tbody th {
   vertical-align: top;
 }
+/* The ending under a heading: set like the forms in the cells, so the
+   unseen pieces before it push it over the piece it names. */
 .forms-table th .hint {
   display: block;
-  font-size: 0.75rem;
+  padding: 0 0.15rem;
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 600;
   color: var(--faint);
+  white-space: nowrap;
+}
+.forms-table th .hint .m {
+  padding: 0 0.06em;
+  border-radius: 3px;
+  color: var(--muted);
+}
+.forms-table th .hint .ghost {
+  visibility: hidden;
 }
 .forms-table td {
   padding: 0.15rem 0.9rem 0.15rem 0;

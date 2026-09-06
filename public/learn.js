@@ -1715,26 +1715,75 @@ function formButton(entry) {
   return cell;
 }
 
-function formsRowHead(label) {
+/** An ending the way it is written on a heading, folded so that "-ecek" finds
+    "eceğ" and "-ir" finds "er": vowels alike, ğ as k, dashes and case gone. */
+function hintFold(text) {
+  return text
+    .toLocaleLowerCase('tr')
+    .replace(/^-+/, '')
+    .replace(/ğ/g, 'k')
+    .replace(/[aeıioöuüâîû]/g, '*');
+}
+
+/** Which piece of these forms the ending is: the index it sits at most often, or -1. */
+function hintIndex(hint, forms) {
+  const wanted = hintFold(hint);
+  const votes = new Map();
+  for (const form of forms) {
+    const index = (form.pieces ?? []).findIndex((piece) => hintFold(piece) === wanted);
+    if (index >= 0) votes.set(index, (votes.get(index) ?? 0) + 1);
+  }
+  let best = -1;
+  for (const [index, count] of votes) if (count > (votes.get(best) ?? 0)) best = index;
+  return best;
+}
+
+/** A heading with a name and, under it, the ending painted like the piece it
+    is in the cells. Above a column, the pieces before it are laid out unseen,
+    so the ending stands over the piece it names. */
+function formsHead({ name, hint, forms, scope }) {
   const head = document.createElement('th');
-  head.scope = 'row';
-  head.textContent = label;
+  head.scope = scope;
+  head.textContent = name;
+  if (!hint) return head;
+  const line = document.createElement('span');
+  line.className = 'hint';
+  line.lang = D.target;
+  const index = hintIndex(hint, forms);
+  if (index >= 0 && scope === 'col') {
+    const lead = forms[0]?.pieces ?? [];
+    for (const piece of lead.slice(0, index)) {
+      const ghost = document.createElement('span');
+      ghost.className = 'm ghost';
+      ghost.textContent = piece;
+      line.append(ghost);
+    }
+  }
+  const ending = document.createElement('span');
+  ending.textContent = hint;
+  if (index >= 0) {
+    ending.className = 'm';
+    ending.dataset.m = String(index % 4);
+  }
+  line.append(ending);
+  head.append(line);
   return head;
 }
 
-/** A heading for a group: its name, with the ending under it unless the name carries it. */
+/** A label such as "akkusativ (-i)" carries its ending in brackets; split it off. */
+function splitLabel(label) {
+  const match = /^(.*?)\s*\((-[^)]+)\)$/.exec(label);
+  return match ? { name: match[1], hint: match[2] } : { name: label, hint: '' };
+}
+
+function formsLabelHead(label, forms, scope) {
+  return formsHead({ ...splitLabel(label), forms, scope });
+}
+
 function formsGroupHead(group, scope) {
-  const head = document.createElement('th');
-  head.scope = scope;
-  head.textContent = group.name;
-  if (group.hint && !group.name.includes(group.hint)) {
-    const hint = document.createElement('span');
-    hint.className = 'hint';
-    hint.lang = D.target;
-    hint.textContent = group.hint;
-    head.append(hint);
-  }
-  return head;
+  // The ending under the name, unless the name already carries it.
+  const hint = group.hint && !group.name.includes(group.hint) ? group.hint : '';
+  return formsHead({ name: group.name, hint, forms: group.forms, scope });
 }
 
 /** Groups that share their labels, in order, make one table. Groups lie down
@@ -1745,20 +1794,17 @@ function formsMatrix(groups) {
   const headRow = table.createTHead().insertRow();
   headRow.append(document.createElement('th'));
   const tbody = table.createTBody();
+  // The forms that share a label, one from each group.
+  const across = (index) => groups.map((group) => group.forms[index]);
   if (formsGroupsAcross) {
     for (const group of groups) headRow.append(formsGroupHead(group, 'col'));
     groups[0].forms.forEach((first, index) => {
       const row = tbody.insertRow();
-      row.append(formsRowHead(first.label));
+      row.append(formsLabelHead(first.label, across(index), 'row'));
       for (const group of groups) row.insertCell().append(formButton(group.forms[index]));
     });
   } else {
-    for (const entry of groups[0].forms) {
-      const cell = document.createElement('th');
-      cell.scope = 'col';
-      cell.textContent = entry.label;
-      headRow.append(cell);
-    }
+    groups[0].forms.forEach((first, index) => headRow.append(formsLabelHead(first.label, across(index), 'col')));
     for (const group of groups) {
       const row = tbody.insertRow();
       row.append(formsGroupHead(group, 'row'));
@@ -1777,7 +1823,7 @@ function formsList(group) {
   const tbody = table.createTBody();
   for (const entry of group.forms) {
     const row = tbody.insertRow();
-    row.append(formsRowHead(entry.label));
+    row.append(formsLabelHead(entry.label, [entry], 'row'));
     row.insertCell().append(formButton(entry));
   }
   return table;

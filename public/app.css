@@ -44,6 +44,7 @@
   --wobble: 255px 14px 225px 16px / 16px 225px 14px 255px;
   --wobble-small: 120px 8px 110px 9px / 9px 110px 8px 120px;
   --hand: 'Kalam', 'Segoe Print', 'Comic Sans MS', cursive;
+  --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -125,7 +126,7 @@ body {
   padding: 1.5rem 1.25rem 4rem;
   background: var(--bg);
   color: var(--ink);
-  font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font: 16px/1.55 var(--sans);
 }
 
 /* Paper grain over everything, light enough to feel rather than see. */
