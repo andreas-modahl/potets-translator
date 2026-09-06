@@ -852,6 +852,17 @@ body.muted .chunk .say {
   display: none;
 }
 
+/* Credits ---------------------------------------------------------- */
+.credits {
+  margin-top: 4rem;
+  font-size: 0.8rem;
+  color: var(--faint);
+  text-align: center;
+}
+.credits a {
+  color: inherit;
+}
+
 /* Word bank -------------------------------------------------------- */
 #bank {
   margin-top: 3.5rem;

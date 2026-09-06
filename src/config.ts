@@ -85,7 +85,11 @@ export const config = {
   azureSpeechVoice: optional('AZURE_SPEECH_VOICE') ?? 'tr-TR-AhmetNeural',
   azureSpeechVoiceNb: optional('AZURE_SPEECH_VOICE_NB') ?? 'nb-NO-PernilleNeural',
   speechCacheDir: optional('SPEECH_CACHE_DIR') ?? 'data/speech',
-  /** Recraft, for a small cartoon per noun on the learn page. Optional. */
+  /**
+   * Recraft, drawing nouns that neither the emoji set nor the pictograms
+   * cover. Off unless RECRAFT_ENABLED is set, since each drawing costs money.
+   */
+  recraftEnabled: optional('RECRAFT_ENABLED') === 'true',
   recraftApiKey: optional('RECRAFT_API_KEY'),
   recraftModel: optional('RECRAFT_MODEL') ?? 'recraftv4_1_vector',
   /** A style made from reference images in Recraft, so every drawing matches. */

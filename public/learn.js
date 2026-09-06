@@ -9,6 +9,7 @@ const submitButton = document.querySelector('#submit');
 const stepLabel = document.querySelector('#step-label');
 const log = document.querySelector('#log');
 const logTitle = document.querySelector('#log-title');
+const credits = document.querySelector('#credits');
 const logList = document.querySelector('#log-list');
 const logMore = document.querySelector('#log-more');
 const statusLine = document.querySelector('#status');
@@ -193,6 +194,8 @@ const DIRECTIONS = {
       'Setningen kom, men oppdelingen stemte ikke med den, så den er utelatt. Prøv en gang til.',
     failed: 'Noe gikk galt.',
     offline: 'Fikk ikke kontakt med serveren.',
+    credits: 'Bilder: Fluent Emoji (Microsoft) og piktogrammer fra ',
+    creditsTail: ' (Sergio Palao, Aragóns regjering, CC BY-NC-SA).',
   },
   nb: {
     target: 'nb',
@@ -282,6 +285,8 @@ const DIRECTIONS = {
       'Cümle geldi ama parçalara ayırma cümleyle uyuşmadı, o yüzden gösterilmedi. Bir daha dene.',
     failed: 'Bir şeyler ters gitti.',
     offline: 'Sunucuya ulaşılamadı.',
+    credits: 'Görseller: Fluent Emoji (Microsoft) ve ',
+    creditsTail: ' piktogramları (Sergio Palao, Aragon Hükümeti, CC BY-NC-SA).',
   },
 };
 
@@ -439,6 +444,16 @@ function scoreMark(entry) {
     mark.append(dot);
   }
   return mark;
+}
+
+/** Who the pictures are by. The pictogram licence asks for this on every page that shows them. */
+function renderCredits() {
+  const link = document.createElement('a');
+  link.href = 'https://arasaac.org';
+  link.rel = 'noopener';
+  link.target = '_blank';
+  link.textContent = 'ARASAAC';
+  credits.replaceChildren(D.credits, link, D.creditsTail);
 }
 
 function renderLog() {
@@ -1026,10 +1041,11 @@ function masked(word) {
 /** The word opened up: its two sides, its pieces, and its note. The
     pieces can be left out where the blank itself already shows them. */
 /* Pictures ------------------------------------------------------------------
-   A noun earns a small cartoon, drawn by the server on first sight. Only a
-   solved word shows it: for an open blank it would give the answer away. */
+   A noun earns a small picture: the emoji the lesson named for it, or failing
+   that a pictogram the server looks up by the word. Only a solved word shows
+   it: for an open blank it would give the answer away. */
 
-/** The fingerprint of the drawing settings, or '' while the server has none. */
+/** The fingerprint of the picture sources, or '' while the server has none. */
 let pictureVersion = '';
 
 /** The word a noun is drawn as: its root, so "köpeğim" and "köpekler" share one dog. */
@@ -1039,21 +1055,20 @@ function pictureWord(chunk) {
   return root.replace(/[^\p{L}\p{M}'’-]/gu, '').toLocaleLowerCase(D.target);
 }
 
-/** What to draw, in words the picture model knows: the English the lesson
-    gives for a noun, or failing that what the root means in the other language. */
-function pictureHint(chunk) {
-  return (chunk?.english ?? chunk?.morphemes?.[0]?.means ?? chunk?.native ?? '').trim();
+/** The emoji the lesson gave for a noun, if it gave one. */
+function pictureEmoji(chunk) {
+  return chunk?.pos === 'noun' && typeof chunk.emoji === 'string' ? chunk.emoji : '';
 }
 
-/** The picture for a word, or nothing while pictures are off; a failed drawing takes itself away. */
-function pictureNode(word, hint = '') {
+/** The picture for a word, or nothing while pictures are off; a word without one takes the image away. */
+function pictureNode(word, emoji = '') {
   if (!pictureVersion || !word) return null;
   const image = document.createElement('img');
   image.className = 'pic';
   image.alt = '';
   image.loading = 'lazy';
   image.decoding = 'async';
-  const query = new URLSearchParams({ v: pictureVersion, word, ...(hint ? { hint } : {}) });
+  const query = new URLSearchParams({ v: pictureVersion, word, lang: D.target, ...(emoji ? { emoji } : {}) });
   image.src = `/api/picture?${query}`;
   image.addEventListener('error', () => {
     image.closest('.pictured')?.classList.remove('pictured');
@@ -1067,7 +1082,7 @@ function wordBlock(chunk, solved, { pieces = true } = {}) {
 
   const head = document.createElement('div');
   head.className = 'detail-head';
-  const picture = solved ? pictureNode(pictureWord(chunk), pictureHint(chunk)) : null;
+  const picture = solved ? pictureNode(pictureWord(chunk), pictureEmoji(chunk)) : null;
   if (picture) {
     head.classList.add('pictured');
     head.append(picture);
@@ -1171,7 +1186,8 @@ function bankEarned(chunk) {
       at: Date.now(),
       ...(chunk.note ? { note: chunk.note } : {}),
       ...(chunk.pos ? { pos: chunk.pos } : {}),
-      ...(pictureWord(chunk) ? { pic: pictureWord(chunk), hint: pictureHint(chunk) } : {}),
+      ...(pictureWord(chunk) ? { pic: pictureWord(chunk) } : {}),
+      ...(pictureEmoji(chunk) ? { emoji: pictureEmoji(chunk) } : {}),
     },
   ]);
   // A chest filled to 25 gets a bigger show, and a star on the lid.
@@ -1531,7 +1547,7 @@ function renderBank(words) {
       item.addEventListener('animationend', () => item.classList.remove('upgraded'));
     }
 
-    const picture = pictureNode(word.pic, word.hint ?? word.native);
+    const picture = pictureNode(word.pic, word.emoji ?? '');
     if (picture) {
       item.classList.add('pictured');
       item.append(picture);
@@ -1783,6 +1799,7 @@ function applyDirection() {
   flipButton.title = D.flip;
   renderTheme();
   renderMute();
+  renderCredits();
   loginLabel.textContent = D.login;
   renderAccount();
   menuButton.title = D.menu;

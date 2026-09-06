@@ -55,10 +55,12 @@ export interface LessonChunk {
   /** The word class of the piece's main word. */
   pos?: WordClass;
   /**
-   * For a noun, its dictionary form in English: what the drawing of it is
-   * asked for as, since the picture model knows English best.
+   * For a noun, its dictionary form in English: what a drawing of it is asked
+   * for as, since a picture model knows English best.
    */
   english?: string;
+  /** For a noun, the emoji that shows it, when one does: the page draws that instead of looking a picture up. */
+  emoji?: string;
   /**
    * A grammar note in the learner's language, present only when the piece has
    * something to teach: a case ending, a tense, a word order that surprises.
@@ -183,6 +185,9 @@ For each piece:
   the word.
 - "english" is given for nouns only: the noun's dictionary form in English, one
   or two words, as in "dog" or "school bag". Leave it out for every other class.
+- "emoji" is given for nouns only, and only when a single standard emoji shows
+  the thing itself plainly: 🐕 for a dog, 🚗 for a car, 🍞 for bread, 🧑‍🏫 for
+  a teacher. Leave it out when no emoji fits, rather than pick a loose one.
 - "note" is one sentence of ${d.native} explaining the grammar, and only when
   there is something real to say: ${d.notes}. Leave it out entirely for a plain
   word. A note that only repeats the translation is worse than no note.
@@ -261,6 +266,11 @@ function lessonSchema(d: Direction): Record<string, unknown> {
               type: 'string',
               description:
                 'Nouns only: the dictionary form of the noun in English, one or two words. Omit for other classes.',
+            },
+            emoji: {
+              type: 'string',
+              description:
+                'Nouns only: one standard emoji that plainly shows the thing. Omit when none fits.',
             },
             note: {
               type: 'string',
@@ -460,6 +470,7 @@ interface RawChunk {
   native: string;
   pos?: WordClass;
   english?: string;
+  emoji?: string;
   note?: string;
   morphemes?: unknown;
 }
@@ -475,6 +486,21 @@ function englishNoun(value: unknown, pos: WordClass | undefined): string | undef
   return /^[a-z][a-z' -]{0,39}$/.test(word) ? word : undefined;
 }
 
+/**
+ * One emoji, as a noun's picture: a pictographic character, maybe with a
+ * presentation selector, a skin tone or a few more joined on. Anything else,
+ * such as a word or two emoji in a row, is dropped.
+ */
+export function nounEmoji(value: unknown, pos: WordClass | undefined): string | undefined {
+  if (pos !== 'noun' || typeof value !== 'string') return undefined;
+  const emoji = value.trim();
+  return /^\p{Extended_Pictographic}[️\p{Emoji_Modifier}]*(‍\p{Extended_Pictographic}[️\p{Emoji_Modifier}]*){0,3}$/u.test(
+    emoji,
+  )
+    ? emoji
+    : undefined;
+}
+
 /** Keeps the breakdown entries that have both sides filled in. */
 function parseRawChunks(value: unknown): RawChunk[] {
   if (!Array.isArray(value)) return [];
@@ -482,16 +508,18 @@ function parseRawChunks(value: unknown): RawChunk[] {
   const chunks: RawChunk[] = [];
   for (const entry of value) {
     if (!entry || typeof entry !== 'object') continue;
-    const { target, native, pos, english, note, morphemes } = entry as Record<string, unknown>;
+    const { target, native, pos, english, emoji, note, morphemes } = entry as Record<string, unknown>;
     if (typeof target !== 'string' || typeof native !== 'string') continue;
     if (!target.trim() || !native.trim()) continue;
     const kind = wordClass(pos);
     const gloss = englishNoun(english, kind);
+    const icon = nounEmoji(emoji, kind);
     chunks.push({
       target: target.trim(),
       native: native.trim(),
       ...(kind ? { pos: kind } : {}),
       ...(gloss ? { english: gloss } : {}),
+      ...(icon ? { emoji: icon } : {}),
       ...(typeof note === 'string' && note.trim() ? { note: note.trim() } : {}),
       morphemes,
     });
@@ -534,6 +562,7 @@ function alignChunks(chunks: RawChunk[], sentence: string): LessonChunk[] {
       native: chunk.native,
       ...(chunk.pos ? { pos: chunk.pos } : {}),
       ...(chunk.english ? { english: chunk.english } : {}),
+      ...(chunk.emoji ? { emoji: chunk.emoji } : {}),
       ...(chunk.note ? { note: chunk.note } : {}),
       ...(morphemes ? { morphemes } : {}),
     };

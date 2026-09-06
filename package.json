@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
+    "@iconify-json/fluent-emoji-flat": "^1.2.6",
+    "@iconify/utils": "^3.1.6",
     "discord.js": "^14.27.0",
     "dotenv": "^17.4.2"
   },

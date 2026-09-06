@@ -364,20 +364,25 @@ async function handleSpeak(url: URL, response: ServerResponse): Promise<void> {
 }
 
 /**
- * A cartoon for a noun. Drawn on first sight and kept, so the browser can cache
- * it for good. An SVG is served with a policy that lets it run nothing, since
- * it was drawn by a third party.
+ * A picture for a noun: an emoji, a pictogram or a drawing. Kept once found,
+ * so the browser can cache it for good. An SVG is served with a policy that
+ * lets it run nothing, since some of them come from third parties.
  */
 async function handlePicture(url: URL, response: ServerResponse): Promise<void> {
-  if (!picturesConfigured) {
-    send(response, 503, { error: 'Pictures are not configured on this server.' });
-    return;
-  }
+  const lang = url.searchParams.get('lang');
   let drawn;
   try {
-    drawn = await picture(url.searchParams.get('word') ?? '', url.searchParams.get('hint') ?? '');
+    drawn = await picture({
+      word: url.searchParams.get('word') ?? '',
+      lang: lang === 'nb' ? 'nb' : 'tr',
+      emoji: url.searchParams.get('emoji') ?? undefined,
+      hint: url.searchParams.get('hint') ?? undefined,
+    });
   } catch (error) {
-    if (error instanceof PictureUnavailable) throw new BadRequest(error.message);
+    if (error instanceof PictureUnavailable) {
+      send(response, 404, { error: error.message });
+      return;
+    }
     throw error;
   }
   response.writeHead(200, {

@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { spellsWord } from './lesson.js';
+import { nounEmoji, spellsWord } from './lesson.js';
+
+test('a noun keeps one emoji, with its selectors and joins; anything else is dropped', () => {
+  assert.equal(nounEmoji('🐕', 'noun'), '🐕');
+  assert.equal(nounEmoji(' ☕️ ', 'noun'), '☕️');
+  assert.equal(nounEmoji('🧑‍🏫', 'noun'), '🧑‍🏫');
+  assert.equal(nounEmoji('👍🏽', 'noun'), '👍🏽');
+  assert.equal(nounEmoji('🐕🐕', 'noun'), undefined);
+  assert.equal(nounEmoji('dog', 'noun'), undefined);
+  assert.equal(nounEmoji('', 'noun'), undefined);
+  assert.equal(nounEmoji('🐕', 'verb'), undefined);
+  assert.equal(nounEmoji(5, 'noun'), undefined);
+});
 
 test('accepts a split that spells the word', () => {
   assert.equal(spellsWord(['oku', 'yor', 'um'], 'okuyorum'), true);
