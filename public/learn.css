@@ -437,7 +437,9 @@
 .chunk .parts .m {
   padding: 0.05rem 0.35rem;
   border-radius: 4px;
-  white-space: nowrap;
+  /* A long meaning wraps inside its tint rather than widening the column. */
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 .chunk .tr .m {
   padding: 0 0.02em;
@@ -465,6 +467,9 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  /* The translation wraps at about the width of a long word, so one wordy
+     gloss does not stretch its column across the card. */
+  max-width: 14rem;
 }
 .chunk .say {
   display: inline-flex;
@@ -514,6 +519,9 @@
   border-radius: 0;
   box-shadow: none;
   cursor: pointer;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.25;
 }
 .chunk .no:hover {
   color: var(--ink);
