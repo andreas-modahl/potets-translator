@@ -30,7 +30,7 @@ import {
 } from './session.js';
 import { UserStore, type User } from './users.js';
 import { picture, pictureFingerprint, picturesConfigured, PictureUnavailable } from './pictures.js';
-import { speak, speechConfigured, speechFingerprint, SpeechUnavailable } from './speech.js';
+import { speak, speechConfigured, speechFingerprint, SpeechUnavailable, voiceChoices } from './speech.js';
 import { translate } from './translate.js';
 
 interface Asset {
@@ -377,9 +377,10 @@ async function handleSpeak(url: URL, response: ServerResponse): Promise<void> {
   }
   const text = url.searchParams.get('text') ?? '';
   const lang = url.searchParams.get('lang') === 'nb' ? 'nb' : 'tr';
+  const voice = url.searchParams.get('voice') ?? '';
   let audio: Buffer;
   try {
-    audio = await speak(text, lang);
+    audio = await speak(text, lang, voice);
   } catch (error) {
     if (error instanceof SpeechUnavailable) throw new BadRequest(error.message);
     throw error;
@@ -619,6 +620,7 @@ const server = createServer((request, response) => {
         send(response, 200, {
           version: VERSION,
           speech: speechFingerprint,
+          voices: speechConfigured ? { tr: voiceChoices('tr'), nb: voiceChoices('nb') } : null,
           pictures: picturesConfigured ? pictureFingerprint : null,
         });
         return;

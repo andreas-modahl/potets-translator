@@ -3,6 +3,7 @@ const levelButton = document.querySelector('#level');
 const levelName = document.querySelector('#level-name');
 const bankEmpty = document.querySelector('#bank-empty');
 const topicField = document.querySelector('#topic');
+const topicIdeas = document.querySelector('#topic-ideas');
 const classesButton = document.querySelector('#classes');
 const classesName = document.querySelector('#classes-name');
 const submitButton = document.querySelector('#submit');
@@ -33,7 +34,7 @@ const bank = document.querySelector('#bank');
 const bankList = document.querySelector('#bank-list');
 const bankCount = document.querySelector('#bank-count');
 const chestStars = document.querySelector('#chest-stars');
-const groupSelect = document.querySelector('#group');
+const chestRow = document.querySelector('#group');
 const chestToggle = document.querySelector('#chest-toggle');
 const chestWrap = document.querySelector('.chest-wrap');
 /** Which chest is listed; -1 means the one being filled. */
@@ -162,6 +163,21 @@ const DIRECTIONS = {
     themeLight: 'Lys modus',
     soundOff: 'Lyd av',
     soundOn: 'Lyd på',
+    voice: 'Stemme',
+    topics: [
+      'på kafé',
+      'familie',
+      'å reise',
+      'på markedet',
+      'været',
+      'presens -iyor',
+      'preteritum -di',
+      'futurum -ecek',
+      'dativ -e/-a',
+      'lokativ -de',
+      'eiendomssuffiks',
+      'flertall -ler',
+    ],
     speak: 'Les opp setningen',
     keyHelp: ['leser ordet du står i', 'hele setningen'],
     hint: 'Hint',
@@ -260,6 +276,20 @@ const DIRECTIONS = {
     themeLight: 'Açık tema',
     soundOff: 'Sesi kapat',
     soundOn: 'Sesi aç',
+    voice: 'Ses',
+    topics: [
+      'kafede',
+      'aile',
+      'seyahat',
+      'pazarda',
+      'hava durumu',
+      'belirli tanımlık -en/-et',
+      'geçmiş zaman -te',
+      'perfektum har + -t',
+      'ikinci sırada fiil',
+      'çoğul -er/-ene',
+      'edatlar (preposisjoner)',
+    ],
     speak: 'Cümleyi seslendir',
     keyHelp: ['bulunduğun kelimeyi okur', 'tüm cümleyi'],
     hint: 'İpucu',
@@ -512,6 +542,8 @@ function renderLog() {
   logMore.hidden = rows.length <= LOG_PEEK;
   logMore.textContent = logOpen ? D.logFewer : D.logAll;
   logMore.setAttribute('aria-expanded', String(logOpen));
+  // The topic field offers the grammar points of these same sentences.
+  renderTopicIdeas();
 }
 
 logMore.addEventListener('click', () => {
@@ -686,6 +718,27 @@ function straighten(field, answer) {
   placeCaretAtEnd(field);
 }
 
+/**
+ * A stroke under each typed letter: green where it is the letter the word
+ * has in that place, red where it is not. Letter by letter against the
+ * answer, the way it is typed, so the miss is shown where it was made.
+ */
+function markLetters(box, typed, answer) {
+  const check = box.querySelector('.check');
+  if (!check) return;
+  check.replaceChildren();
+  if (box.classList.contains('correct') || !typed.trim()) return;
+  const wanted = [...answer];
+  [...typed].forEach((letter, at) => {
+    const mark = document.createElement('span');
+    const target = wanted[at];
+    const right = target !== undefined && (letter === target || (fold(letter) !== '' && fold(letter) === fold(target)));
+    mark.className = right ? 'ok' : 'bad';
+    mark.textContent = letter;
+    check.append(mark);
+  });
+}
+
 function checkField(field, chunk) {
   const typed = field.textContent;
   const box = field.parentElement;
@@ -693,6 +746,7 @@ function checkField(field, chunk) {
   box.classList.toggle('correct', sameWord(typed, chunk.target));
   box.classList.toggle('filled', typed.trim().length > 0);
   box.classList.toggle('ontrack', fold(chunk.target).startsWith(fold(typed)));
+  markLetters(box, typed, chunk.target);
   const solvedNow = box.classList.contains('correct');
   if (solvedNow === wasSolved) return;
 
@@ -1014,7 +1068,12 @@ function chunkField(chunk, index) {
   const parts = document.createElement('span');
   parts.className = 'parts';
 
-  box.append(parts, field, under);
+  // The typed letters again, unseen, each with its own stroke underneath.
+  const check = document.createElement('span');
+  check.className = 'check';
+  check.setAttribute('aria-hidden', 'true');
+
+  box.append(parts, field, check, under);
   renderCaption(box, chunk, []);
 
   // The whole box is the target: a click on its padding, the caption or
@@ -1080,14 +1139,21 @@ function pictureEmoji(chunk) {
 }
 
 /** The picture for a word, or nothing while pictures are off; a word without one takes the image away. */
-function pictureNode(word, emoji = '') {
+function pictureNode(word, emoji = '', hint = '') {
   if (!pictureVersion || !word) return null;
   const image = document.createElement('img');
   image.className = 'pic';
   image.alt = '';
   image.loading = 'lazy';
   image.decoding = 'async';
-  const query = new URLSearchParams({ v: pictureVersion, word, lang: D.target, ...(emoji ? { emoji } : {}) });
+  // The English gloss rides along: a second name the server can look the picture up by.
+  const query = new URLSearchParams({
+    v: pictureVersion,
+    word,
+    lang: D.target,
+    ...(emoji ? { emoji } : {}),
+    ...(hint ? { hint } : {}),
+  });
   image.src = `/api/picture?${query}`;
   image.addEventListener('error', () => {
     image.closest('.pictured')?.classList.remove('pictured');
@@ -1101,7 +1167,7 @@ function wordBlock(chunk, solved, { pieces = true } = {}) {
 
   const head = document.createElement('div');
   head.className = 'detail-head';
-  const picture = solved ? pictureNode(pictureWord(chunk), pictureEmoji(chunk)) : null;
+  const picture = solved ? pictureNode(pictureWord(chunk), pictureEmoji(chunk), chunk.english ?? '') : null;
   if (picture) {
     head.classList.add('pictured');
     head.append(picture);
@@ -1207,6 +1273,7 @@ function bankEarned(chunk) {
       ...(chunk.pos ? { pos: chunk.pos } : {}),
       ...(pictureWord(chunk) ? { pic: pictureWord(chunk) } : {}),
       ...(pictureEmoji(chunk) ? { emoji: pictureEmoji(chunk) } : {}),
+      ...(typeof chunk.english === 'string' && chunk.english ? { english: chunk.english } : {}),
     },
   ]);
   // A chest filled to 25 gets a bigger show, and a star on the lid.
@@ -1451,8 +1518,9 @@ async function speak(text) {
 
   if (serverSpeech) {
     try {
+      const voice = chosenVoice();
       const response = await fetch(
-        `/api/speak?lang=${D.target}&v=${speechVersion}&text=${encodeURIComponent(text)}`,
+        `/api/speak?lang=${D.target}&v=${speechVersion}${voice ? `&voice=${encodeURIComponent(voice)}` : ''}&text=${encodeURIComponent(text)}`,
       );
       if (response.status === 503) {
         serverSpeech = false;
@@ -1478,6 +1546,49 @@ async function speak(text) {
 // The caret stays in the blank while the sentence is read.
 speakButton.addEventListener('mousedown', (event) => event.preventDefault());
 speakButton.addEventListener('click', () => speak(current.target));
+
+/* The voice -----------------------------------------------------------
+   The server has a few voices for each language; the menu lets the learner
+   pick the one that reads the language being learned. Each direction keeps
+   its own choice, on this device. */
+
+const voiceRow = document.querySelector('#voice-row');
+const voiceSelect = document.querySelector('#voice');
+const voiceLabel = document.querySelector('#voice-label');
+/** The voices the server offers, by language, once it has said which it has. */
+let voices = null;
+
+function voiceKey() {
+  return `potets.stemme.${learning}`;
+}
+
+/** The voice chosen for the language being learned, or '' for the server's default. */
+function chosenVoice() {
+  return recall(voiceKey()) ?? '';
+}
+
+function renderVoices() {
+  const list = voices?.[learning] ?? [];
+  voiceRow.hidden = list.length < 2;
+  voiceLabel.textContent = D.voice;
+  voiceSelect.setAttribute('aria-label', D.voice);
+  const chosen = list.some((voice) => voice.id === chosenVoice()) ? chosenVoice() : list[0]?.id;
+  voiceSelect.replaceChildren(
+    ...list.map((voice) => {
+      const option = document.createElement('option');
+      option.value = voice.id;
+      option.textContent = voice.name;
+      option.selected = voice.id === chosen;
+      return option;
+    }),
+  );
+}
+
+// The new voice introduces itself with the sentence on screen.
+voiceSelect.addEventListener('change', () => {
+  remember(voiceKey(), voiceSelect.value);
+  if (current.target) speak(current.target);
+});
 
 // A click on the card's empty space puts the caret in the first blank
 // still open. The word boxes, the buttons and the links in it keep their
@@ -1505,29 +1616,52 @@ function renderStars(total) {
   chestStars.title = full ? D.fullChests(full) : '';
 }
 
-/** The chest picker: one entry per 25 words, the newest chest last. */
-function renderGroups(total) {
-  const groups = Math.max(1, Math.ceil(total / CHEST_SIZE));
-  groupSelect.hidden = groups < 2;
-  groupSelect.setAttribute('aria-label', D.chest);
-  groupSelect.replaceChildren();
-  for (let at = 0; at < groups; at += 1) {
-    const option = document.createElement('option');
-    option.value = String(at);
-    const from = at * CHEST_SIZE + 1;
-    const to = Math.min(total, (at + 1) * CHEST_SIZE);
-    option.textContent = `${D.chest} ${at + 1} · ${from}–${to}`;
-    groupSelect.append(option);
-  }
-  if (viewGroup < 0 || viewGroup >= groups) viewGroup = groups - 1;
-  groupSelect.value = String(viewGroup);
-  return viewGroup;
+/** A small chest: the same drawing, with its count on the front and a star on a full lid. */
+function smallChest(count, full) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class', 'chest');
+  svg.setAttribute('viewBox', '0 0 60 50');
+  svg.setAttribute('width', '38');
+  svg.setAttribute('height', '32');
+  svg.setAttribute('aria-hidden', 'true');
+  const use = document.createElementNS(ns, 'use');
+  use.setAttribute('href', '#chest-shape');
+  svg.append(use);
+  const stars = document.createElement('span');
+  stars.className = 'chest-stars';
+  stars.textContent = full ? '⭐' : '';
+  const tally = document.createElement('span');
+  tally.className = 'bank-count';
+  tally.textContent = `${count}/${CHEST_SIZE}`;
+  return [svg, stars, tally];
 }
 
-groupSelect.addEventListener('change', () => {
-  viewGroup = Number(groupSelect.value);
-  renderBank(loadBank());
-});
+/** The chest picker: one small chest per 25 words, the newest chest last. */
+function renderGroups(total) {
+  const groups = Math.max(1, Math.ceil(total / CHEST_SIZE));
+  if (viewGroup < 0 || viewGroup >= groups) viewGroup = groups - 1;
+  chestRow.hidden = groups < 2;
+  chestRow.setAttribute('aria-label', D.chest);
+  chestRow.replaceChildren();
+  for (let at = 0; at < groups; at += 1) {
+    const from = at * CHEST_SIZE + 1;
+    const to = Math.min(total, (at + 1) * CHEST_SIZE);
+    const pick = document.createElement('button');
+    pick.type = 'button';
+    pick.className = 'chest-pick';
+    pick.title = `${D.chest} ${at + 1} · ${from}–${to}`;
+    pick.setAttribute('aria-label', pick.title);
+    pick.setAttribute('aria-pressed', String(at === viewGroup));
+    pick.append(...smallChest(to - from + 1, to - from + 1 === CHEST_SIZE));
+    pick.addEventListener('click', () => {
+      viewGroup = at;
+      renderBank(loadBank());
+    });
+    chestRow.append(pick);
+  }
+  return viewGroup;
+}
 
 function renderBank(words) {
   bankList.replaceChildren();
@@ -1549,7 +1683,7 @@ function renderBank(words) {
     const start = group * CHEST_SIZE;
     shown = indexed.slice(start, start + CHEST_SIZE);
   } else {
-    groupSelect.hidden = true;
+    chestRow.hidden = true;
     // The most recently touched, so a comeback surfaces its badge.
     shown = indexed
       .map((entry, order) => [entry, entry[1].at ?? order])
@@ -1566,7 +1700,7 @@ function renderBank(words) {
       item.addEventListener('animationend', () => item.classList.remove('upgraded'));
     }
 
-    const picture = pictureNode(word.pic, word.emoji ?? '');
+    const picture = pictureNode(word.pic, word.emoji ?? '', word.english ?? '');
     if (picture) {
       item.classList.add('pictured');
       item.append(picture);
@@ -1687,18 +1821,40 @@ async function openForms(word, pos) {
   }
 }
 
+/** The pieces of a form, or the whole word when it was not split. */
+function piecesOfForm(entry) {
+  return entry.pieces?.length ? entry.pieces : [entry.word];
+}
+
+/**
+ * The tint each piece of a form wears, the same across the whole table: the
+ * root in the first, the ending the group is about in the second, the ending
+ * the label is about in the third, and anything else by its place.
+ */
+function pieceTints(entry, groupHint, label) {
+  const group = groupHint ? hintFold(groupHint) : null;
+  const labelHint = splitLabel(label).hint;
+  const own = labelHint ? hintFold(labelHint) : null;
+  return piecesOfForm(entry).map((piece, index) => {
+    if (index === 0) return 0;
+    const folded = hintFold(piece);
+    if (group !== null && folded === group) return 1;
+    if (own !== null && folded === own) return 2;
+    return index % 4;
+  });
+}
+
 /** One form, painted piece by piece in the tints the blanks use, read aloud on a click. */
-function formButton(entry) {
+function formButton(entry, tints = []) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'form';
   button.lang = D.target;
   button.title = D.sayWord(entry.word);
-  const pieces = entry.pieces?.length ? entry.pieces : [entry.word];
-  pieces.forEach((piece, index) => {
+  piecesOfForm(entry).forEach((piece, index) => {
     const span = document.createElement('span');
     span.className = 'm';
-    span.dataset.m = String(index % 4);
+    span.dataset.m = String(tints[index] ?? index % 4);
     span.textContent = piece;
     button.append(span);
   });
@@ -1741,7 +1897,7 @@ function hintIndex(hint, forms) {
 /** A heading with a name and, under it, the ending painted like the piece it
     is in the cells. Above a column, the pieces before it are laid out unseen,
     so the ending stands over the piece it names. */
-function formsHead({ name, hint, forms, scope }) {
+function formsHead({ name, hint, forms, scope, tint }) {
   const head = document.createElement('th');
   head.scope = scope;
   head.textContent = name;
@@ -1763,7 +1919,7 @@ function formsHead({ name, hint, forms, scope }) {
   ending.textContent = hint;
   if (index >= 0) {
     ending.className = 'm';
-    ending.dataset.m = String(index % 4);
+    ending.dataset.m = String(tint);
   }
   line.append(ending);
   head.append(line);
@@ -1777,13 +1933,13 @@ function splitLabel(label) {
 }
 
 function formsLabelHead(label, forms, scope) {
-  return formsHead({ ...splitLabel(label), forms, scope });
+  return formsHead({ ...splitLabel(label), forms, scope, tint: 2 });
 }
 
 function formsGroupHead(group, scope) {
   // The ending under the name, unless the name already carries it.
   const hint = group.hint && !group.name.includes(group.hint) ? group.hint : '';
-  return formsHead({ name: group.name, hint, forms: group.forms, scope });
+  return formsHead({ name: group.name, hint, forms: group.forms, scope, tint: 1 });
 }
 
 /** Groups that share their labels, in order, make one table. Groups lie down
@@ -1801,14 +1957,19 @@ function formsMatrix(groups) {
     groups[0].forms.forEach((first, index) => {
       const row = tbody.insertRow();
       row.append(formsLabelHead(first.label, across(index), 'row'));
-      for (const group of groups) row.insertCell().append(formButton(group.forms[index]));
+      for (const group of groups) {
+        const entry = group.forms[index];
+        row.insertCell().append(formButton(entry, pieceTints(entry, group.hint, first.label)));
+      }
     });
   } else {
     groups[0].forms.forEach((first, index) => headRow.append(formsLabelHead(first.label, across(index), 'col')));
     for (const group of groups) {
       const row = tbody.insertRow();
       row.append(formsGroupHead(group, 'row'));
-      for (const entry of group.forms) row.insertCell().append(formButton(entry));
+      for (const entry of group.forms) {
+        row.insertCell().append(formButton(entry, pieceTints(entry, group.hint, entry.label)));
+      }
     }
   }
   return table;
@@ -1824,7 +1985,7 @@ function formsList(group) {
   for (const entry of group.forms) {
     const row = tbody.insertRow();
     row.append(formsLabelHead(entry.label, [entry], 'row'));
-    row.insertCell().append(formButton(entry));
+    row.insertCell().append(formButton(entry, pieceTints(entry, group.hint, entry.label)));
   }
   return table;
 }
@@ -2041,6 +2202,10 @@ fetch('/api/version')
   .then((response) => (response.ok ? response.json() : null))
   .then((body) => {
     if (typeof body?.speech === 'string') speechVersion = body.speech;
+    if (body?.voices && typeof body.voices === 'object') {
+      voices = body.voices;
+      renderVoices();
+    }
     if (typeof body?.pictures === 'string') {
       pictureVersion = body.pictures;
       renderBank(loadBank());
@@ -2072,6 +2237,7 @@ function applyDirection() {
   flipButton.title = D.flip;
   renderTheme();
   renderMute();
+  renderVoices();
   renderCredits();
   closeForms();
   formsClose.title = D.close;
@@ -2093,6 +2259,7 @@ function applyDirection() {
   // Each side remembers its own topic, an emptied one included. With none
   // saved the field is empty, and the server picks a situation itself.
   topicField.value = recall(keyFor('emne')) ?? '';
+  renderTopicIdeas();
   // The shortcuts ride in the tooltip: | for the word in focus, || for the sentence.
   speakButton.title = `${D.speak} · | ${D.keyHelp[0]} · || ${D.keyHelp[1]}`;
   speakButton.setAttribute('aria-label', D.speak);
@@ -2100,6 +2267,26 @@ function applyDirection() {
   renderSpecialKeys();
   document.querySelector('.steps').setAttribute('aria-label', D.browse);
   document.querySelector('#bank .sr-only').textContent = D.bank;
+}
+
+/**
+ * What the topic field offers when opened: the grammar points of the
+ * sentences had so far, newest first, then a few situations and points
+ * to ask for. Any of them can be typed over.
+ */
+function renderTopicIdeas() {
+  const recent = history
+    .map((entry) => (typeof entry.focus === 'string' ? entry.focus.trim() : ''))
+    .filter(Boolean)
+    .reverse();
+  const ideas = [...new Set([...recent, ...D.topics])].slice(0, 24);
+  topicIdeas.replaceChildren(
+    ...ideas.map((idea) => {
+      const option = document.createElement('option');
+      option.value = idea;
+      return option;
+    }),
+  );
 }
 
 function kbd(text) {

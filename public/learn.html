@@ -25,7 +25,6 @@
       <!-- Which way round: the flag on the left is the language you know, the
            one on the right is the language you are learning. -->
       <div class="topbar">
-        <span class="wordmark" aria-hidden="true">Languageballs<small class="build" id="build"></small></span>
         <!-- The direction: the ball on the left is the language you know, the
              one on the right the one you are learning, and the flip between
              them swaps the two. -->
@@ -43,6 +42,9 @@
             <img id="avatar" alt="" referrerpolicy="no-referrer" />
           </button>
           <div class="menu-panel" id="menu-panel" role="menu" hidden>
+            <!-- The name lives here rather than on the page, where the space
+                 is better spent on the sentence. The build hash sits under it. -->
+            <div class="wordmark" aria-hidden="true">Languageballs<small class="build" id="build"></small></div>
             <!-- Light or dark, by hand; otherwise the page follows the system. -->
             <button type="button" id="theme" role="menuitem">
               <span class="icon" id="theme-icon" aria-hidden="true">☾</span>
@@ -58,6 +60,13 @@
               <span class="icon" id="mute-icon" aria-hidden="true">🔇</span>
               <span id="mute-label">Lyd av</span>
             </button>
+            <!-- Which of the server's voices reads the language being learned.
+                 Shown once the server has said which it has. -->
+            <label class="voice" id="voice-row" hidden>
+              <span class="icon" aria-hidden="true">🗣</span>
+              <span id="voice-label">Stemme</span>
+              <select id="voice" aria-label="Stemme"></select>
+            </label>
             <!-- Sign in with Google, so the chest follows the learner between
                  devices. Shown only when the server has a Google client. -->
             <button type="button" id="login" role="menuitem" hidden>
@@ -81,6 +90,21 @@
           <ellipse cx="14.5" cy="17" rx="4.2" ry="5" fill="#fff" stroke="#111" stroke-width="1.6" />
           <ellipse cx="26.5" cy="17" rx="4.2" ry="5" fill="#fff" stroke="#111" stroke-width="1.6" />
         </g>
+        <!-- The chest, drawn once: the big one that opens the bank, and the
+             small ones that pick a chest, all use it. Painted like the rest:
+             ink outline with a little wobble, flat gouache fills. -->
+        <symbol id="chest-shape" viewBox="0 0 60 50">
+          <!-- body -->
+          <path d="M5 21 Q3.5 32 5.5 45 Q30 47.5 54.5 45 Q56.5 32 55 21 Z" fill="var(--chest-body)" stroke="var(--chest-line)" stroke-width="2.4" stroke-linejoin="round" />
+          <!-- lid -->
+          <path d="M4.5 21.5 C3 9 14 2.5 30 2.5 S57 9 55.5 21.5 Q30 23.5 4.5 21.5 Z" fill="var(--chest-lid)" stroke="var(--chest-line)" stroke-width="2.4" stroke-linejoin="round" />
+          <path d="M18.5 4.2 Q17.3 12.5 18.2 21.6 M41.5 4.2 Q42.7 12.5 41.8 21.6" fill="none" stroke="var(--chest-line)" stroke-width="2" stroke-linecap="round" />
+          <!-- a lighter brush stroke along the lid's top -->
+          <path d="M12 10 Q30 5 48 10" fill="none" stroke="var(--chest-light)" stroke-width="2.2" stroke-linecap="round" />
+          <!-- latch, on the lid's edge -->
+          <path d="M24.5 17.5 h11 q1.5 0 1.5 1.5 v5.5 q0 1.5 -1.5 1.5 h-11 q-1.5 0 -1.5 -1.5 v-5.5 q0 -1.5 1.5 -1.5 z" fill="var(--chest-latch)" stroke="var(--chest-line)" stroke-width="2" stroke-linejoin="round" />
+          <circle cx="30" cy="21.5" r="1.3" fill="var(--chest-line)" />
+        </symbol>
         <symbol id="flag-no" viewBox="0 0 40 40">
           <g clip-path="url(#ball-clip)">
             <rect width="40" height="40" fill="#ba0c2f" />
@@ -107,7 +131,9 @@
           <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
             <span id="level-name">Nybegynner</span>
           </button>
-          <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" />
+          <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" list="topic-ideas" autocomplete="off" />
+          <!-- Themes to pick from: the grammar points of recent sentences, then a few situations. -->
+          <datalist id="topic-ideas"></datalist>
         </div>
       </form>
 
@@ -159,24 +185,16 @@
             <!-- Painted like the rest: ink outline with a little wobble, flat
                  gouache fills, and a hard cut-out shadow from CSS. -->
             <svg class="chest" id="chest" viewBox="0 0 60 50" width="66" height="55" aria-hidden="true" focusable="false">
-              <!-- body -->
-              <path d="M5 21 Q3.5 32 5.5 45 Q30 47.5 54.5 45 Q56.5 32 55 21 Z" fill="var(--chest-body)" stroke="var(--chest-line)" stroke-width="2.4" stroke-linejoin="round" />
-              <!-- lid -->
-              <path d="M4.5 21.5 C3 9 14 2.5 30 2.5 S57 9 55.5 21.5 Q30 23.5 4.5 21.5 Z" fill="var(--chest-lid)" stroke="var(--chest-line)" stroke-width="2.4" stroke-linejoin="round" />
-              <path d="M18.5 4.2 Q17.3 12.5 18.2 21.6 M41.5 4.2 Q42.7 12.5 41.8 21.6" fill="none" stroke="var(--chest-line)" stroke-width="2" stroke-linecap="round" />
-              <!-- a lighter brush stroke along the lid's top -->
-              <path d="M12 10 Q30 5 48 10" fill="none" stroke="var(--chest-light)" stroke-width="2.2" stroke-linecap="round" />
-              <!-- latch, on the lid's edge -->
-              <path d="M24.5 17.5 h11 q1.5 0 1.5 1.5 v5.5 q0 1.5 -1.5 1.5 h-11 q-1.5 0 -1.5 -1.5 v-5.5 q0 -1.5 1.5 -1.5 z" fill="var(--chest-latch)" stroke="var(--chest-line)" stroke-width="2" stroke-linejoin="round" />
-              <circle cx="30" cy="21.5" r="1.3" fill="var(--chest-line)" />
+              <use href="#chest-shape" />
             </svg>
             <span class="sr-only">Ordbank</span>
             <span class="chest-stars" id="chest-stars"></span>
             <span class="bank-count" id="bank-count"></span>
           </h2>
-          <!-- Which chest's words are listed below. Only shown once there is
+          <!-- Which chest's words are listed below: one small chest each,
+               the one being looked into raised. Only shown once there is
                more than one chest to choose from. -->
-          <select id="group" class="group" aria-label="Kiste" hidden></select>
+          <div id="group" class="chests" role="group" aria-label="Kiste" hidden></div>
         </header>
         <ul class="bank-list" id="bank-list"></ul>
         <p class="bank-empty" id="bank-empty" hidden></p>

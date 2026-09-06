@@ -185,9 +185,10 @@ For each piece:
   the word.
 - "english" is given for nouns only: the noun's dictionary form in English, one
   or two words, as in "dog" or "school bag". Leave it out for every other class.
-- "emoji" is given for nouns only, and only when a single standard emoji shows
-  the thing itself plainly: 🐕 for a dog, 🚗 for a car, 🍞 for bread, 🧑‍🏫 for
-  a teacher. Leave it out when no emoji fits, rather than pick a loose one.
+- "emoji" is given for nouns only, when a single standard emoji shows the thing
+  itself or is the usual sign for it: 🐕 for a dog, 🚗 for a car, 🍞 for bread,
+  💵 for cash, 🧑‍🏫 for a teacher. Leave it out when nothing comes close,
+  rather than pick a loose one.
 - "note" is one sentence of ${d.native} explaining the grammar, and only when
   there is something real to say: ${d.notes}. Leave it out entirely for a plain
   word. A note that only repeats the translation is worse than no note.

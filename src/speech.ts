@@ -42,6 +42,48 @@ const VOICES: Record<SpeechLang, { voice: string; locale: string }> = {
   nb: { voice: config.azureSpeechVoiceNb, locale: 'nb-NO' },
 };
 
+export interface VoiceChoice {
+  /** The Azure voice name, as the page asks for it. */
+  id: string;
+  /** The first name, as the menu shows it. */
+  name: string;
+}
+
+/** The voices Azure has for each language, by first name. */
+const KNOWN_VOICES: Record<SpeechLang, VoiceChoice[]> = {
+  tr: [
+    { id: 'tr-TR-AhmetNeural', name: 'Ahmet' },
+    { id: 'tr-TR-EmelNeural', name: 'Emel' },
+    { id: 'tr-TR-Elif:MAI-Voice-2', name: 'Elif' },
+    { id: 'tr-TR-Aydın:MAI-Voice-2', name: 'Aydın' },
+  ],
+  nb: [
+    { id: 'nb-NO-PernilleNeural', name: 'Pernille' },
+    { id: 'nb-NO-FinnNeural', name: 'Finn' },
+    { id: 'nb-NO-IselinNeural', name: 'Iselin' },
+  ],
+};
+
+/** "tr-TR-AhmetNeural" -> "Ahmet", "tr-TR-Elif:MAI-Voice-2" -> "Elif". */
+function firstName(id: string): string {
+  return id.replace(/^[a-z]{2}-[A-Z]{2}-/, '').replace(/:.*$/, '').replace(/Neural$/, '');
+}
+
+/**
+ * The voices the page may choose from, the configured one first so it is the
+ * default, then the rest of the known ones.
+ */
+export function voiceChoices(lang: SpeechLang): VoiceChoice[] {
+  const chosen = VOICES[lang].voice;
+  const known = KNOWN_VOICES[lang].filter((voice) => voice.id !== chosen);
+  return [{ id: chosen, name: firstName(chosen) }, ...known];
+}
+
+/** The voice to use: the one asked for when it is on the list, else the configured one. */
+function voiceFor(lang: SpeechLang, requested = ''): string {
+  return voiceChoices(lang).find((voice) => voice.id === requested)?.id ?? VOICES[lang].voice;
+}
+
 /**
  * The countryball delivery: pitched up so the ball sounds small and round,
  * slowed a touch so the words stay clear enough to learn from. Both are part
@@ -70,11 +112,9 @@ export const speechFingerprint = createHash('sha256')
   .digest('hex')
   .slice(0, 8);
 
-function cachePath(text: string, lang: SpeechLang): string {
+function cachePath(text: string, voice: string): string {
   const key = createHash('sha256')
-    .update(
-      `${VOICES[lang].voice}\n${PROSODY.pitch}\n${PROSODY.rate}\n${styleFor(VOICES[lang].voice)}\n${text}`,
-    )
+    .update(`${voice}\n${PROSODY.pitch}\n${PROSODY.rate}\n${styleFor(voice)}\n${text}`)
     .digest('hex');
   return join(config.speechCacheDir, `${key}.mp3`);
 }
@@ -91,8 +131,8 @@ export function ssmlFor(text: string, voice: string, locale: string): string {
   );
 }
 
-async function synthesise(text: string, lang: SpeechLang): Promise<Buffer> {
-  const { voice, locale } = VOICES[lang];
+async function synthesise(text: string, lang: SpeechLang, voice: string): Promise<Buffer> {
+  const { locale } = VOICES[lang];
   const url = `https://${config.azureSpeechRegion}.tts.speech.microsoft.com/cognitiveservices/v1`;
   const ssml = ssmlFor(text, voice, locale);
 
@@ -114,7 +154,7 @@ async function synthesise(text: string, lang: SpeechLang): Promise<Buffer> {
 }
 
 /** MP3 bytes for the text, from the cache when it has been asked for before. */
-export async function speak(text: string, lang: SpeechLang = 'tr'): Promise<Buffer> {
+export async function speak(text: string, lang: SpeechLang = 'tr', requestedVoice = ''): Promise<Buffer> {
   if (!speechConfigured) throw new SpeechUnavailable('Azure Speech is not configured.');
   const trimmed = text.trim();
   if (!trimmed) throw new SpeechUnavailable('Nothing to say.');
@@ -122,14 +162,15 @@ export async function speak(text: string, lang: SpeechLang = 'tr'): Promise<Buff
     throw new SpeechUnavailable(`Text is longer than the ${MAX_TEXT_CHARS} character limit.`);
   }
 
-  const file = cachePath(trimmed, lang);
+  const voice = voiceFor(lang, requestedVoice);
+  const file = cachePath(trimmed, voice);
   try {
     return await readFile(file);
   } catch {
     // Not cached yet.
   }
 
-  const audio = await synthesise(trimmed, lang);
+  const audio = await synthesise(trimmed, lang, voice);
   await mkdir(config.speechCacheDir, { recursive: true });
   await writeFile(file, audio);
   return audio;

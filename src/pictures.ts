@@ -39,7 +39,7 @@ const isVector = config.recraftModel.includes('vector');
 
 /** The page puts this in every picture URL, so a change of source or style is never served from the browser's cache. */
 export const pictureFingerprint = createHash('sha256')
-  .update(`fluent-emoji-flat ${info.version ?? ''}\narasaac\n${recraftEnabled ? `${config.recraftModel}\n${config.recraftStyleId ?? ''}\n${PROMPT_TAIL}` : ''}`)
+  .update(`fluent-emoji-flat ${info.version ?? ''}\narasaac en\n${recraftEnabled ? `${config.recraftModel}\n${config.recraftStyleId ?? ''}\n${PROMPT_TAIL}` : ''}`)
   .digest('hex')
   .slice(0, 8);
 
@@ -124,7 +124,10 @@ export function bestPictogram(results: unknown, word: string): number | undefine
   return undefined;
 }
 
-async function pictogramId(word: string, lang: Learning): Promise<number | undefined> {
+/** The languages the pictograms are looked up in: the learner's, and English for the gloss. */
+type PictogramLang = Learning | 'en';
+
+async function pictogramId(word: string, lang: PictogramLang): Promise<number | undefined> {
   const path = `${ARASAAC}/${lang}/search/${encodeURIComponent(word)}`;
   const response = await fetch(path, { signal: AbortSignal.timeout(FETCH_MS) });
   if (response.status === 404) return undefined;
@@ -132,7 +135,7 @@ async function pictogramId(word: string, lang: Learning): Promise<number | undef
   return bestPictogram(await response.json(), word);
 }
 
-async function pictogram(word: string, lang: Learning): Promise<Picture | undefined> {
+async function pictogram(word: string, lang: PictogramLang): Promise<Picture | undefined> {
   const id = await pictogramId(word, lang);
   if (id === undefined) return undefined;
   const response = await fetch(`${ARASAAC}/${id}?download=false`, { signal: AbortSignal.timeout(FETCH_MS) });
@@ -244,35 +247,42 @@ async function drawing(word: string, hint: string): Promise<Picture | undefined>
 
 /* The disk cache ------------------------------------------------------------- */
 
-/** The cached file for a word: the type is in the extension, and a word with no picture leaves an empty ".none". */
-function cachePath(word: string, lang: Learning, extension: string): string {
-  const key = createHash('sha256').update(`${lang}\n${word.toLocaleLowerCase()}`).digest('hex');
-  return join(config.pictureCacheDir, `${key}.${extension}`);
+/**
+ * What a lookup is keyed by: the word in its language, and the English gloss
+ * when there is one, since the gloss is a second place the picture may come from.
+ */
+function lookupKey(word: string, lang: Learning, hint: string): string {
+  return `${lang}\n${word.toLocaleLowerCase()}${hint ? `\n${hint.toLocaleLowerCase()}` : ''}`;
+}
+
+/** The cached file for a lookup: the type is in the extension, and a word with no picture leaves an empty ".none". */
+function cachePath(key: string, extension: string): string {
+  return join(config.pictureCacheDir, `${createHash('sha256').update(key).digest('hex')}.${extension}`);
 }
 
 const EXTENSIONS: Record<string, string> = { 'image/png': 'png', 'image/svg+xml': 'svg' };
 const TYPES: Record<string, string> = { png: 'image/png', svg: 'image/svg+xml' };
 
-async function cached(word: string, lang: Learning): Promise<Picture | null | undefined> {
+async function cached(key: string): Promise<Picture | null | undefined> {
   for (const extension of Object.keys(TYPES)) {
     try {
-      return { body: await readFile(cachePath(word, lang, extension)), type: TYPES[extension]! };
+      return { body: await readFile(cachePath(key, extension)), type: TYPES[extension]! };
     } catch {
       // Not this one.
     }
   }
   try {
-    await readFile(cachePath(word, lang, 'none'));
+    await readFile(cachePath(key, 'none'));
     return null;
   } catch {
     return undefined;
   }
 }
 
-async function keep(word: string, lang: Learning, found: Picture | undefined): Promise<void> {
+async function keep(key: string, found: Picture | undefined): Promise<void> {
   await mkdir(config.pictureCacheDir, { recursive: true });
-  if (found) await writeFile(cachePath(word, lang, EXTENSIONS[found.type] ?? 'png'), found.body);
-  else await writeFile(cachePath(word, lang, 'none'), '');
+  if (found) await writeFile(cachePath(key, EXTENSIONS[found.type] ?? 'png'), found.body);
+  else await writeFile(cachePath(key, 'none'), '');
 }
 
 /** The same word asked for twice while it is being looked up is looked up once. */
@@ -290,17 +300,20 @@ export async function picture(request: PictureRequest): Promise<Picture> {
   const { lang } = request;
   const hint = cleanHint(request.hint ?? '');
 
-  const known = await cached(word, lang);
+  const key = lookupKey(word, lang, hint);
+  const known = await cached(key);
   if (known) return known;
   if (known === null) throw new PictureUnavailable('No picture for this word.');
 
-  const key = `${lang}\n${word.toLocaleLowerCase()}`;
   const running = pending.get(key);
   if (running) return running;
 
+  // By the word first; failing that, by its English gloss, which the
+  // pictogram set covers far more of than Norwegian or Turkish.
   const job = (async () => {
-    const found = (await pictogram(word, lang)) ?? (await drawing(word, hint));
-    await keep(word, lang, found);
+    const found =
+      (await pictogram(word, lang)) ?? (hint ? await pictogram(hint, 'en') : undefined) ?? (await drawing(word, hint));
+    await keep(key, found);
     if (!found) throw new PictureUnavailable('No picture for this word.');
     return found;
   })().finally(() => pending.delete(key));
