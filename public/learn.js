@@ -1691,7 +1691,16 @@ function formButton(entry) {
     button.append(span);
   });
   button.addEventListener('click', () => speak(entry.word));
-  return button;
+  if (!entry.means) return button;
+  // What the form says, in the learner's own language, in softer text under it.
+  const cell = document.createElement('span');
+  cell.className = 'form-cell';
+  const means = document.createElement('span');
+  means.className = 'form-means';
+  means.lang = D.native;
+  means.textContent = entry.means;
+  cell.append(button, means);
+  return cell;
 }
 
 function formsRowHead(label) {

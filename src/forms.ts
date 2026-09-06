@@ -20,6 +20,8 @@ export interface WordForm {
   word: string;
   /** The word cut into root and endings, in spelling order; the root alone for a bare form. */
   pieces: string[];
+  /** What the form says, in the learner's language: "jeg elsker", "vi elsket". */
+  means?: string;
 }
 
 export interface FormGroup {
@@ -98,8 +100,12 @@ it means, in ${g.native}, a word or two.
 
 "pieces" cuts each form into its root and each ending, in the order they are spelled, so that the pieces
 joined together spell the form exactly. Give the changed root where the word changes it: "gidiyorum" is
-"gid" + "iyor" + "um", "köpeğim" is "köpeğ" + "im". A bare form is one piece. Every group name, label and
-meaning is in ${g.native}; every form is in ${g.target}.`;
+"gid" + "iyor" + "um", "köpeğim" is "köpeğ" + "im". A bare form is one piece.
+
+"means" says what each form says, in ${g.native}, as short as it can be: the pronoun and the verb for a
+verb form ("jeg elsker", "vi elsket"), the preposition or article a case or an ending stands for with a
+noun ("til huset", "i husene", "köpekler"). Every group name, label and meaning is in ${g.native}; every
+form is in ${g.target}.`;
 }
 
 function tool(): Anthropic.Tool {
@@ -131,8 +137,12 @@ function tool(): Anthropic.Tool {
                       items: { type: 'string' },
                       description: 'Root and endings in spelling order, joining to spell the form.',
                     },
+                    means: {
+                      type: 'string',
+                      description: "What the form says, in the learner's language, a few words.",
+                    },
                   },
-                  required: ['label', 'word', 'pieces'],
+                  required: ['label', 'word', 'pieces', 'means'],
                 },
               },
             },
@@ -169,7 +179,8 @@ export function buildForms(input: unknown, request: FormsRequest): Forms {
       if (!label || !word) continue;
       const given = Array.isArray(form.pieces) ? form.pieces.map((piece) => text(piece)).filter(Boolean) : [];
       const pieces = given.length > 0 && spellsWord(given, word) ? given : [word];
-      forms.push({ label, word, pieces });
+      const means = text(form.means, 60);
+      forms.push({ label, word, pieces, ...(means ? { means } : {}) });
     }
     if (forms.length === 0) continue;
     const hint = text(group.hint, 20);

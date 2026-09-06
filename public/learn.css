@@ -963,6 +963,21 @@ body.muted .chunk .say {
   padding: 0 0.06em;
   border-radius: 3px;
 }
+.forms-table .form-cell {
+  display: inline-grid;
+  justify-items: start;
+}
+.forms-table .form-means {
+  padding-left: 0.15rem;
+  font-family: var(--hand);
+  font-size: 0.85rem;
+  line-height: 1.15;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.forms-table td {
+  vertical-align: top;
+}
 
 /* Credits ---------------------------------------------------------- */
 .credits {

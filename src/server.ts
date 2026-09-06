@@ -342,6 +342,8 @@ async function handleLesson(request: IncomingMessage, response: ServerResponse):
  * The forms of a chest word, as a table. Asked of the model once per word and
  * direction, and kept in the pool database from then on.
  */
+const FORMS_KIND = 'forms2';
+
 async function handleForms(url: URL, response: ServerResponse): Promise<void> {
   const word = (url.searchParams.get('word') ?? '').trim().normalize('NFC').replace(/\s+/g, ' ');
   if (!word || word.length > 40 || !/^[\p{L}\p{M}][\p{L}\p{M}'’ -]*$/u.test(word)) {
@@ -351,7 +353,8 @@ async function handleForms(url: URL, response: ServerResponse): Promise<void> {
   const pos = url.searchParams.get('pos') ?? '';
   const key = word.toLocaleLowerCase(learning);
 
-  const known = pool?.extra('forms', learning, key);
+  // The kind carries a version: a table kept before a field was asked for is asked again.
+  const known = pool?.extra(FORMS_KIND, learning, key);
   if (known) {
     send(response, 200, JSON.parse(known));
     return;
@@ -359,7 +362,7 @@ async function handleForms(url: URL, response: ServerResponse): Promise<void> {
   const result = await limiter.run(() =>
     forms({ learning, word, ...(/^[a-z]{1,16}$/.test(pos) ? { pos } : {}) }),
   );
-  pool?.keep('forms', learning, key, JSON.stringify(result));
+  pool?.keep(FORMS_KIND, learning, key, JSON.stringify(result));
   send(response, 200, result);
 }
 
