@@ -1440,6 +1440,8 @@ async function speak(text) {
   else saying = '';
 }
 
+// The caret stays in the blank while the sentence is read.
+speakButton.addEventListener('mousedown', (event) => event.preventDefault());
 speakButton.addEventListener('click', () => speak(current.target));
 
 // A click on the card's empty space puts the caret in the first blank
