@@ -15,6 +15,7 @@ import {
   type LessonRequest,
   type Level,
 } from './lesson.js';
+import { forms } from './forms.js';
 import { Limiter } from './limiter.js';
 import { exchangeCode, googleConfigured, GoogleLoginFailed, loginUrl } from './google.js';
 import { LessonPool, POOL_TARGET, topicKey } from './pool.js';
@@ -338,6 +339,31 @@ async function handleLesson(request: IncomingMessage, response: ServerResponse):
 }
 
 /**
+ * The forms of a chest word, as a table. Asked of the model once per word and
+ * direction, and kept in the pool database from then on.
+ */
+async function handleForms(url: URL, response: ServerResponse): Promise<void> {
+  const word = (url.searchParams.get('word') ?? '').trim().normalize('NFC').replace(/\s+/g, ' ');
+  if (!word || word.length > 40 || !/^[\p{L}\p{M}][\p{L}\p{M}'’ -]*$/u.test(word)) {
+    throw new BadRequest('Not a word that has forms.');
+  }
+  const learning: Learning = url.searchParams.get('lang') === 'nb' ? 'nb' : 'tr';
+  const pos = url.searchParams.get('pos') ?? '';
+  const key = word.toLocaleLowerCase(learning);
+
+  const known = pool?.extra('forms', learning, key);
+  if (known) {
+    send(response, 200, JSON.parse(known));
+    return;
+  }
+  const result = await limiter.run(() =>
+    forms({ learning, word, ...(/^[a-z]{1,16}$/.test(pos) ? { pos } : {}) }),
+  );
+  pool?.keep('forms', learning, key, JSON.stringify(result));
+  send(response, 200, result);
+}
+
+/**
  * Turkish read aloud. The text rides in the query string so the browser can
  * point an audio element straight at it and cache the result like any file.
  */
@@ -604,6 +630,10 @@ const server = createServer((request, response) => {
       }
       if (request.method === 'GET' && path === '/api/speak') {
         await handleSpeak(url, response);
+        return;
+      }
+      if (request.method === 'GET' && path === '/api/forms') {
+        await handleForms(url, response);
         return;
       }
       if (request.method === 'GET' && path === '/api/picture') {

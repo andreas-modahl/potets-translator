@@ -39,6 +39,18 @@ describe('stem', () => {
 });
 
 describe('LessonPool', () => {
+  it('files extras by kind, direction and key, and lets a later one replace an earlier', () => {
+    const pool = new LessonPool(':memory:');
+    assert.equal(pool.extra('forms', 'tr', 'sevmek'), undefined);
+    pool.keep('forms', 'tr', 'sevmek', '{"a":1}');
+    assert.equal(pool.extra('forms', 'tr', 'sevmek'), '{"a":1}');
+    assert.equal(pool.extra('forms', 'nb', 'sevmek'), undefined);
+    assert.equal(pool.extra('other', 'tr', 'sevmek'), undefined);
+    pool.keep('forms', 'tr', 'sevmek', '{"a":2}');
+    assert.equal(pool.extra('forms', 'tr', 'sevmek'), '{"a":2}');
+    pool.close();
+  });
+
   it('hands back what was stored, and nothing the learner has seen', () => {
     const pool = new LessonPool(':memory:');
     assert.equal(pool.pick(ask), undefined);

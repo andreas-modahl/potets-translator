@@ -333,6 +333,7 @@ If cost is the main constraint, set `CLAUDE_MODEL=claude-haiku-4-5-20251001`.
 | `src/pool.ts` | The lesson pool: generated lessons kept in SQLite and shared |
 | `src/speech.ts` | Sentences read aloud by Azure, cached as MP3 |
 | `src/pictures.ts` | A picture per noun: Fluent Emoji, then ARASAAC pictograms, cached on disk |
+| `src/forms.ts` | The forms of a chest word, as a table, asked of the model once |
 | `src/google.ts` | Sign in with Google: the redirect and the code exchange |
 | `src/session.ts` | Signed session cookies |
 | `src/users.ts` | Logged-in learners and their synced chests |

@@ -10,6 +10,10 @@ const stepLabel = document.querySelector('#step-label');
 const log = document.querySelector('#log');
 const logTitle = document.querySelector('#log-title');
 const credits = document.querySelector('#credits');
+const formsPanel = document.querySelector('#forms');
+const formsTitle = document.querySelector('#forms-title');
+const formsBody = document.querySelector('#forms-body');
+const formsClose = document.querySelector('#forms-close');
 const logList = document.querySelector('#log-list');
 const logMore = document.querySelector('#log-more');
 const statusLine = document.querySelector('#status');
@@ -196,6 +200,12 @@ const DIRECTIONS = {
     offline: 'Fikk ikke kontakt med serveren.',
     credits: 'Bilder: Fluent Emoji (Microsoft) og piktogrammer fra ',
     creditsTail: ' (Sergio Palao, Aragóns regjering, CC BY-NC-SA).',
+    forms: 'Bøyning',
+    showForms: (word) => `Les opp ${word} og vis bøyningen`,
+    formsLoading: 'Henter bøyningen …',
+    formsFailed: 'Fikk ikke tak i bøyningen. Prøv igjen.',
+    formsNone: 'Dette ordet bøyes ikke.',
+    close: 'Lukk',
   },
   nb: {
     target: 'nb',
@@ -287,6 +297,12 @@ const DIRECTIONS = {
     offline: 'Sunucuya ulaşılamadı.',
     credits: 'Görseller: Fluent Emoji (Microsoft) ve ',
     creditsTail: ' piktogramları (Sergio Palao, Aragon Hükümeti, CC BY-NC-SA).',
+    forms: 'Çekim',
+    showForms: (word) => `${word} kelimesini seslendir ve çekimini göster`,
+    formsLoading: 'Çekim getiriliyor …',
+    formsFailed: 'Çekim alınamadı. Tekrar dene.',
+    formsNone: 'Bu kelime çekimlenmez.',
+    close: 'Kapat',
   },
 };
 
@@ -1578,18 +1594,24 @@ function renderBank(words) {
       if (selected >= 0) renderDetail(current.chunks[selected]);
     });
 
-    // The badge reads its word out; the minus is the one part that does not.
+    // The badge reads its word out, and for a word that inflects opens its
+    // forms below the chest. The minus is the one part that does neither.
+    const inflects = !word.pos || word.pos === 'verb' || word.pos === 'noun' || word.pos === 'adjective';
+    const open = () => {
+      speak(word.target);
+      if (inflects) openForms(word.target, word.pos);
+    };
     item.tabIndex = 0;
     item.setAttribute('role', 'button');
-    item.title = D.sayWord(word.target);
+    item.title = inflects ? D.showForms(word.target) : D.sayWord(word.target);
     item.addEventListener('click', (event) => {
       if (event.target.closest('button')) return;
-      speak(word.target);
+      open();
     });
     item.addEventListener('keydown', (event) => {
       if (event.target !== item || (event.key !== 'Enter' && event.key !== ' ')) return;
       event.preventDefault();
-      speak(word.target);
+      open();
     });
 
     item.append(target, native, tally, remove);
@@ -1598,6 +1620,169 @@ function renderBank(words) {
   // The flourish is shown once.
   upgraded = '';
 }
+
+/* Forms -------------------------------------------------------------
+   A chest word opened up: every form the language makes of it, as a
+   table of persons by tenses for a verb, cases by number for a noun.
+   The server asks the model once per word and keeps the answer; the
+   page keeps what it has fetched for the visit. */
+
+const formsCache = new Map();
+/** The chest word whose forms are open, or '' while the panel is closed. */
+let formsFor = '';
+
+function closeForms() {
+  formsFor = '';
+  formsPanel.hidden = true;
+  formsBody.replaceChildren();
+}
+
+function formsNote(text) {
+  const note = document.createElement('p');
+  note.className = 'hint-text';
+  note.textContent = text;
+  return note;
+}
+
+/** Opens the forms of a word, or closes them when they are the ones open. */
+async function openForms(word, pos) {
+  if (formsFor === word) {
+    closeForms();
+    return;
+  }
+  formsFor = word;
+  formsPanel.hidden = false;
+  formsTitle.textContent = `${D.forms}: ${word}`;
+  formsBody.replaceChildren(formsNote(D.formsLoading));
+  formsPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+  const key = `${learning}:${word}`;
+  try {
+    let table = formsCache.get(key);
+    if (!table) {
+      const query = new URLSearchParams({ word, lang: learning, ...(pos ? { pos } : {}) });
+      const response = await fetch(`/api/forms?${query}`);
+      if (!response.ok) throw new Error(`Forms came back with ${response.status}.`);
+      table = await response.json();
+      formsCache.set(key, table);
+    }
+    if (formsFor !== word) return;
+    renderForms(table);
+  } catch (error) {
+    console.warn(error);
+    if (formsFor !== word) return;
+    formsBody.replaceChildren(formsNote(D.formsFailed));
+  }
+}
+
+/** One form, painted piece by piece in the tints the blanks use, read aloud on a click. */
+function formButton(entry) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'form';
+  button.lang = D.target;
+  button.title = D.sayWord(entry.word);
+  const pieces = entry.pieces?.length ? entry.pieces : [entry.word];
+  pieces.forEach((piece, index) => {
+    const span = document.createElement('span');
+    span.className = 'm';
+    span.dataset.m = String(index % 4);
+    span.textContent = piece;
+    button.append(span);
+  });
+  button.addEventListener('click', () => speak(entry.word));
+  return button;
+}
+
+function formsRowHead(label) {
+  const head = document.createElement('th');
+  head.scope = 'row';
+  head.textContent = label;
+  return head;
+}
+
+/** Groups that share their labels, in order, make one table: labels down, groups across. */
+function formsMatrix(groups) {
+  const table = document.createElement('table');
+  table.className = 'forms-table';
+  const thead = table.createTHead();
+  const headRow = thead.insertRow();
+  headRow.append(document.createElement('th'));
+  for (const group of groups) {
+    const cell = document.createElement('th');
+    cell.scope = 'col';
+    cell.textContent = group.name;
+    // The ending under the name, unless the name already carries it.
+    if (group.hint && !group.name.includes(group.hint)) {
+      const hint = document.createElement('span');
+      hint.className = 'hint';
+      hint.lang = D.target;
+      hint.textContent = group.hint;
+      cell.append(hint);
+    }
+    headRow.append(cell);
+  }
+  const tbody = table.createTBody();
+  groups[0].forms.forEach((first, index) => {
+    const row = tbody.insertRow();
+    row.append(formsRowHead(first.label));
+    for (const group of groups) {
+      const cell = row.insertCell();
+      cell.append(formButton(group.forms[index]));
+    }
+  });
+  return table;
+}
+
+/** Groups with labels of their own each get a small table under their name. */
+function formsList(group) {
+  const table = document.createElement('table');
+  table.className = 'forms-table forms-group';
+  const caption = table.createCaption();
+  caption.textContent = group.hint && !group.name.includes(group.hint) ? `${group.name} ${group.hint}` : group.name;
+  const tbody = table.createTBody();
+  for (const entry of group.forms) {
+    const row = tbody.insertRow();
+    row.append(formsRowHead(entry.label));
+    row.insertCell().append(formButton(entry));
+  }
+  return table;
+}
+
+function renderForms(table) {
+  formsBody.replaceChildren();
+  const head = document.createElement('p');
+  head.className = 'forms-head';
+  const base = document.createElement('span');
+  base.className = 'forms-base';
+  base.lang = D.target;
+  base.textContent = table.base;
+  const meaning = document.createElement('span');
+  meaning.className = 'forms-meaning';
+  meaning.lang = D.native;
+  meaning.textContent = table.meaning;
+  head.append(base, meaning);
+  formsBody.append(head);
+
+  const groups = table.groups ?? [];
+  if (groups.length === 0) {
+    formsBody.append(formsNote(D.formsNone));
+    return;
+  }
+  const labels = groups[0].forms.map((entry) => entry.label);
+  const aligned =
+    groups.length > 1 &&
+    groups.every(
+      (group) => group.forms.length === labels.length && group.forms.every((entry, i) => entry.label === labels[i]),
+    );
+  const scroll = document.createElement('div');
+  scroll.className = 'forms-scroll';
+  if (aligned) scroll.append(formsMatrix(groups));
+  else scroll.append(...groups.map(formsList));
+  formsBody.append(scroll);
+}
+
+formsClose.addEventListener('click', closeForms);
 
 /* Fetching --------------------------------------------------------- */
 
@@ -1800,6 +1985,9 @@ function applyDirection() {
   renderTheme();
   renderMute();
   renderCredits();
+  closeForms();
+  formsClose.title = D.close;
+  formsClose.setAttribute('aria-label', D.close);
   loginLabel.textContent = D.login;
   renderAccount();
   menuButton.title = D.menu;

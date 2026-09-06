@@ -860,6 +860,110 @@ body.muted .chunk .say {
   display: none;
 }
 
+/* The forms of a chest word ----------------------------------------
+   Persons down, tenses across for a verb; cases down, number across
+   for a noun. Each form is painted piece by piece like a solved blank. */
+#forms {
+  margin-top: 1.5rem;
+}
+#forms[hidden] {
+  display: none;
+}
+.forms header {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.forms h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.forms header .ghost {
+  padding: 0.1rem 0.55rem;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.forms-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.75rem;
+  align-items: baseline;
+  margin: 0.6rem 0 0;
+}
+.forms-base {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+.forms-meaning {
+  font-family: var(--hand);
+  color: var(--muted);
+}
+.forms-scroll {
+  margin-top: 0.9rem;
+  overflow-x: auto;
+}
+.forms-group + .forms-group {
+  margin-top: 1.1rem;
+}
+.forms-table {
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.forms-table caption {
+  padding: 0 0 0.3rem;
+  font-family: var(--hand);
+  color: var(--muted);
+  text-align: left;
+}
+.forms-table th {
+  padding: 0.3rem 0.7rem 0.3rem 0;
+  font-family: var(--hand);
+  font-weight: 400;
+  color: var(--muted);
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.forms-table thead th {
+  padding-right: 0.9rem;
+  color: var(--ink);
+}
+.forms-table thead th .hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--faint);
+}
+.forms-table td {
+  padding: 0.15rem 0.9rem 0.15rem 0;
+  border-top: 1px solid var(--line);
+}
+.forms-table tbody th {
+  border-top: 1px solid var(--line);
+}
+.forms-table .form {
+  padding: 0.1rem 0.15rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.forms-table .form:hover,
+.forms-table .form:active {
+  text-decoration: underline;
+  transform: none;
+  box-shadow: none;
+}
+.forms-table .form .m {
+  padding: 0 0.06em;
+  border-radius: 3px;
+}
+
 /* Credits ---------------------------------------------------------- */
 .credits {
   margin-top: 4rem;

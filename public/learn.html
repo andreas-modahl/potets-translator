@@ -182,6 +182,16 @@
         <p class="bank-empty" id="bank-empty" hidden></p>
       </section>
 
+      <!-- A chest word opened up: every form the language makes of it, as a
+           table. Shown when a badge is clicked, until it is clicked again. -->
+      <section id="forms" class="card forms" hidden>
+        <header>
+          <h2 id="forms-title">Bøyning</h2>
+          <button type="button" id="forms-close" class="ghost" aria-label="Lukk">×</button>
+        </header>
+        <div id="forms-body"></div>
+      </section>
+
       <!-- The sentences seen so far, newest first. A row reopens its sentence
            in the card at the top, to be done again. -->
       <section id="log" hidden>

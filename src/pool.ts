@@ -73,7 +73,32 @@ export class LessonPool {
         UNIQUE (learning, level, topic, target)
       );
       CREATE INDEX IF NOT EXISTS lessons_shelf ON lessons (learning, level, topic);
+      CREATE TABLE IF NOT EXISTS extras (
+        kind TEXT NOT NULL,
+        learning TEXT NOT NULL,
+        key TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        PRIMARY KEY (kind, learning, key)
+      );
     `);
+  }
+
+  /**
+   * Something else the model was asked once and that never changes, such as
+   * the forms of a word, filed by kind and key. Missing is undefined.
+   */
+  extra(kind: string, learning: Learning, key: string): string | undefined {
+    const row = this.db
+      .prepare('SELECT body FROM extras WHERE kind = ? AND learning = ? AND key = ?')
+      .get(kind, learning, key) as { body: string } | undefined;
+    return row?.body;
+  }
+
+  keep(kind: string, learning: Learning, key: string, body: string): void {
+    this.db
+      .prepare('INSERT OR REPLACE INTO extras (kind, learning, key, body) VALUES (?, ?, ?, ?)')
+      .run(kind, learning, key, body);
   }
 
   /** Everything on one shelf, oldest first. */
