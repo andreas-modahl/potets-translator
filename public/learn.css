@@ -1017,7 +1017,7 @@ body.muted .chunk .say {
   display: flex;
   gap: 0.6rem;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-bottom: 0.35rem;
   font-family: var(--hand);
   font-size: 0.9rem;
@@ -1052,35 +1052,51 @@ body.muted .chunk .say {
   display: contents;
 }
 /* The thing: the root at the front, and a part per ending behind it,
-   the tag under each saying what it is. */
+   the tag above each saying what it is. A column per part, and rows for
+   the tag, the arrow above, the body and the arrow below, so the bodies
+   line up however tall the tags are. */
 .thing {
   --part-line: var(--line);
   --part-height: 2.5rem;
   --arrow-height: 1.6rem;
-  display: flex;
-  align-items: flex-start;
-  padding: 0.4rem 0.2rem 0.4rem;
+  display: grid;
+  grid-auto-columns: max-content;
+  grid-template-rows: auto var(--arrow-height) var(--part-height) auto;
+  row-gap: 0.2rem;
+  justify-content: start;
+  padding: 0.2rem 0.2rem 0.4rem;
   font-size: 1.2rem;
   font-weight: 600;
 }
 .thing .part {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
+  display: contents;
+}
+.thing .part > * {
+  grid-column: var(--col);
+}
+.thing .part-tag {
+  grid-row: 1;
+  align-self: end;
+  justify-self: center;
+}
+.thing .part-arrow.up {
+  grid-row: 2;
 }
 .thing .part-body {
+  grid-row: 3;
   display: grid;
   align-items: center;
   justify-items: center;
-  /* As wide as the tag under it, so a long tag makes a long part rather
+  /* As wide as the tag above it, so a long tag makes a long part rather
      than a gap between parts. */
-  align-self: stretch;
   box-sizing: border-box;
   height: var(--part-height);
   padding: 0 0.55em;
   border: 2px solid var(--part-line);
   white-space: nowrap;
+}
+.thing .part-arrow.down {
+  grid-row: 4;
 }
 /* A slot the form has no ending in: an empty part, still there to swap. */
 .thing .part-body.bare {
@@ -1098,6 +1114,7 @@ body.muted .chunk .say {
   display: block;
   box-sizing: border-box;
   height: var(--arrow-height);
+  justify-self: center;
   padding: 0 0.5em;
   font-size: 1.05rem;
   line-height: var(--arrow-height);
@@ -1118,15 +1135,12 @@ body.muted .chunk .say {
 .thing .part-arrow.blank {
   visibility: hidden;
 }
-.thing .part-tag {
-  margin-top: 0.1rem;
-}
-.thing .part-art {
-  margin-top: calc(var(--arrow-height) + 0.2rem);
-}
+/* The tag: plain words, the name of the ending and its keywords, or the
+   root's meaning; no paint outside the thing itself. */
 .thing .part-tag {
   display: grid;
   justify-items: center;
+  margin-bottom: 0.1rem;
   font-family: var(--hand);
   font-size: 0.8rem;
   font-weight: 400;
@@ -1140,18 +1154,17 @@ body.muted .chunk .say {
   align-items: center;
 }
 .thing .part-tag .m {
-  padding: 0 0.3em;
-  font-family: var(--sans);
-  font-size: 0.7rem;
-  font-weight: 600;
-  border-radius: 3px;
+  padding: 0;
+  font-size: 0.9rem;
+  background: transparent;
   color: var(--ink);
 }
 .thing .part-about {
   max-width: 7rem;
 }
 .thing .part-art {
-  flex: none;
+  grid-row: 3;
+  align-self: start;
   height: var(--part-height);
   overflow: visible;
   fill: var(--sunk-deep, var(--card));
@@ -1160,10 +1173,10 @@ body.muted .chunk .say {
   stroke-linejoin: round;
   stroke-linecap: round;
 }
-.thing .new {
+.thing .new .part-body {
   animation: hitch-on 0.4s calc(var(--step) * 0.15s) both;
 }
-.thing.still .new {
+.thing.still .new .part-body {
   animation: none;
 }
 @keyframes hitch-on {
@@ -1175,14 +1188,8 @@ body.muted .chunk .say {
     transform: translateX(-0.15em);
   }
 }
-.thing-sum {
-  margin: 0.2rem 0 0;
-  font-family: var(--hand);
-  color: var(--ink);
-}
-.thing-sum span:first-child {
-  font-family: var(--sans);
-  font-weight: 700;
+.thing .part-art:last-child {
+  grid-column: var(--tail-col);
 }
 /* Rocket: a nose in front, the parts as sections, fins and a flame behind. */
 .rocket .part-body {
@@ -1221,7 +1228,7 @@ body.muted .chunk .say {
   }
 }
 /* Train: an engine in front pulling a wagon per part, wheels under each. */
-.train .part + .part {
+.train .part + .part .part-body {
   margin-left: 0.55rem;
 }
 .train .part + .part .part-body::before {
@@ -1266,7 +1273,7 @@ body.muted .chunk .say {
 .worm .part-body {
   border-radius: 999px;
 }
-.worm .part + .part {
+.worm .part + .part .part-body {
   margin-left: -0.3rem;
 }
 .worm .part-body {

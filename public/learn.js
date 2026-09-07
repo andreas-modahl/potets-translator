@@ -2197,9 +2197,6 @@ function builderFrame() {
   const frame = document.createElement('figure');
   frame.className = 'builder';
   const caption = document.createElement('figcaption');
-  const title = document.createElement('span');
-  title.lang = D.native;
-  title.textContent = D.builder;
   const views = document.createElement('span');
   views.className = 'build-views';
   views.setAttribute('role', 'group');
@@ -2220,7 +2217,8 @@ function builderFrame() {
     });
     views.append(button);
   }
-  caption.append(title, views);
+  caption.append(views);
+  caption.setAttribute('aria-label', D.builder);
   const steps = document.createElement('div');
   steps.className = 'build-steps';
   frame.append(caption, steps);
@@ -2402,6 +2400,10 @@ function buildThing(entry, group, kind, animate, changed = '') {
   const art = BUILDER_ART[kind];
   // The art is fixed markup from this file; nothing from outside goes in.
   if (art.head) thing.insertAdjacentHTML('beforeend', art.head);
+  // The drawing is a grid: a column per part, and rows for the tag, the
+  // arrow above, the body, and the arrow below, so the bodies line up
+  // however tall the tags are.
+  let column = art.head ? 2 : 1;
   slots.forEach((slot, index) => {
     const part = document.createElement('span');
     part.className = 'part';
@@ -2409,6 +2411,7 @@ function buildThing(entry, group, kind, animate, changed = '') {
     // swapped one for an arrow.
     if (index > 0 && (!changed || slot.key === changed)) part.classList.add('new');
     part.style.setProperty('--step', String(changed ? 0 : index));
+    part.style.setProperty('--col', String(column++));
     // Everything the slot may hold lies stacked and unseen under what it
     // holds now, so the part is as wide and as tall as its widest option
     // and nothing shifts when it is swapped.
@@ -2437,22 +2440,12 @@ function buildThing(entry, group, kind, animate, changed = '') {
       ghost.classList.add('ghost');
       tag.append(ghost);
     }
-    part.append(partArrow(slot, -1), body, partArrow(slot, 1), tag);
+    part.append(tag, partArrow(slot, -1), body, partArrow(slot, 1));
     thing.append(part);
   });
   if (art.tail) thing.insertAdjacentHTML('beforeend', art.tail);
-  const sum = document.createElement('p');
-  sum.className = 'thing-sum';
-  const word = document.createElement('span');
-  word.lang = D.target;
-  word.textContent = entry.word;
-  const means = document.createElement('span');
-  means.lang = D.native;
-  means.textContent = entry.means ?? '';
-  sum.append(word, ' = ', means);
-  const frame = document.createDocumentFragment();
-  frame.append(thing, sum);
-  return frame;
+  thing.style.setProperty('--tail-col', String(column));
+  return thing;
 }
 
 /** The word as a staircase: each row one piece longer than the last. */
