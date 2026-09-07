@@ -221,7 +221,6 @@ const DIRECTIONS = {
     formsLoading: 'Henter bøyningen …',
     formsFailed: 'Fikk ikke tak i bøyningen. Prøv igjen.',
     formsNone: 'Dette ordet bøyes ikke.',
-    formsPick: 'Løs et ord, eller trykk på et ord i kista, så vises bøyningen her.',
     formsDrawing: 'Tegning',
     formsTable: 'Tabell',
     builder: 'Slik bygges ordet',
@@ -340,7 +339,6 @@ const DIRECTIONS = {
     formsLoading: 'Çekim getiriliyor …',
     formsFailed: 'Çekim alınamadı. Tekrar dene.',
     formsNone: 'Bu kelime çekimlenmez.',
-    formsPick: 'Bir kelimeyi çöz ya da sandıktaki bir kelimeye dokun; çekimi burada görünür.',
     formsDrawing: 'Çizim',
     formsTable: 'Tablo',
     builder: 'Kelime böyle kurulur',
@@ -1890,9 +1888,12 @@ function resetForms() {
   formsFor = '';
   formsShown = null;
   formsLook = {};
+  builtIn = null;
   formsFlip.hidden = true;
   formsTitle.replaceChildren();
-  formsBody.replaceChildren(formsNote(D.formsPick));
+  formsBody.replaceChildren(builderFrame());
+  renderEmptyBuilt();
+  applyFormsViews(false);
 }
 
 /** Whether a word of this class has forms worth a table. */
@@ -2261,6 +2262,7 @@ function builderFrame() {
       remember(BUILDER_VIEW, view);
       for (const other of views.children) other.setAttribute('aria-pressed', String(other === button));
       if (builtIn) showBuilt(builtIn.entry, builtIn.group);
+      else renderEmptyBuilt();
     });
     views.append(button);
   }
@@ -2410,7 +2412,7 @@ function stepBuilt(key, delta) {
 /** An arrow above or below a part, or a blank of the same size where a part
     has nothing to swap for. */
 function partArrow(slot, delta) {
-  const swappable = slot.key === 'group' || slot.key === 'label';
+  const swappable = !slot.empty && (slot.key === 'group' || slot.key === 'label');
   if (!swappable) {
     const blank = document.createElement('span');
     blank.className = 'part-arrow blank';
@@ -2430,8 +2432,31 @@ function partArrow(slot, delta) {
 /** The word as a thing: a nose or face, a part per slot, and a tail. Every
     part but the root has arrows to swap it for the next one in the table. */
 function buildThing(entry, group, kind, animate, changed = '') {
-  const slots = slotsOf(entry, group);
-  const options = slotOptions();
+  return renderThing(slotsOf(entry, group), slotOptions(), kind, animate, changed);
+}
+
+/** The slots of no word at all: a root and two endings, all bare. */
+function emptySlots() {
+  return [
+    { key: 'root', piece: '', tint: 0, means: '', empty: true },
+    { key: 'group', piece: '', tint: 1, role: null, empty: true },
+    { key: 'label', piece: '', tint: 2, role: null, empty: true },
+  ];
+}
+
+/** With no word in the card, the drawing stands empty, waiting for one. */
+function renderEmptyBuilt() {
+  const steps = formsBody.querySelector('.build-steps');
+  if (!steps) return;
+  const slots = emptySlots();
+  steps.replaceChildren(
+    builderView === 'stairs'
+      ? buildStairs(slots.map((slot) => ({ ...slot, means: '' })), false)
+      : renderThing(slots, new Map(), builderView, false),
+  );
+}
+
+function renderThing(slots, options, kind, animate, changed = '') {
   const thing = document.createElement('div');
   thing.className = `thing ${kind}${animate ? '' : ' still'}`;
   thing.lang = D.target;

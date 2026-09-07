@@ -1061,6 +1061,13 @@ body.muted .chunk .say {
 .build-step {
   display: contents;
 }
+/* A block with no word in it yet keeps a block's shape. */
+.build-word .m:empty {
+  display: inline-block;
+  min-width: 2em;
+  min-height: 1.3em;
+  vertical-align: middle;
+}
 /* The thing: the root at the front, and a part per ending behind it,
    the tag above each saying what it is. A column per part, and rows for
    the tag, the arrow above, the body and the arrow below, so the bodies
