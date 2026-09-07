@@ -6,6 +6,8 @@ const topicField = document.querySelector('#topic');
 const topicIdeas = document.querySelector('#topic-ideas');
 const classesButton = document.querySelector('#classes');
 const classesName = document.querySelector('#classes-name');
+const showFormsButton = document.querySelector('#show-forms');
+const showFormsName = document.querySelector('#show-forms-name');
 const submitButton = document.querySelector('#submit');
 const stepLabel = document.querySelector('#step-label');
 const log = document.querySelector('#log');
@@ -129,6 +131,8 @@ const DIRECTIONS = {
     switchLevel: 'Bytt nivå',
     wordClasses: 'Ordklasser',
     wordClassesHelp: 'Vis om ordet er substantiv, verb, adjektiv …',
+    formsCard: 'Bøyning',
+    formsCardHelp: 'Vis bøyningen av ordet du holder på med, under setningen',
     pos: {
       noun: 'substantiv',
       verb: 'verb',
@@ -248,6 +252,8 @@ const DIRECTIONS = {
     switchLevel: 'Seviyeyi değiştir',
     wordClasses: 'Sözcük türleri',
     wordClassesHelp: 'Kelimenin isim, fiil, sıfat … olduğunu göster',
+    formsCard: 'Çekim',
+    formsCardHelp: 'Üzerinde olduğun kelimenin çekimini cümlenin altında göster',
     pos: {
       noun: 'isim',
       verb: 'fiil',
@@ -947,6 +953,25 @@ let showClasses = recall(CLASSES_KEY) !== 'off';
 function renderClassesToggle() {
   classesButton.setAttribute('aria-checked', String(showClasses));
 }
+
+/* The forms card ----------------------------------------------------
+   Off by default: the blank itself now carries the arrows that try the
+   endings, so the card is there for those who want the whole picture. */
+
+const SHOW_FORMS_KEY = 'potets.bøyning';
+let showForms = recall(SHOW_FORMS_KEY) === 'on';
+
+function renderShowForms() {
+  showFormsButton.setAttribute('aria-checked', String(showForms));
+  formsPanel.hidden = !showForms;
+}
+
+showFormsButton.addEventListener('click', () => {
+  showForms = !showForms;
+  remember(SHOW_FORMS_KEY, showForms ? 'on' : 'off');
+  renderShowForms();
+  closeMenu();
+});
 
 classesButton.addEventListener('click', () => {
   showClasses = !showClasses;
@@ -2045,7 +2070,7 @@ async function openForms(word, pos, look = {}) {
   formsFlip.hidden = true;
   renderFormsTitle(word, look.native ?? '');
   formsBody.replaceChildren(formsNote(D.formsLoading));
-  if (look.scroll) formsPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  if (look.scroll && showForms) formsPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
   const key = `${learning}:${word}`;
   try {
@@ -3007,6 +3032,10 @@ function applyDirection() {
   classesButton.title = D.wordClassesHelp;
   classesButton.setAttribute('aria-label', D.wordClasses);
   renderClassesToggle();
+  showFormsName.textContent = D.formsCard;
+  showFormsButton.title = D.formsCardHelp;
+  showFormsButton.setAttribute('aria-label', D.formsCard);
+  renderShowForms();
   topicField.placeholder = D.topicPlaceholder;
   topicField.setAttribute('aria-label', D.topic);
   // Each side remembers its own topic, an emptied one included. With none

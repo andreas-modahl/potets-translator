@@ -1061,6 +1061,9 @@ body.muted .chunk .say {
 #forms {
   margin-top: 3rem;
 }
+#forms[hidden] {
+  display: none;
+}
 .forms header {
   display: flex;
   gap: 1rem;
