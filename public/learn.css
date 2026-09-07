@@ -962,10 +962,7 @@ body.muted .chunk .say {
    Persons down, tenses across for a verb; cases down, number across
    for a noun. Each form is painted piece by piece like a solved blank. */
 #forms {
-  margin-top: 1.5rem;
-}
-#forms[hidden] {
-  display: none;
+  margin-top: 3rem;
 }
 .forms header {
   display: flex;
@@ -1484,7 +1481,7 @@ body.muted .chunk .say {
 
 /* Word bank -------------------------------------------------------- */
 #bank {
-  margin-top: 3.5rem;
+  margin-top: 2.5rem;
 }
 #bank header {
   display: flex;

@@ -14,7 +14,6 @@ const credits = document.querySelector('#credits');
 const formsPanel = document.querySelector('#forms');
 const formsTitle = document.querySelector('#forms-title');
 const formsBody = document.querySelector('#forms-body');
-const formsClose = document.querySelector('#forms-close');
 const formsFlip = document.querySelector('#forms-flip');
 const logList = document.querySelector('#log-list');
 const logMore = document.querySelector('#log-more');
@@ -222,6 +221,7 @@ const DIRECTIONS = {
     formsLoading: 'Henter bøyningen …',
     formsFailed: 'Fikk ikke tak i bøyningen. Prøv igjen.',
     formsNone: 'Dette ordet bøyes ikke.',
+    formsPick: 'Løs et ord, eller trykk på et ord i kista, så vises bøyningen her.',
     builder: 'Slik bygges ordet',
     builderViews: { stairs: 'Trapp', rocket: 'Rakett', train: 'Tog', worm: 'Larve' },
     partUp: 'Forrige',
@@ -338,6 +338,7 @@ const DIRECTIONS = {
     formsLoading: 'Çekim getiriliyor …',
     formsFailed: 'Çekim alınamadı. Tekrar dene.',
     formsNone: 'Bu kelime çekimlenmez.',
+    formsPick: 'Bir kelimeyi çöz ya da sandıktaki bir kelimeye dokun; çekimi burada görünür.',
     builder: 'Kelime böyle kurulur',
     builderViews: { stairs: 'Merdiven', rocket: 'Roket', train: 'Tren', worm: 'Tırtıl' },
     partUp: 'Önceki',
@@ -612,6 +613,7 @@ function select(index) {
     box.classList.toggle('open', at === index);
   }
   renderDetail(current.chunks[index]);
+  followWord(current.chunks[index]);
 }
 
 // The hint button works on the selected word, or failing that the
@@ -838,8 +840,12 @@ function checkField(field, chunk) {
     viewGroup = -1;
     bankEarned(chunk);
   }
-  // Getting it right unmasks the word in the panel underneath.
-  if (current.chunks[selected] === chunk) renderDetail(chunk);
+  // Getting it right unmasks the word in the panel underneath, and puts
+  // it in the forms card.
+  if (current.chunks[selected] === chunk) {
+    renderDetail(chunk);
+    followWord(chunk);
+  }
   // The last word in opens up the whole sentence and hands the focus to
   // the next button, so Enter carries on.
   if (sentenceDone()) {
@@ -1684,11 +1690,13 @@ voiceSelect.addEventListener('change', () => {
 });
 
 // A click on the card's empty space puts the caret in the first blank
-// still open. The word boxes, the buttons and the links in it keep their
-// own behaviour, and a click outside the card moves nothing.
+// still open, but only when no blank has it: a caret already in a word
+// stays where it is. The word boxes, the buttons and the links in the
+// card keep their own behaviour, and a click outside the card moves nothing.
 lessonCard.addEventListener('mousedown', (event) => {
   if (event.target.closest('button, [role="button"], a, [contenteditable], .chunk')) return;
   event.preventDefault();
+  if (document.activeElement?.closest('.chunk')) return;
   focusNextOpen();
 });
 
@@ -1826,21 +1834,21 @@ function renderBank(words) {
 
     // The badge reads its word out, and for a word that inflects opens its
     // forms below the chest. The minus is the one part that does neither.
-    const inflects = !word.pos || word.pos === 'verb' || word.pos === 'noun' || word.pos === 'adjective';
     const open = () => {
       speak(word.target);
-      if (inflects) {
+      if (inflects(word.pos)) {
         openForms(word.target, word.pos, {
           native: word.native,
           pic: word.pic,
           emoji: word.emoji ?? '',
           english: word.english ?? '',
+          scroll: true,
         });
       }
     };
     item.tabIndex = 0;
     item.setAttribute('role', 'button');
-    item.title = inflects ? D.showForms(word.target) : D.sayWord(word.target);
+    item.title = inflects(word.pos) ? D.showForms(word.target) : D.sayWord(word.target);
     item.addEventListener('click', (event) => {
       if (event.target.closest('button')) return;
       open();
@@ -1873,12 +1881,34 @@ let formsShown = null;
 const FORMS_AXES = 'potets.forms.axes';
 let formsGroupsAcross = recall(FORMS_AXES) === 'across';
 
-function closeForms() {
+/** The card with no word in it yet: a line on how to get one there. */
+function resetForms() {
   formsFor = '';
   formsShown = null;
-  formsPanel.hidden = true;
+  formsLook = {};
   formsFlip.hidden = true;
-  formsBody.replaceChildren();
+  formsTitle.replaceChildren();
+  formsBody.replaceChildren(formsNote(D.formsPick));
+}
+
+/** Whether a word of this class has forms worth a table. */
+function inflects(pos) {
+  return !pos || pos === 'verb' || pos === 'noun' || pos === 'adjective';
+}
+
+/** The card follows the word in hand, once it is solved: an open blank
+    would have its answer given away by the table. */
+function followWord(chunk) {
+  if (!chunk || !isSolved(current.chunks.indexOf(chunk)) || !inflects(chunk.pos)) return;
+  // The word without the punctuation it carries in the sentence.
+  const word = chunk.target.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}'’]+$/gu, '');
+  if (!word) return;
+  openForms(word, chunk.pos, {
+    native: chunk.native,
+    pic: pictureWord(chunk),
+    emoji: pictureEmoji(chunk),
+    english: chunk.english ?? '',
+  });
 }
 
 function formsNote(text) {
@@ -1911,19 +1941,15 @@ function renderFormsTitle(word, meaning) {
 
 /** Opens the forms of a word, or closes them when they are the ones open. */
 async function openForms(word, pos, look = {}) {
-  if (formsFor === word) {
-    closeForms();
-    return;
-  }
+  if (formsFor === word) return;
   formsFor = word;
   formsLook = look;
   builtWord = '';
-  formsPanel.hidden = false;
   formsShown = null;
   formsFlip.hidden = true;
   renderFormsTitle(word, look.native ?? '');
   formsBody.replaceChildren(formsNote(D.formsLoading));
-  formsPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  if (look.scroll) formsPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
   const key = `${learning}:${word}`;
   try {
@@ -2553,7 +2579,6 @@ function showBuilt(entry, group, animate = true, changed = '') {
   );
 }
 
-formsClose.addEventListener('click', closeForms);
 formsFlip.addEventListener('click', () => {
   formsGroupsAcross = !formsGroupsAcross;
   remember(FORMS_AXES, formsGroupsAcross ? 'across' : 'down');
@@ -2766,9 +2791,7 @@ function applyDirection() {
   renderMute();
   renderVoices();
   renderCredits();
-  closeForms();
-  formsClose.title = D.close;
-  formsClose.setAttribute('aria-label', D.close);
+  resetForms();
   formsFlip.title = D.formsFlip;
   formsFlip.setAttribute('aria-label', D.formsFlip);
   loginLabel.textContent = D.login;
