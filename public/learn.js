@@ -32,6 +32,7 @@ const lessonCard = document.querySelector('#lesson');
 const comparator = document.querySelector('#comparator');
 const hintButton = document.querySelector('#hint');
 const specialKeys = document.querySelector('#special-keys');
+const choicesRow = document.querySelector('#choices');
 const naturalRow = document.querySelector('#natural-row');
 const naturalLine = document.querySelector('#natural');
 const streakPill = document.querySelector('#streak');
@@ -391,19 +392,6 @@ function caretOffsetIn(element) {
   return range.toString().length;
 }
 
-/** Sizes the rows of tags and arrows over a split blank to its segments,
-    so each stands over the segment it belongs to however wide it grows. */
-function syncRows(box) {
-  const segs = segmentsOf(box.querySelector('.tr'));
-  if (segs.length === 0) return;
-  for (const row of box.querySelectorAll('.tags, .swaps')) {
-    [...row.children].forEach((item, index) => {
-      const seg = segs[index];
-      if (seg) item.style.width = `${seg.getBoundingClientRect().width}px`;
-    });
-  }
-}
-
 function select(index) {
   // A new blank in focus has not been heard yet.
   if (index !== selected) heardInFocus = false;
@@ -420,6 +408,9 @@ function select(index) {
   const chunk = current.chunks[index];
   const field = comparator.children[index]?.querySelector('.tr');
   if (!chunk || !field) return;
+  // The blank already being helped keeps what it has built: the focus
+  // coming back to it, after a choice was pressed, is not a fresh start.
+  if (helping?.field === field) return;
   if (isSolved(index)) {
     if (inflects(chunk.pos) && piecesOf(chunk)) setHelping({ field, chunk });
   } else {
@@ -626,9 +617,8 @@ function checkField(field, chunk) {
   box.classList.toggle('filled', typed.trim().length > 0);
   box.classList.toggle('ontrack', fold(chunk.target).startsWith(fold(typed)));
   markLetters(box, typed, chunk.target);
-  syncRows(box);
-  // The tags over the endings follow what the segments hold.
-  if (helping?.chunk === chunk) syncBlankTags(currentSlots());
+  // The choices at the top of the card follow what the segments hold.
+  if (helping?.chunk === chunk) renderChoices();
   const solvedNow = box.classList.contains('correct');
   if (solvedNow === wasSolved) return;
 
@@ -758,8 +748,8 @@ function renderClassesToggle() {
 }
 
 /* The forms card ----------------------------------------------------
-   Off by default: the blank itself now carries the arrows that try the
-   endings, so the card is there for those who want the whole picture. */
+   Off by default: the choices at the top of the lesson card try the
+   endings, so this card is there for those who want the whole picture. */
 
 const SHOW_FORMS_KEY = 'potets.bøyning';
 let showForms = recall(SHOW_FORMS_KEY) === 'on';
@@ -832,112 +822,115 @@ function paintedPieces(chunk, parts, tints = parts.map((part, index) => endingTi
   return [...painted, chunk.target.slice(at)];
 }
 
-/**
- * A row of arrows the width of the word's pieces: the pieces again in the
- * blank's type, unseen, with an arrow button standing in for each ending
- * that the forms table can swap, so the arrow sits over or under its block.
- */
-function swapRow(chunk, pieces, delta) {
-  const row = document.createElement('span');
-  row.className = `swaps ${delta > 0 ? 'down' : 'up'}`;
-  if (!pieces) return row;
-  pieces.forEach((part, index) => {
-    const tint = endingTint(part.form, index);
-    const slot = index > 0 && tint === 1 ? 'group' : index > 0 && tint === 2 ? 'label' : '';
-    if (!slot) {
-      const filler = document.createElement('span');
-      filler.style.minWidth = `calc(${part.length}ch + 0.4em)`;
-      row.append(filler);
-      return;
-    }
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'swap';
-    button.dataset.slot = slot;
-    button.dataset.dir = delta > 0 ? 'down' : 'up';
-    button.tabIndex = -1;
-    button.style.minWidth = `calc(${part.length}ch + 0.4em)`;
-    button.setAttribute('aria-label', delta > 0 ? D.partDown : D.partUp);
-    button.addEventListener('click', () => stepBuilt(slot, delta, button));
-    row.append(button);
-  });
-  return row;
+/* The choices ---------------------------------------------------------
+   At the top of the card, for the blank being built: every ending its
+   forms table offers, a row per axis, each ending painted in its tint
+   with what it does beside it. A press writes the ending into the
+   blank's segment of that kind. Ahead of each row stands what the
+   sentence asks for there, from the lesson ("akkusativ", "jeg"): the
+   hint for what to find, there before the table has come. */
+
+/** Letters only, of what a segment holds. */
+function heldIn(seg) {
+  return seg?.textContent.replace(/[^\p{L}\p{M}\p{N}]/gu, '') ?? '';
 }
 
-/**
- * A row of tags the width of the word's pieces: the pieces again in the
- * blank's type, unseen, each with a label centred over it that says what
- * the piece does, filled in as the forms table comes and the arrows move.
- */
-function tagRow(chunk, pieces) {
-  const row = document.createElement('span');
-  row.className = 'tags';
-  row.lang = D.native;
-  if (!pieces) return row;
-  pieces.forEach((part, index) => {
-    const slot = document.createElement('span');
-    slot.className = 'slot';
-    slot.style.minWidth = `calc(${part.length}ch + 0.4em)`;
-    // The tag wears its segment's tint, so the two read as one.
-    const tag = document.createElement('span');
-    tag.className = 'tag m';
-    tag.dataset.m = String(endingTint(part.form, index));
-    slot.append(tag);
-    row.append(slot);
-  });
-  return row;
+/** Whether a form has nothing in the slot named: no plural, no case. */
+function bareIn(slots, which) {
+  return slots.find((slot) => slot.key === which)?.piece === '';
 }
 
-/** Writes the tags over a blank's pieces, short, and widens any segment
-    whose tag is wider than it, so every tag stands over its own segment
-    on one line. */
-function renderBlankTags(box, texts) {
-  const tags = [...box.querySelectorAll('.tags .tag')];
-  const segs = segmentsOf(box.querySelector('.tr'));
-  tags.forEach((tag, index) => {
-    const full = texts[index] ?? '';
-    tag.textContent = shortMeans(full);
-    // The whole of it on hover, where the tag is a cut of it.
-    tag.title = tag.textContent !== full ? full : '';
-  });
-  requestAnimationFrame(() => {
-    tags.forEach((tag, index) => {
-      const seg = segs[index];
-      if (!seg) return;
-      const length = Number(seg.dataset.len) || 0;
-      const pad = 0.4 * parseFloat(getComputedStyle(seg).fontSize);
-      const want = tag.textContent ? tag.getBoundingClientRect().width + 4 - pad : 0;
-      seg.style.minWidth = want > 0 ? `max(${length}ch, ${want.toFixed(1)}px)` : `${length}ch`;
-    });
-    syncRows(box);
-  });
-}
-
-/**
- * Puts tags over the blank being built, ending by ending. A segment that
- * is empty or holds the right ending is tagged with what the sentence
- * wants there, from the lesson ("akkusativ", "jeg"): the hint for what
- * to find. One holding some other ending is tagged with what that
- * ending does, from the forms table. The root has no tag; its meaning
- * already stands under the blank.
- */
-function syncBlankTags(slots = []) {
-  if (!helping) return;
-  const pieces = piecesOf(helping.chunk);
-  if (!pieces) return;
+function renderChoices() {
+  choicesRow.replaceChildren();
+  choicesRow.setAttribute('aria-label', D.choices);
+  const pieces = helping ? piecesOf(helping.chunk) : null;
+  if (!pieces) {
+    choicesRow.hidden = true;
+    return;
+  }
   const segs = segmentsOf(helping.field);
-  const texts = pieces.map((part, index) => {
-    if (index === 0) return '';
-    // In full: the tag is cut short when shown, with the whole on hover.
-    const wanted = part.means ?? '';
-    const held = segs[index]?.textContent.replace(/[^\p{L}\p{M}\p{N}]/gu, '') ?? '';
-    if (!held || fold(held) === fold(part.form)) return wanted;
-    const tint = endingTint(part.form, index);
-    const key = tint === 1 ? 'group' : tint === 2 ? 'label' : '';
-    const slot = slots.find((candidate) => candidate.key === key);
-    return slot ? slotTagText(slot) || wanted : wanted;
-  });
-  renderBlankTags(helping.field.parentElement, texts);
+  const groups = formsShown?.groups ?? [];
+  const built = formsShown ? builtIn : null;
+  const groupFirst = groupEndingFirst();
+  const slotOf = (form, group, key) => slotsOf(form, group, groupFirst).find((slot) => slot.key === key);
+  // The label axis runs along the group built, else along one whose forms
+  // carry no group ending, so a case picked first does not bring a plural.
+  const along =
+    built?.group ??
+    groups.find((group) => group.forms.some((form) => bareIn(slotsOf(form, group, groupFirst), 'group'))) ??
+    groups[0];
+  const axes = [
+    {
+      key: 'group',
+      tint: 1,
+      options:
+        groups.length > 1
+          ? groups.map((group) => {
+              // Each group's ending as it goes with the label built, or with its first form.
+              const form = (built?.entry && group.forms.find((candidate) => candidate.label === built.entry.label)) ?? group.forms[0];
+              return { slot: slotOf(form, group, 'group'), pick: group, current: built?.group === group };
+            })
+          : [],
+    },
+    {
+      key: 'label',
+      tint: 2,
+      options:
+        along && along.forms.length > 1
+          ? along.forms.map((form) => ({ slot: slotOf(form, along, 'label'), pick: form, current: built?.entry === form }))
+          : [],
+    },
+  ];
+  if (!groupFirst) axes.reverse();
+  for (const { key, tint, options } of axes) {
+    const wanted = pieces.find((part, index) => index > 0 && endingTint(part.form, index) === tint)?.means ?? '';
+    if (!wanted && options.length === 0) continue;
+    const row = document.createElement('div');
+    row.className = 'axis';
+    if (wanted) {
+      const label = document.createElement('span');
+      label.className = 'wanted m';
+      label.dataset.m = String(tint);
+      label.lang = D.native;
+      label.textContent = shortMeans(wanted);
+      if (label.textContent !== wanted) label.title = wanted;
+      row.append(label);
+    }
+    const seg = segs.find((candidate) => candidate.dataset.m === String(tint));
+    const held = heldIn(seg);
+    for (const { slot, pick, current } of options) {
+      const piece = slot?.piece ?? '';
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'choice';
+      button.tabIndex = -1;
+      // Pressed when the blank holds this very ending; a bare one only
+      // when it is the form built and the segment is empty.
+      const pressed = piece ? fold(held) === fold(piece) : current && held === '';
+      button.setAttribute('aria-pressed', String(pressed));
+      const ending = document.createElement('span');
+      ending.className = 'm';
+      ending.dataset.m = String(tint);
+      ending.lang = D.target;
+      ending.textContent = piece ? `-${piece}` : '–';
+      button.append(ending);
+      const about = slot ? slotTagText(slot) : '';
+      if (about) {
+        const text = document.createElement('span');
+        text.className = 'about';
+        text.lang = D.native;
+        text.textContent = shortMeans(about);
+        if (text.textContent !== about) button.title = about;
+        button.append(text);
+      }
+      // The caret stays in the blank; the press writes the ending.
+      button.addEventListener('mousedown', (event) => event.preventDefault());
+      button.addEventListener('click', () => pickBuilt(key, pick, seg ?? helping?.field ?? null));
+      row.append(button);
+    }
+    choicesRow.append(row);
+  }
+  choicesRow.hidden = choicesRow.children.length === 0;
 }
 
 /** A piece's meaning cut down to a chip's worth: the name in brackets
@@ -964,7 +957,6 @@ function paintWord(box, field, chunk) {
   // the word dealt out over them. A single field gets painted spans.
   if (segmentsOf(field).length) setFieldText(field, chunk.target);
   else field.replaceChildren(...paintedPieces(chunk, parts, tints));
-  syncRows(box);
   renderCaption(
     box,
     chunk,
@@ -1127,8 +1119,8 @@ function chunkField(chunk, index) {
   // the next-sentence button, not on whatever button comes first.
   field.addEventListener('keydown', (event) => {
     const seg = event.target.closest?.('.seg');
-    // Up and down swap the ending of the segment the caret is in, as the
-    // arrow over it does; in the root, the first ending.
+    // Up and down swap the ending of the segment the caret is in for the
+    // next choice along its axis; in the root, the first ending.
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       if (helping?.field !== field || !builtIn || !formsShown) return;
       event.preventDefault();
@@ -1226,14 +1218,7 @@ function chunkField(chunk, index) {
   check.className = 'check';
   check.setAttribute('aria-hidden', 'true');
 
-  // An arrow over each ending segment, for a blank being built: it swaps
-  // the ending along that axis, written into the segment. The keyboard's
-  // up and down keys do the same in both directions.
-  const swapsUp = swapRow(chunk, pieces, -1);
-  // And over the arrows, what each ending does, as over the drawn word.
-  const tags = tagRow(chunk, pieces);
-
-  box.append(parts, tags, swapsUp, field, check, under);
+  box.append(parts, field, check, under);
   renderCaption(box, chunk, []);
 
   // The whole box is the target: a click on its padding, the caption or
@@ -2021,23 +2006,13 @@ function inflects(pos) {
     endings left to find with the arrows, which write the form into it. */
 let helping = null;
 
-/** Hands the help to a blank, or to none; the blank shows its own arrows,
-    and the hints over its endings, before any table has come. */
+/** Hands the help to a blank, or to none; the choices at the top of the
+    card show for it, the hints alone before any table has come. */
 function setHelping(next) {
   helping?.field.parentElement.classList.remove('helping');
   helping = next;
   next?.field.parentElement.classList.add('helping');
-  if (next) {
-    syncBlankTags(currentSlots());
-    // The rows over the segments take their widths once the rows show.
-    requestAnimationFrame(() => syncRows(next.field.parentElement));
-  }
-}
-
-/** The slots of the form built at the moment, or none before a table is in. */
-function currentSlots() {
-  if (!builtIn || !formsShown) return [];
-  return builtIn.entry ? slotsOf(builtIn.entry, builtIn.group) : rootSlots();
+  renderChoices();
 }
 
 /** The word without the punctuation it carries in the sentence. */
@@ -2515,7 +2490,6 @@ function stepBuilt(key, delta, from = null) {
   if (!builtIn || !formsShown) return;
   const groups = formsShown.groups;
   let { entry, group } = builtIn;
-  const bareIn = (slots, which) => slots.find((slot) => slot.key === which)?.piece === '';
   if (!entry) {
     // From the bare root: the first or last along the axis pressed, with
     // the other axis left bare where the table has such a form.
@@ -2535,6 +2509,34 @@ function stepBuilt(key, delta, from = null) {
   } else {
     entry = group.forms[(group.forms.indexOf(entry) + delta + group.forms.length) % group.forms.length];
   }
+  // The arrow that was pressed is drawn anew; the keyboard stays on it,
+  // or the caret in the segment it came from.
+  const back = from ?? formsBody.querySelector(`.part-arrow[data-slot="${key}"][data-dir="${delta > 0 ? 'down' : 'up'}"]`);
+  writeBuilt(entry, group, key, back);
+}
+
+/** Builds the form with one choice picked outright: a group, keeping the
+    label built, or a label of the group built. */
+function pickBuilt(key, choice, back = null) {
+  if (!formsShown) return;
+  const groups = formsShown.groups;
+  let { entry, group } = builtIn ?? {};
+  if (key === 'group') {
+    group = choice;
+    entry =
+      (entry && group.forms.find((form) => form.label === entry.label)) ??
+      group.forms.find((form) => bareIn(slotsOf(form, group), 'label')) ??
+      group.forms[0];
+  } else {
+    group = groups.find((candidate) => candidate.forms.includes(choice)) ?? group ?? groups[0];
+    entry = choice;
+  }
+  writeBuilt(entry, group, key, back);
+}
+
+/** Shows a form built, writes its endings into the blank being built, and
+    puts the focus back where the change was asked for. */
+function writeBuilt(entry, group, key, back) {
   speak(entry.word);
   showBuilt(entry, group, true, key);
   // The blank being built gets the form's endings written into its ending
@@ -2558,9 +2560,6 @@ function stepBuilt(key, delta, from = null) {
       byArrow = false;
     }
   }
-  // The arrow that was pressed is drawn anew; the keyboard stays on it,
-  // or the caret in the segment it came from.
-  const back = from ?? formsBody.querySelector(`.part-arrow[data-slot="${key}"][data-dir="${delta > 0 ? 'down' : 'up'}"]`);
   if (back?.classList.contains('seg') || back?.classList.contains('tr')) placeCaretIn(back.classList.contains('tr') ? (segmentsOf(back).at(-1) ?? back) : back, true);
   else back?.focus();
 }
@@ -2762,10 +2761,10 @@ function showBuilt(entry, group, animate = true, changed = '') {
         ? buildStairs([{ piece: slots[0].piece, tint: 0, means: slots[0].means, role: null }], false)
         : renderThing(slots, slotOptions(), builderView, false),
     );
-    syncBlankTags(slots);
+    renderChoices();
     return;
   }
-  syncBlankTags(slotsOf(entry, group));
+  renderChoices();
   const pieces = piecesOfForm(entry);
   const tints = pieceTints(entry, group.hint, entry.label);
   // Each piece with its tint, what it does, and what the word says once it

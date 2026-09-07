@@ -513,122 +513,73 @@
 .chunk .under {
   grid-row: 3;
 }
-/* A blank being built stacks up: tags, arrows, the word, and the
-   translation last. */
-.chunk.helping .tr,
-.chunk.helping .check {
-  grid-row: 3;
+/* The choices, at the top of the card: a row per axis of the forms
+   table, each ending painted in its tint with what it does beside it,
+   and ahead of the row what the sentence asks for there. */
+.choices {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 2px dashed var(--faint);
 }
-.chunk.helping .under {
-  grid-row: 4;
-}
-/* Over the arrows, what each piece does: the pieces again in the blank's
-   type, unseen, each with its tag centred over it. A tag that would run
-   into the one before is lifted onto a line above. */
-.chunk .tags {
-  grid-row: 1;
-  grid-column: 1;
+.choices[hidden] {
   display: none;
-  height: 1.2rem;
-  padding: 0 0.1rem;
-  font-family: var(--mono);
-  font-size: 1.3rem;
-  letter-spacing: 0;
-  line-height: 0.8;
-  font-kerning: none;
-  white-space: pre;
-  color: transparent;
 }
-.chunk.helping .tags {
+.choices .axis {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
 }
-.chunk .tags .slot {
-  position: relative;
-  display: block;
-  box-sizing: border-box;
-  height: 100%;
-  margin-right: 0.15rem;
+.choices .wanted {
+  margin-right: 0.2rem;
+  padding: 0.05rem 0.4rem;
+  font-family: var(--hand);
+  font-size: 0.85rem;
+  line-height: 1.25;
+  border-radius: 4px;
+  color: var(--ink);
 }
-.chunk .tags .tag {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 0 0.3em;
+.choices .choice {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1.5px solid var(--line);
+  border-radius: var(--wobble-small);
+  box-shadow: 2px 2px 0 var(--shadow);
+}
+.choices .choice .m {
+  padding: 0 0.2em;
+  font-weight: 600;
+  border-radius: 3px;
+}
+.choices .choice .about {
   font-family: var(--hand);
   font-size: 0.8rem;
-  line-height: 1.2;
-  letter-spacing: 0;
-  white-space: nowrap;
-  border-radius: 3px;
-  color: var(--ink);
-}
-.chunk .tags .tag:empty {
-  display: none;
-}
-/* For a blank being helped, arrows over and under each ending block, in
-   place of the caption above: the pieces again in the blank's type,
-   unseen, so each arrow is as wide as its block and sits right on it. */
-.chunk .swaps {
-  grid-column: 1;
-  display: none;
-  height: 1.1rem;
-  padding: 0 0.1rem;
-  font-family: var(--mono);
-  font-size: 1.3rem;
-  letter-spacing: 0;
-  line-height: 0.8;
-  font-kerning: none;
-  white-space: pre;
-  color: transparent;
-}
-.chunk .swaps.up {
-  grid-row: 2;
-}
-.chunk.helping .swaps {
-  display: flex;
-}
-.chunk.helping .parts {
-  display: none;
-}
-.chunk .swaps span,
-.chunk .swaps .swap {
-  display: block;
-  box-sizing: border-box;
-  height: 1.1rem;
-  margin-right: 0.15rem;
-}
-.chunk .swaps .swap {
-  position: relative;
-  padding: 0;
-  font: inherit;
-  letter-spacing: inherit;
-  color: transparent;
-  background: none;
-  border: 0;
-  border-radius: 4px;
-  box-shadow: none;
-  cursor: pointer;
-}
-.chunk .swaps .swap::after {
-  content: '▲';
-  position: absolute;
-  inset: 0;
-  font-size: 0.8rem;
-  line-height: 1.1rem;
-  letter-spacing: 0;
-  text-align: center;
   color: var(--muted);
 }
-.chunk .swaps .swap:hover::after,
-.chunk .swaps .swap:focus-visible::after {
-  color: var(--ink);
+.choices .choice:hover {
+  background: var(--sunk);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--shadow);
 }
-.chunk .swaps .swap:hover,
-.chunk .swaps .swap:active {
-  background: var(--card);
-  transform: none;
-  box-shadow: none;
+.choices .choice:active,
+.choices .choice[aria-pressed='true'] {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--shadow);
+}
+.choices .choice[aria-pressed='true'] {
+  background: var(--accent-soft);
+}
+.choices .choice[aria-pressed='true'] .about {
+  color: var(--ink);
 }
 .chunk .tr:focus {
   --line-colour: var(--teal);
