@@ -472,6 +472,11 @@
   border-radius: 0 0 40% 60% / 0 0 6px 4px;
   outline: none;
 }
+/* Emptying an editable leaves a line break behind, which the preserved
+   whitespace would set as a second line; it is not a line at all. */
+.chunk .tr br {
+  display: none;
+}
 .chunk .tr::after {
   content: '';
   position: absolute;
