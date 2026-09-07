@@ -1243,6 +1243,17 @@ function syncBlankTags(slots) {
   renderBlankTags(helping.field.parentElement, texts);
 }
 
+/** A piece's meaning cut down to a chip's worth: the name in brackets
+    where there is one ("akkusativ" out of "bestemt objektsform
+    (akkusativ)"), else what stands before the first comma. */
+function shortMeans(means) {
+  const text = (means ?? '').trim();
+  const inBrackets = /\(([^)]{1,16})\)/.exec(text)?.[1];
+  if (inBrackets && text.length > 18) return inBrackets.trim();
+  const head = text.split(/[,;:]/)[0].trim();
+  return head.length >= 2 && text.length > 18 ? head : text;
+}
+
 /** Paints a solved word piece by piece and writes each piece's meaning
     in the same tint above the blank. */
 function paintWord(box, field, chunk) {
@@ -1265,7 +1276,7 @@ function paintWord(box, field, chunk) {
       tag.className = 'm';
       tag.dataset.m = String(tints[index]);
       tag.lang = D.native;
-      tag.textContent = part.means;
+      tag.textContent = shortMeans(part.means);
       return tag;
     }),
   );

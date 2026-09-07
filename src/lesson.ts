@@ -177,7 +177,10 @@ For each piece:
   fragment out of order, because the two languages arrange a sentence
   differently. That mismatch is the lesson.
 - "morphemes" splits the ${d.target} word into its root and each ending, in
-  the order they are spelled, with what each one does in ${d.native}.
+  the order they are spelled, with what each one does in ${d.native}, in a
+  word or two: the name of the case or tense, or the person ("akkusativ",
+  "flertall", "presens", "jeg"), not a description of it. The "note" is the
+  place for more.
   ${d.morphology}
 - "pos" is the word class of the piece's main word: noun, verb, adjective,
   adverb, pronoun, adposition, conjunction, numeral, determiner, interjection
@@ -290,7 +293,7 @@ function lessonSchema(d: Direction): Record<string, unknown> {
                   },
                   means: {
                     type: 'string',
-                    description: `What it contributes, in ${d.native}.`,
+                    description: `What it contributes, in ${d.native}, in a word or two: the name of the case, tense or person.`,
                   },
                 },
                 required: ['form', 'means'],
