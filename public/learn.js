@@ -1967,6 +1967,20 @@ function formButton(entry, group) {
   return cell;
 }
 
+/** A cell holding a form: a click anywhere in it, not just on the word,
+    counts as a click on the word. */
+function formCell(row, entry, group) {
+  const cell = row.insertCell();
+  const node = formButton(entry, group);
+  cell.append(node);
+  const button = node.matches('button') ? node : node.querySelector('button');
+  cell.addEventListener('click', (event) => {
+    if (event.target.closest('button')) return;
+    button.click();
+  });
+  return cell;
+}
+
 /** An ending the way it is written on a heading, folded so that "-ecek" finds
     "eceğ", "-ir" finds "er" and "-de" finds "ta": vowels alike, the consonants
     that harden or soften folded together, dashes and case gone. */
@@ -2076,7 +2090,7 @@ function formsMatrix(groups) {
       const row = tbody.insertRow();
       row.append(formsLabelHead(first.label, across(index), 'row'));
       for (const group of groups) {
-        row.insertCell().append(formButton(group.forms[index], group));
+        formCell(row, group.forms[index], group);
       }
     });
   } else {
@@ -2084,7 +2098,7 @@ function formsMatrix(groups) {
     for (const group of groups) {
       const row = tbody.insertRow();
       row.append(formsGroupHead(group, 'row'));
-      for (const entry of group.forms) row.insertCell().append(formButton(entry, group));
+      for (const entry of group.forms) formCell(row, entry, group);
     }
   }
   return table;
@@ -2100,7 +2114,7 @@ function formsList(group) {
   for (const entry of group.forms) {
     const row = tbody.insertRow();
     row.append(formsLabelHead(entry.label, [entry], 'row'));
-    row.insertCell().append(formButton(entry, group));
+    formCell(row, entry, group);
   }
   return table;
 }

@@ -1373,6 +1373,10 @@ body.muted .chunk .say {
 .forms-table td {
   padding: 0.15rem 0.9rem 0.15rem 0;
   border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+.forms-table td:hover .form {
+  text-decoration: underline;
 }
 .forms-table tbody th {
   border-top: 1px solid var(--line);
