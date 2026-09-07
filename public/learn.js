@@ -32,7 +32,12 @@ const lessonCard = document.querySelector('#lesson');
 const comparator = document.querySelector('#comparator');
 const hintButton = document.querySelector('#hint');
 const specialKeys = document.querySelector('#special-keys');
-const choicesRow = document.querySelector('#choices');
+// The endings on offer for the segment in focus: one row, moved into
+// the box of whichever blank is being built.
+const choicesRow = document.createElement('div');
+choicesRow.className = 'choices';
+choicesRow.setAttribute('role', 'group');
+choicesRow.hidden = true;
 const naturalRow = document.querySelector('#natural-row');
 const naturalLine = document.querySelector('#natural');
 const streakPill = document.querySelector('#streak');
@@ -825,10 +830,11 @@ function paintedPieces(chunk, parts, tints = parts.map((part, index) => endingTi
 }
 
 /* The choices ---------------------------------------------------------
-   At the top of the card, for the segment the caret is in: every ending
-   its forms table offers along that axis, painted in its tint with what
-   it does beside it. A press writes the ending into the segment. Nothing
-   shows for the root, or before the table has come. */
+   In the word's box, under its translation, for the segment the caret
+   is in: every ending its forms table offers along that axis, painted
+   in its tint with what it does beside it. A press writes the ending
+   into the segment. Nothing shows for the root, or before the table
+   has come. */
 
 /** Letters only, of what a segment holds. */
 function heldIn(seg) {
@@ -848,6 +854,8 @@ function renderChoices() {
     choicesRow.hidden = true;
     return;
   }
+  const box = helping.field.parentElement;
+  if (choicesRow.parentElement !== box) box.append(choicesRow);
   const segs = segmentsOf(helping.field);
   const groups = formsShown?.groups ?? [];
   const built = formsShown ? builtIn : null;

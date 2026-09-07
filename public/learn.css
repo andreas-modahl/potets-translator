@@ -518,57 +518,56 @@
 .chunk .under {
   grid-row: 3;
 }
-/* The choices, at the top of the card: a row per axis of the forms
-   table, each ending painted in its tint with what it does beside it. */
-.choices {
-  display: grid;
-  gap: 0.4rem;
-  margin-bottom: 0.9rem;
-  padding-bottom: 0.9rem;
-  border-bottom: 2px dashed var(--faint);
+/* The choices, in the word's box under its translation: the endings of
+   the segment in focus, small, each painted in its tint with what it
+   does beside it. They wrap at about the width of the translation. */
+.chunk .choices {
+  grid-row: 4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  max-width: 16rem;
+  margin-top: 0.3rem;
 }
 .choices[hidden] {
   display: none;
 }
 .choices .axis {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
+  display: contents;
 }
 .choices .choice {
   display: inline-flex;
   align-items: baseline;
-  gap: 0.3rem;
-  padding: 0.2rem 0.5rem;
+  gap: 0.2rem;
+  padding: 0.05rem 0.3rem;
   font: inherit;
-  font-size: 0.95rem;
-  line-height: 1.25;
+  font-size: 0.8rem;
+  line-height: 1.2;
   color: var(--ink);
   background: var(--panel);
   border: 1.5px solid var(--line);
-  border-radius: var(--wobble-small);
-  box-shadow: 2px 2px 0 var(--shadow);
+  border-radius: 6px;
+  box-shadow: 1px 1px 0 var(--shadow);
 }
 .choices .choice .m {
-  padding: 0 0.2em;
+  padding: 0 0.15em;
   font-weight: 600;
   border-radius: 3px;
 }
 .choices .choice .about {
   font-family: var(--hand);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 .choices .choice:hover {
   background: var(--sunk);
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 var(--shadow);
+  transform: none;
+  box-shadow: 1px 1px 0 var(--shadow);
 }
 .choices .choice:active,
 .choices .choice[aria-pressed='true'] {
   transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 var(--shadow);
+  box-shadow: none;
 }
 .choices .choice[aria-pressed='true'] {
   background: var(--accent-soft);
