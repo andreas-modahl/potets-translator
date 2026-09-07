@@ -616,7 +616,7 @@ function select(index) {
   }
   renderDetail(current.chunks[index]);
   // The drawing helps only the blank it was opened from.
-  if (helping && helping.chunk !== current.chunks[index]) helping = null;
+  if (helping && helping.chunk !== current.chunks[index]) setHelping(null);
   followWord(current.chunks[index]);
 }
 
@@ -824,7 +824,7 @@ function checkField(field, chunk) {
   markLetters(box, typed, chunk.target);
   const solvedNow = box.classList.contains('correct');
   if (!solvedNow) helpWithRoot(field, chunk);
-  else if (helping?.chunk === chunk) helping = null;
+  else if (helping?.chunk === chunk) setHelping(null);
   if (solvedNow === wasSolved) return;
 
   // A near-miss on the letters still counts, but the word left on screen
@@ -1002,6 +1002,38 @@ function paintedPieces(chunk, parts, tints = parts.map((part, index) => endingTi
     return span;
   });
   return [...painted, chunk.target.slice(at)];
+}
+
+/**
+ * A row of arrows the width of the word's pieces: the pieces again in the
+ * blank's type, unseen, with an arrow button standing in for each ending
+ * that the forms table can swap, so the arrow sits over or under its block.
+ */
+function swapRow(chunk, pieces, delta) {
+  const row = document.createElement('span');
+  row.className = `swaps ${delta > 0 ? 'down' : 'up'}`;
+  if (!pieces) return row;
+  for (const [index, node] of paintedPieces(chunk, pieces).entries()) {
+    const tint = typeof node === 'string' ? '' : node.dataset.m;
+    const slot = tint === '1' ? 'group' : tint === '2' ? 'label' : '';
+    if (index === 0 || !slot) {
+      const filler = document.createElement('span');
+      filler.textContent = typeof node === 'string' ? node : node.textContent;
+      row.append(filler);
+      continue;
+    }
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'swap';
+    button.dataset.slot = slot;
+    button.dataset.dir = delta > 0 ? 'down' : 'up';
+    button.tabIndex = -1;
+    button.textContent = node.textContent;
+    button.setAttribute('aria-label', delta > 0 ? D.partDown : D.partUp);
+    button.addEventListener('click', () => stepBuilt(slot, delta, button));
+    row.append(button);
+  }
+  return row;
 }
 
 /** Paints a solved word piece by piece and writes each piece's meaning
@@ -1189,8 +1221,12 @@ function chunkField(chunk, index) {
   shape.setAttribute('aria-hidden', 'true');
   const pieces = piecesOf(chunk);
   if (pieces) shape.append(...paintedPieces(chunk, pieces));
+  // Arrows over and under each ending block, for a blank being helped:
+  // they try the next ending along that axis, written into the blank.
+  const swapsUp = swapRow(chunk, pieces, -1);
+  const swapsDown = swapRow(chunk, pieces, 1);
 
-  box.append(parts, shape, field, check, under);
+  box.append(parts, swapsUp, shape, field, check, swapsDown, under);
   renderCaption(box, chunk, []);
 
   // The whole box is the target: a click on its padding, the caption or
@@ -1465,7 +1501,7 @@ document.addEventListener('keydown', (event) => {
 function renderSkeleton() {
   current = { chunks: [] };
   selected = -1;
-  helping = null;
+  setHelping(null);
   comparator.replaceChildren();
   detail.replaceChildren();
   explanations.replaceChildren();
@@ -1508,7 +1544,7 @@ function bone(width) {
 function renderLesson(result, { read = false } = {}) {
   current = result;
   selected = -1;
-  helping = null;
+  setHelping(null);
   chestFilled = false;
   comparator.replaceChildren();
   detail.replaceChildren();
@@ -1923,6 +1959,13 @@ function inflects(pos) {
     endings left to find with the arrows, which write the form into it. */
 let helping = null;
 
+/** Hands the help to a blank, or to none; the blank shows its own arrows. */
+function setHelping(next) {
+  helping?.field.parentElement.classList.remove('helping');
+  helping = next;
+  next?.field.parentElement.classList.add('helping');
+}
+
 /** The word without the punctuation it carries in the sentence. */
 function bareWord(text) {
   return text.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}'’]+$/gu, '');
@@ -1937,7 +1980,7 @@ function helpWithRoot(field, chunk) {
   const root = chunk.morphemes?.[0]?.form ?? '';
   if (!root || (chunk.morphemes?.length ?? 0) < 2 || !inflects(chunk.pos)) return;
   if (fold(field.textContent) !== fold(root)) return;
-  helping = { field, chunk };
+  setHelping({ field, chunk });
   openForms(bareWord(root), chunk.pos, {
     pic: pictureWord(chunk),
     emoji: pictureEmoji(chunk),
@@ -2445,7 +2488,7 @@ function partTag(slot) {
 
 /** Moves the built form one step along one axis of the table: to the next
     or previous group, keeping the label, or to the next or previous label. */
-function stepBuilt(key, delta) {
+function stepBuilt(key, delta, from = null) {
   if (!builtIn || !formsShown) return;
   const groups = formsShown.groups;
   let { entry, group } = builtIn;
@@ -2478,7 +2521,7 @@ function stepBuilt(key, delta) {
     checkField(helping.field, helping.chunk);
   }
   // The arrow that was pressed is drawn anew; the keyboard stays on it.
-  formsBody.querySelector(`.part-arrow[data-slot="${key}"][data-dir="${delta > 0 ? 'down' : 'up'}"]`)?.focus();
+  (from ?? formsBody.querySelector(`.part-arrow[data-slot="${key}"][data-dir="${delta > 0 ? 'down' : 'up'}"]`))?.focus();
 }
 
 /** An arrow above or below a part, or a blank of the same size where a part

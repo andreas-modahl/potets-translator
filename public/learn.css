@@ -460,6 +460,76 @@
 .chunk .under {
   grid-row: 3;
 }
+.chunk.helping .under {
+  grid-row: 4;
+}
+/* For a blank being helped, arrows over and under each ending block, in
+   place of the caption above: the pieces again in the blank's type,
+   unseen, so each arrow is as wide as its block and sits right on it. */
+.chunk .swaps {
+  grid-column: 1;
+  display: none;
+  height: 1.1rem;
+  padding: 0 0.1rem;
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+  line-height: 0.8;
+  font-kerning: none;
+  white-space: pre;
+  color: transparent;
+}
+.chunk .swaps.up {
+  grid-row: 1;
+}
+.chunk .swaps.down {
+  grid-row: 3;
+}
+.chunk.helping .swaps {
+  display: flex;
+}
+.chunk.helping .parts {
+  visibility: hidden;
+}
+.chunk .swaps span,
+.chunk .swaps .swap {
+  display: block;
+  height: 1.1rem;
+}
+.chunk .swaps .swap {
+  position: relative;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: transparent;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  cursor: pointer;
+}
+.chunk .swaps .swap::after {
+  content: '▲';
+  position: absolute;
+  inset: 0;
+  font-size: 0.8rem;
+  line-height: 1.1rem;
+  letter-spacing: 0;
+  text-align: center;
+  color: var(--muted);
+}
+.chunk .swaps.down .swap::after {
+  content: '▼';
+}
+.chunk .swaps .swap:hover::after,
+.chunk .swaps .swap:focus-visible::after {
+  color: var(--ink);
+}
+.chunk .swaps .swap:hover,
+.chunk .swaps .swap:active {
+  background: var(--card);
+  transform: none;
+  box-shadow: none;
+}
 .chunk .tr:focus {
   --line-colour: var(--teal);
 }
