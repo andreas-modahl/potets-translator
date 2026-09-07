@@ -1032,6 +1032,19 @@ body.muted .chunk .say {
 .forms-table th .hint .ghost {
   visibility: hidden;
 }
+/* What the ending does, in keywords under it: soft, small, and allowed to
+   wrap to a second line rather than widen the column. */
+.forms-table th .about {
+  display: block;
+  max-width: 8rem;
+  margin-top: 0.1rem;
+  font-family: var(--hand);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--muted);
+  white-space: normal;
+}
 .forms-table td {
   padding: 0.15rem 0.9rem 0.15rem 0;
   border-top: 1px solid var(--line);

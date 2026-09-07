@@ -1897,32 +1897,41 @@ function hintIndex(hint, forms) {
 /** A heading with a name and, under it, the ending painted like the piece it
     is in the cells. Above a column, the pieces before it are laid out unseen,
     so the ending stands over the piece it names. */
-function formsHead({ name, hint, forms, scope, tint }) {
+function formsHead({ name, hint, about, forms, scope, tint }) {
   const head = document.createElement('th');
   head.scope = scope;
   head.textContent = name;
-  if (!hint) return head;
-  const line = document.createElement('span');
-  line.className = 'hint';
-  line.lang = D.target;
-  const index = hintIndex(hint, forms);
-  if (index >= 0 && scope === 'col') {
-    const lead = forms[0]?.pieces ?? [];
-    for (const piece of lead.slice(0, index)) {
-      const ghost = document.createElement('span');
-      ghost.className = 'm ghost';
-      ghost.textContent = piece;
-      line.append(ghost);
+  if (hint) {
+    const line = document.createElement('span');
+    line.className = 'hint';
+    line.lang = D.target;
+    const index = hintIndex(hint, forms);
+    if (index >= 0 && scope === 'col') {
+      const lead = forms[0]?.pieces ?? [];
+      for (const piece of lead.slice(0, index)) {
+        const ghost = document.createElement('span');
+        ghost.className = 'm ghost';
+        ghost.textContent = piece;
+        line.append(ghost);
+      }
     }
+    const ending = document.createElement('span');
+    ending.textContent = hint;
+    if (index >= 0) {
+      ending.className = 'm';
+      ending.dataset.m = String(tint);
+    }
+    line.append(ending);
+    head.append(line);
   }
-  const ending = document.createElement('span');
-  ending.textContent = hint;
-  if (index >= 0) {
-    ending.className = 'm';
-    ending.dataset.m = String(tint);
+  // What the ending does, in a few keywords, like the margin of a grammar table.
+  if (about) {
+    const note = document.createElement('span');
+    note.className = 'about';
+    note.lang = D.native;
+    note.textContent = about;
+    head.append(note);
   }
-  line.append(ending);
-  head.append(line);
   return head;
 }
 
@@ -1933,13 +1942,15 @@ function splitLabel(label) {
 }
 
 function formsLabelHead(label, forms, scope) {
-  return formsHead({ ...splitLabel(label), forms, scope, tint: 2 });
+  // The keywords are the same for the label in every group; the first form that has them speaks.
+  const about = forms.find((form) => form?.about)?.about ?? '';
+  return formsHead({ ...splitLabel(label), about, forms, scope, tint: 2 });
 }
 
 function formsGroupHead(group, scope) {
   // The ending under the name, unless the name already carries it.
   const hint = group.hint && !group.name.includes(group.hint) ? group.hint : '';
-  return formsHead({ name: group.name, hint, forms: group.forms, scope, tint: 1 });
+  return formsHead({ name: group.name, hint, about: group.about ?? '', forms: group.forms, scope, tint: 1 });
 }
 
 /** Groups that share their labels, in order, make one table. Groups lie down

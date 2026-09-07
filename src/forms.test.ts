@@ -13,8 +13,9 @@ test('forms are kept with their pieces when the pieces spell them', () => {
         {
           name: 'presens (-iyor)',
           hint: '-iyor',
+          about: ' pågår  nå ',
           forms: [
-            { label: 'ben (jeg)', word: 'seviyorum', pieces: ['sev', 'iyor', 'um'], means: ' jeg  elsker ' },
+            { label: 'ben (jeg)', word: 'seviyorum', pieces: ['sev', 'iyor', 'um'], means: ' jeg  elsker ', about: 'x'.repeat(50) },
             { label: 'biz (vi)', word: 'seviyoruz', pieces: ['sev', 'iyor', 'uz'] },
           ],
         },
@@ -30,6 +31,9 @@ test('forms are kept with their pieces when the pieces spell them', () => {
   assert.equal(built.meaning, 'å elske');
   assert.equal(built.groups.length, 2);
   assert.equal(built.groups[0]?.forms[0]?.means, 'jeg elsker');
+  assert.equal(built.groups[0]?.about, 'pågår nå');
+  assert.equal(built.groups[0]?.forms[0]?.about, 'x'.repeat(40), 'keywords are cut to a margin note');
+  assert.equal(built.groups[1]?.about, undefined);
   assert.deepEqual(built.groups[0]?.forms[1], { label: 'biz (vi)', word: 'seviyoruz', pieces: ['sev', 'iyor', 'uz'] });
   assert.equal(built.groups[0]?.hint, '-iyor');
   assert.equal(built.groups[1]?.hint, undefined);

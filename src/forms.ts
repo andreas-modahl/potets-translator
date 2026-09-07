@@ -22,6 +22,8 @@ export interface WordForm {
   pieces: string[];
   /** What the form says, in the learner's language: "jeg elsker", "vi elsket". */
   means?: string;
+  /** What the label's ending does, in a few keywords: "bestemt objekt", "hvem/hva". */
+  about?: string;
 }
 
 export interface FormGroup {
@@ -29,6 +31,8 @@ export interface FormGroup {
   name: string;
   /** The ending that makes this group, such as "-iyor", when there is one. */
   hint?: string;
+  /** What the group's ending does, in a few keywords: "pågår nå", "vane, alltid". */
+  about?: string;
   forms: WordForm[];
 }
 
@@ -104,8 +108,14 @@ joined together spell the form exactly. Give the changed root where the word cha
 
 "means" says what each form says, in ${g.native}, as short as it can be: the pronoun and the verb for a
 verb form ("jeg elsker", "vi elsket"), the preposition or article a case or an ending stands for with a
-noun ("til huset", "i husene", "köpekler"). Every group name, label and meaning is in ${g.native}; every
-form is in ${g.target}.`;
+noun ("til huset", "i husene", "köpekler").
+
+"about" explains an ending in keywords, in ${g.native}, two to four words, the way a grammar table's
+margin would: for a group, what its ending does ("pågår nå", "avsluttet, fortid", "vane, alltid"); for a
+form, what the label's ending does, the same words for the same label in every group ("bestemt objekt",
+"til, mot", "i, på, hos", "fra, ut av", "eier, -s"). Leave "about" out where the name says it all, as
+with persons and singular or plural. Every group name, label, meaning and "about" is in ${g.native};
+every form is in ${g.target}.`;
 }
 
 function tool(): Anthropic.Tool {
@@ -125,6 +135,10 @@ function tool(): Anthropic.Tool {
             properties: {
               name: { type: 'string', description: "The group's name, in the learner's language." },
               hint: { type: 'string', description: 'The ending that makes this group, such as "-iyor". Omit when there is none.' },
+              about: {
+                type: 'string',
+                description: "What the group's ending does, in two to four keywords in the learner's language. Omit when the name says it all.",
+              },
               forms: {
                 type: 'array',
                 items: {
@@ -140,6 +154,11 @@ function tool(): Anthropic.Tool {
                     means: {
                       type: 'string',
                       description: "What the form says, in the learner's language, a few words.",
+                    },
+                    about: {
+                      type: 'string',
+                      description:
+                        "What the label's ending does, in two to four keywords in the learner's language; the same for the same label in every group. Omit when the label says it all.",
                     },
                   },
                   required: ['label', 'word', 'pieces', 'means'],
@@ -180,11 +199,13 @@ export function buildForms(input: unknown, request: FormsRequest): Forms {
       const given = Array.isArray(form.pieces) ? form.pieces.map((piece) => text(piece)).filter(Boolean) : [];
       const pieces = given.length > 0 && spellsWord(given, word) ? given : [word];
       const means = text(form.means, 60);
-      forms.push({ label, word, pieces, ...(means ? { means } : {}) });
+      const about = text(form.about, 40);
+      forms.push({ label, word, pieces, ...(means ? { means } : {}), ...(about ? { about } : {}) });
     }
     if (forms.length === 0) continue;
     const hint = text(group.hint, 20);
-    groups.push({ name, ...(hint ? { hint } : {}), forms });
+    const about = text(group.about, 40);
+    groups.push({ name, ...(hint ? { hint } : {}), ...(about ? { about } : {}), forms });
   }
   return {
     learning: request.learning,

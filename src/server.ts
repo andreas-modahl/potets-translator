@@ -342,7 +342,7 @@ async function handleLesson(request: IncomingMessage, response: ServerResponse):
  * The forms of a chest word, as a table. Asked of the model once per word and
  * direction, and kept in the pool database from then on.
  */
-const FORMS_KIND = 'forms2';
+const FORMS_KIND = 'forms3';
 
 async function handleForms(url: URL, response: ServerResponse): Promise<void> {
   const word = (url.searchParams.get('word') ?? '').trim().normalize('NFC').replace(/\s+/g, ' ');
