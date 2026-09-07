@@ -1762,10 +1762,15 @@ function speakOnDone(chunk) {
   speak(chunk.target);
 }
 
+/** Counts the readings asked for, so one overtaken while its audio was
+    on its way is dropped rather than played over the newer one. */
+let speakTurn = 0;
+
 async function speak(text) {
   if (!text || muted) return;
   if (fold(text) === focusedWord()) heardInFocus = true;
   const tempo = tempoFor(text);
+  const turn = ++speakTurn;
   player.pause();
   if (canSpeakLocally) speechSynthesis.cancel();
   // A sentence cut short by a word counts as heard up to here.
@@ -1778,10 +1783,14 @@ async function speak(text) {
       const response = await fetch(
         `/api/speak?lang=${D.target}&v=${speechVersion}${voice ? `&voice=${encodeURIComponent(voice)}` : ''}&text=${encodeURIComponent(text)}`,
       );
+      if (turn !== speakTurn) return;
       if (response.status === 503) {
         serverSpeech = false;
       } else if (response.ok) {
         const blob = await response.blob();
+        if (turn !== speakTurn) return;
+        // Whatever started meanwhile gives way; only one voice at a time.
+        if (canSpeakLocally) speechSynthesis.cancel();
         player.src = URL.createObjectURL(blob);
         player.preservesPitch = true;
         player.playbackRate = tempo;
@@ -1795,6 +1804,7 @@ async function speak(text) {
       // Fall through to the local voice for this one sentence.
     }
   }
+  if (turn !== speakTurn) return;
   if (canSpeakLocally) speakLocally(text, tempo);
   else saying = '';
 }
