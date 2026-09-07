@@ -1114,8 +1114,9 @@ body.muted .chunk .say {
   display: block;
   box-sizing: border-box;
   height: var(--arrow-height);
-  justify-self: center;
-  padding: 0 0.5em;
+  /* As wide as the part, so the whole strip above or below it is the button. */
+  justify-self: stretch;
+  padding: 0;
   font-size: 1.05rem;
   line-height: var(--arrow-height);
   color: var(--muted);
