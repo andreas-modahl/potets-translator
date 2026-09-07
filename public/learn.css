@@ -1005,6 +1005,82 @@ body.muted .chunk .say {
   font-family: var(--hand);
   color: var(--muted);
 }
+/* The word builder: one form growing a piece at a time, a staircase of
+   tinted blocks, with what it says so far and what the new piece does. */
+.builder {
+  margin: 0.9rem 0 0;
+  padding: 0.6rem 0.8rem 0.5rem;
+  background: var(--sunk);
+  border-radius: var(--wobble-small);
+}
+.builder figcaption {
+  margin-bottom: 0.35rem;
+  font-family: var(--hand);
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.build-steps {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 0.3rem 0.9rem;
+  align-items: baseline;
+  overflow-x: auto;
+}
+.build-step {
+  display: contents;
+}
+.build-word {
+  font-size: 1.15rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.build-word .m {
+  display: inline-block;
+  padding: 0 0.2em;
+  border-radius: 4px;
+}
+.build-word .joint {
+  padding: 0 0.15em;
+  font-weight: 400;
+  color: var(--faint);
+}
+.build-word .new {
+  animation: snap-in 0.35s calc(var(--step) * 0.12s) both;
+}
+.still .build-word .new {
+  animation: none;
+}
+@keyframes snap-in {
+  from {
+    opacity: 0;
+    transform: translateX(-0.4em) scale(0.7);
+  }
+  60% {
+    transform: translateX(0) scale(1.1);
+  }
+}
+.build-means {
+  font-family: var(--hand);
+  white-space: nowrap;
+  color: var(--ink);
+}
+.build-role {
+  font-family: var(--hand);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.build-role .m {
+  padding: 0 0.3em;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  border-radius: 3px;
+  color: var(--ink);
+}
+.forms-table .form.built {
+  outline: 2px solid var(--ochre);
+  outline-offset: 1px;
+}
 .forms-scroll {
   margin-top: 0.9rem;
   overflow-x: auto;

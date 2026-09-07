@@ -222,6 +222,7 @@ const DIRECTIONS = {
     formsLoading: 'Henter bøyningen …',
     formsFailed: 'Fikk ikke tak i bøyningen. Prøv igjen.',
     formsNone: 'Dette ordet bøyes ikke.',
+    builder: 'Slik bygges ordet',
     formsFlip: 'Bytt akser',
     close: 'Lukk',
   },
@@ -334,6 +335,7 @@ const DIRECTIONS = {
     formsLoading: 'Çekim getiriliyor …',
     formsFailed: 'Çekim alınamadı. Tekrar dene.',
     formsNone: 'Bu kelime çekimlenmez.',
+    builder: 'Kelime böyle kurulur',
     formsFlip: 'Eksenleri değiştir',
     close: 'Kapat',
   },
@@ -1880,6 +1882,7 @@ async function openForms(word, pos) {
     return;
   }
   formsFor = word;
+  builtWord = '';
   formsPanel.hidden = false;
   formsShown = null;
   formsFlip.hidden = true;
@@ -1928,13 +1931,16 @@ function pieceTints(entry, groupHint, label) {
   });
 }
 
-/** One form, painted piece by piece in the tints the blanks use, read aloud on a click. */
-function formButton(entry, tints = []) {
+/** One form, painted piece by piece in the tints the blanks use. A click reads
+    it aloud; a click or the keyboard's focus also builds it up above the table. */
+function formButton(entry, group) {
+  const tints = pieceTints(entry, group.hint, entry.label);
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'form';
   button.lang = D.target;
   button.title = D.sayWord(entry.word);
+  button.dataset.word = entry.word;
   piecesOfForm(entry).forEach((piece, index) => {
     const span = document.createElement('span');
     span.className = 'm';
@@ -1942,7 +1948,11 @@ function formButton(entry, tints = []) {
     span.textContent = piece;
     button.append(span);
   });
-  button.addEventListener('click', () => speak(entry.word));
+  button.addEventListener('click', () => {
+    speak(entry.word);
+    showBuilt(entry, group);
+  });
+  button.addEventListener('focus', () => showBuilt(entry, group));
   if (!entry.means) return button;
   // What the form says, in the learner's own language, in softer text under it.
   const cell = document.createElement('span');
@@ -2064,8 +2074,7 @@ function formsMatrix(groups) {
       const row = tbody.insertRow();
       row.append(formsLabelHead(first.label, across(index), 'row'));
       for (const group of groups) {
-        const entry = group.forms[index];
-        row.insertCell().append(formButton(entry, pieceTints(entry, group.hint, first.label)));
+        row.insertCell().append(formButton(group.forms[index], group));
       }
     });
   } else {
@@ -2073,9 +2082,7 @@ function formsMatrix(groups) {
     for (const group of groups) {
       const row = tbody.insertRow();
       row.append(formsGroupHead(group, 'row'));
-      for (const entry of group.forms) {
-        row.insertCell().append(formButton(entry, pieceTints(entry, group.hint, entry.label)));
-      }
+      for (const entry of group.forms) row.insertCell().append(formButton(entry, group));
     }
   }
   return table;
@@ -2091,7 +2098,7 @@ function formsList(group) {
   for (const entry of group.forms) {
     const row = tbody.insertRow();
     row.append(formsLabelHead(entry.label, [entry], 'row'));
-    row.insertCell().append(formButton(entry, pieceTints(entry, group.hint, entry.label)));
+    row.insertCell().append(formButton(entry, group));
   }
   return table;
 }
@@ -2116,6 +2123,7 @@ function renderForms(table) {
     formsBody.append(formsNote(D.formsNone));
     return;
   }
+  formsBody.append(builderFrame());
   const labels = groups[0].forms.map((entry) => entry.label);
   const aligned =
     groups.length > 1 &&
@@ -2130,6 +2138,122 @@ function renderForms(table) {
   formsShown = table;
   // Only a matrix has axes to swap.
   formsFlip.hidden = !aligned;
+  // Built up first: the form last shown, else the word the table was opened
+  // for, else the first form there is.
+  const wanted = (builtWord || formsFor).toLocaleLowerCase(D.target);
+  let pick = null;
+  for (const group of groups) {
+    const entry = group.forms.find((form) => form.word.toLocaleLowerCase(D.target) === wanted);
+    if (entry) {
+      pick = { entry, group };
+      break;
+    }
+  }
+  pick ??= { entry: groups[0].forms[0], group: groups[0] };
+  showBuilt(pick.entry, pick.group, false);
+}
+
+/* The word builder ---------------------------------------------------
+   Above the table, one form is built up a piece at a time, a staircase
+   of the word growing to the right: the root, then the root with its
+   first ending, and so on to the whole form. Beside each step stands
+   what the word says so far, taken from the table where that shorter
+   word is a form of its own, and what the new piece does. Turkish
+   packs a phrase into one word, and this is the packing shown. */
+
+/** The word built up last, so a redraw of the table keeps it. */
+let builtWord = '';
+
+function builderFrame() {
+  const frame = document.createElement('figure');
+  frame.className = 'builder';
+  const caption = document.createElement('figcaption');
+  caption.lang = D.native;
+  caption.textContent = D.builder;
+  const steps = document.createElement('div');
+  steps.className = 'build-steps';
+  frame.append(caption, steps);
+  return frame;
+}
+
+/** The form in the table spelled by these pieces, if one is: "sev" + "eceğ"
+    is "sevecek", the k only softened because more was to follow. */
+function formSpelled(pieces) {
+  const soft = (text) => text.toLocaleLowerCase(D.target).replace(/ğ/g, 'k').replace(/d/g, 't').replace(/c/g, 'ç').replace(/b/g, 'p');
+  const spelled = soft(pieces.join(''));
+  for (const group of formsShown?.groups ?? []) {
+    const entry = group.forms.find((form) => soft(piecesOfForm(form).join('')) === spelled);
+    if (entry) return entry;
+  }
+  return null;
+}
+
+/** What a piece does, by the heading it belongs to: the group's for the group
+    ending, the label's for the label ending. */
+function pieceRole(tint, entry, group) {
+  if (tint === 1) return { name: group.name, about: group.about ?? '' };
+  if (tint === 2) return { name: splitLabel(entry.label).name, about: entry.about ?? '' };
+  return null;
+}
+
+function showBuilt(entry, group, animate = true) {
+  const steps = formsBody.querySelector('.build-steps');
+  if (!steps) return;
+  builtWord = entry.word;
+  for (const button of formsBody.querySelectorAll('.form')) {
+    button.classList.toggle('built', button.dataset.word === entry.word);
+  }
+  const pieces = piecesOfForm(entry);
+  const tints = pieceTints(entry, group.hint, entry.label);
+  steps.classList.toggle('still', !animate);
+  steps.replaceChildren(
+    ...pieces.map((_, count) => {
+      const sofar = pieces.slice(0, count + 1);
+      const step = document.createElement('div');
+      step.className = 'build-step';
+      step.style.setProperty('--step', String(count));
+
+      const word = document.createElement('span');
+      word.className = 'build-word';
+      word.lang = D.target;
+      sofar.forEach((piece, index) => {
+        if (index > 0) {
+          const joint = document.createElement('span');
+          joint.className = 'joint';
+          joint.textContent = '+';
+          word.append(joint);
+        }
+        const block = document.createElement('span');
+        block.className = index === count && count > 0 ? 'm new' : 'm';
+        block.dataset.m = String(tints[index] ?? index % 4);
+        block.textContent = piece;
+        word.append(block);
+      });
+
+      // What the word says so far: the table's own words where the shorter
+      // word is in it, the base meaning for a bare root.
+      const means = document.createElement('span');
+      means.className = 'build-means';
+      means.lang = D.native;
+      const known = count === pieces.length - 1 ? entry : formSpelled(sofar);
+      means.textContent = known?.means ?? (count === 0 ? (formsShown?.meaning ?? '') : '');
+
+      const role = document.createElement('span');
+      role.className = 'build-role';
+      role.lang = D.native;
+      const what = count > 0 ? pieceRole(tints[count], entry, group) : null;
+      if (what) {
+        const name = document.createElement('span');
+        name.className = 'm';
+        name.dataset.m = String(tints[count]);
+        name.textContent = what.name;
+        role.append(name);
+        if (what.about) role.append(` ${what.about}`);
+      }
+      step.append(word, means, role);
+      return step;
+    }),
+  );
 }
 
 formsClose.addEventListener('click', closeForms);
