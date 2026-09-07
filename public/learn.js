@@ -596,21 +596,99 @@ function hint(index) {
   while (right < typed.length && right < answer.length && same(typed[right], answer[right])) {
     right += 1;
   }
-  field.textContent = answer.slice(0, Math.min(answer.length, right + 1));
+  setFieldText(field, answer.slice(0, Math.min(answer.length, right + 1)));
   checkField(field, chunk);
   // The last letter of the last word leaves the focus on the next
   // button, where checkField put it; otherwise the caret stays here.
   if (!sentenceDone()) placeCaretAtEnd(field);
 }
 
-function placeCaretAtEnd(field) {
-  field.focus();
+/* Segments ---------------------------------------------------------
+   A blank whose word has pieces is split into one editable segment per
+   piece: the root and each ending in its own tinted box, sized to the
+   letters that belong there. The blank as a whole still reads as one
+   text, the segments' texts run together, so the checking works on the
+   word; only writing and the caret need to know about the segments. */
+
+/** The segments of a blank, or none for a blank that is one field. */
+function segmentsOf(field) {
+  return [...field.querySelectorAll('.seg')];
+}
+
+/** The lengths of the pieces a blank was split for. */
+function segmentLengths(field) {
+  return segmentsOf(field).map((seg) => Number(seg.dataset.len) || 0);
+}
+
+/**
+ * Writes text into a blank. A split blank has it dealt out over its
+ * segments, by the given lengths or the pieces' own, with whatever is
+ * left over going in the last one.
+ */
+function setFieldText(field, text, lengths = segmentLengths(field)) {
+  const segs = segmentsOf(field);
+  if (segs.length === 0) {
+    field.textContent = text;
+    return;
+  }
+  let at = 0;
+  segs.forEach((seg, index) => {
+    const take = index === segs.length - 1 ? text.length - at : Math.min(lengths[index] ?? 0, text.length - at);
+    seg.textContent = text.slice(at, at + Math.max(0, take));
+    at += Math.max(0, take);
+  });
+}
+
+/** Puts the caret at the start or end of one editable element. */
+function placeCaretIn(element, atEnd = true) {
+  element.focus();
   const range = document.createRange();
-  range.selectNodeContents(field);
-  range.collapse(false);
+  range.selectNodeContents(element);
+  range.collapse(!atEnd);
   const selection = getSelection();
   selection.removeAllRanges();
   selection.addRange(range);
+}
+
+/** The caret goes to the end of a blank: in a split blank, to the end of
+    the first segment still short of its piece, else of the last. */
+function placeCaretAtEnd(field) {
+  const segs = segmentsOf(field);
+  if (segs.length === 0) {
+    placeCaretIn(field, true);
+    return;
+  }
+  const open = segs.find((seg) => seg.textContent.length < (Number(seg.dataset.len) || 0));
+  placeCaretIn(open ?? segs[segs.length - 1], true);
+}
+
+/** The segment the caret is in, or none. */
+function caretSegment(field) {
+  const active = document.activeElement;
+  return active?.classList.contains('seg') && field.contains(active) ? active : null;
+}
+
+/** How far into an editable element the caret stands. */
+function caretOffsetIn(element) {
+  const selection = getSelection();
+  if (!selection?.rangeCount || !element.contains(selection.anchorNode)) return element.textContent.length;
+  const range = selection.getRangeAt(0).cloneRange();
+  range.selectNodeContents(element);
+  range.setEnd(selection.anchorNode, selection.anchorOffset);
+  return range.toString().length;
+}
+
+/** Sizes the rows of tags and arrows over a split blank to its segments,
+    so each stands over the segment it belongs to however wide it grows. */
+function syncRows(box) {
+  const segs = segmentsOf(box.querySelector('.tr'));
+  if (segs.length === 0) return;
+  for (const row of box.querySelectorAll('.tags, .swaps')) {
+    [...row.children].forEach((item, index) => {
+      const seg = segs[index];
+      if (seg) item.style.width = `${seg.getBoundingClientRect().width}px`;
+    });
+  }
 }
 
 function select(index) {
@@ -670,17 +748,18 @@ function renderSpecialKeys() {
 
 function typeLetter(letter) {
   const active = document.activeElement;
-  let field = active?.classList?.contains('tr') && comparator.contains(active) ? active : null;
+  let field = comparator.contains(active) ? active?.closest?.('.tr') : null;
   if (!field && selected >= 0 && !isSolved(selected)) field = comparator.children[selected]?.querySelector('.tr');
   if (!field) field = [...comparator.children].find((box) => !box.classList.contains('correct'))?.querySelector('.tr');
   if (!field) return;
-  if (document.activeElement !== field) placeCaretAtEnd(field);
+  if (!field.contains(document.activeElement)) placeCaretAtEnd(field);
   // insertText goes through the same path as a keystroke, so the
   // field's input handler checks the word and moves on when it fits.
   if (!document.execCommand?.('insertText', false, letter)) {
-    field.textContent += letter;
-    placeCaretAtEnd(field);
-    field.dispatchEvent(new Event('input', { bubbles: true }));
+    const target = caretSegment(field) ?? field;
+    target.textContent += letter;
+    placeCaretIn(target, true);
+    target.dispatchEvent(new Event('input', { bubbles: true }));
   }
 }
 
@@ -744,8 +823,15 @@ function straighten(field, answer) {
     fixed += wanted;
   }
   if (fixed === typed) return;
-  field.textContent = fixed;
-  placeCaretAtEnd(field);
+  // The letters change in place, so a split blank keeps its segments as
+  // they are, and the caret stays where the last letter went in.
+  const seg = caretSegment(field);
+  setFieldText(
+    field,
+    fixed,
+    segmentsOf(field).map((part) => part.textContent.length),
+  );
+  placeCaretIn(seg ?? field, true);
 }
 
 /**
@@ -766,8 +852,26 @@ function markLetters(box, typed, answer) {
     mark.textContent = letter;
     return { mark, right };
   });
-  check.append(...marks.map(({ mark }) => mark));
-  check.append(strokesUnder(box.querySelector('.tr'), check, marks));
+  const field = box.querySelector('.tr');
+  const segs = segmentsOf(field);
+  if (segs.length === 0) {
+    check.append(...marks.map(({ mark }) => mark));
+  } else {
+    // The letters grouped as the segments group them, in boxes of the
+    // same size, so each stroke still lands under its letter.
+    let at = 0;
+    for (const seg of segs) {
+      const mirror = document.createElement('span');
+      mirror.className = 'seg-mirror';
+      mirror.style.minWidth = seg.style.minWidth;
+      mirror.style.width = `${seg.getBoundingClientRect().width}px`;
+      const count = seg.textContent.length;
+      mirror.append(...marks.slice(at, at + count).map(({ mark }) => mark));
+      at += count;
+      check.append(mirror);
+    }
+  }
+  check.append(strokesUnder(field, check, marks));
 }
 
 /**
@@ -838,12 +942,13 @@ function checkField(field, chunk) {
   box.classList.toggle('filled', typed.trim().length > 0);
   box.classList.toggle('ontrack', fold(chunk.target).startsWith(fold(typed)));
   markLetters(box, typed, chunk.target);
+  syncRows(box);
   const solvedNow = box.classList.contains('correct');
   if (solvedNow === wasSolved) return;
 
   // A near-miss on the letters still counts, but the word left on screen
   // is the real spelling: ş where s was typed, ø where o was.
-  if (solvedNow && typed.trim() !== chunk.target) field.textContent = chunk.target;
+  if (solvedNow && typed.trim() !== chunk.target) setFieldText(field, chunk.target);
   if (solvedNow) paintWord(box, field, chunk);
   else renderCaption(box, chunk, []);
   // A completed word reads itself out, unless it was just heard. The last
@@ -1048,14 +1153,14 @@ function swapRow(chunk, pieces, delta) {
   const row = document.createElement('span');
   row.className = `swaps ${delta > 0 ? 'down' : 'up'}`;
   if (!pieces) return row;
-  for (const [index, node] of paintedPieces(chunk, pieces).entries()) {
-    const tint = typeof node === 'string' ? '' : node.dataset.m;
-    const slot = tint === '1' ? 'group' : tint === '2' ? 'label' : '';
-    if (index === 0 || !slot) {
+  pieces.forEach((part, index) => {
+    const tint = endingTint(part.form, index);
+    const slot = index > 0 && tint === 1 ? 'group' : index > 0 && tint === 2 ? 'label' : '';
+    if (!slot) {
       const filler = document.createElement('span');
-      filler.textContent = typeof node === 'string' ? node : node.textContent;
+      filler.style.minWidth = `${part.length}ch`;
       row.append(filler);
-      continue;
+      return;
     }
     const button = document.createElement('button');
     button.type = 'button';
@@ -1063,11 +1168,11 @@ function swapRow(chunk, pieces, delta) {
     button.dataset.slot = slot;
     button.dataset.dir = delta > 0 ? 'down' : 'up';
     button.tabIndex = -1;
-    button.textContent = node.textContent;
+    button.style.minWidth = `${part.length}ch`;
     button.setAttribute('aria-label', delta > 0 ? D.partDown : D.partUp);
     button.addEventListener('click', () => stepBuilt(slot, delta, button));
     row.append(button);
-  }
+  });
   return row;
 }
 
@@ -1081,15 +1186,13 @@ function tagRow(chunk, pieces) {
   row.className = 'tags';
   row.lang = D.native;
   if (!pieces) return row;
-  for (const node of paintedPieces(chunk, pieces)) {
+  for (const part of pieces) {
     const slot = document.createElement('span');
     slot.className = 'slot';
-    slot.textContent = typeof node === 'string' ? node : node.textContent;
-    if (typeof node !== 'string') {
-      const tag = document.createElement('span');
-      tag.className = 'tag';
-      slot.append(tag);
-    }
+    slot.style.minWidth = `${part.length}ch`;
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    slot.append(tag);
     row.append(slot);
   }
   return row;
@@ -1147,7 +1250,11 @@ function paintWord(box, field, chunk) {
     return;
   }
   const tints = parts.map((part, index) => endingTint(part.form, index));
-  field.replaceChildren(...paintedPieces(chunk, parts, tints));
+  // A split blank is painted already, segment by segment: it only gets
+  // the word dealt out over them. A single field gets painted spans.
+  if (segmentsOf(field).length) setFieldText(field, chunk.target);
+  else field.replaceChildren(...paintedPieces(chunk, parts, tints));
+  syncRows(box);
   renderCaption(
     box,
     chunk,
@@ -1241,16 +1348,40 @@ function chunkField(chunk, index) {
   const field = document.createElement('span');
   field.className = 'tr';
   field.lang = D.target;
-  field.contentEditable = 'plaintext-only';
   field.spellcheck = false;
-  field.setAttribute('role', 'textbox');
-  field.setAttribute('aria-label', D.blankFor(chunk.native));
-  // Sized to the answer so the row does not shift as it is filled in.
-  field.style.minWidth = blankWidth(chunk.target);
+  const pieces = piecesOf(chunk);
+  if (pieces) {
+    // One segment per piece, in the piece's tint and at least its width,
+    // the root first: the word is typed into them in turn.
+    field.classList.add('split');
+    field.setAttribute('role', 'group');
+    field.setAttribute('aria-label', D.blankFor(chunk.native));
+    pieces.forEach((part, at) => {
+      const seg = document.createElement('span');
+      seg.className = 'seg m';
+      seg.dataset.m = String(endingTint(part.form, at));
+      seg.dataset.len = String(part.length);
+      seg.style.minWidth = `${part.length}ch`;
+      seg.contentEditable = 'plaintext-only';
+      seg.setAttribute('role', 'textbox');
+      seg.setAttribute('aria-label', `${D.blankFor(chunk.native)} ${at + 1}/${pieces.length}`);
+      field.append(seg);
+    });
+  } else {
+    field.contentEditable = 'plaintext-only';
+    field.setAttribute('role', 'textbox');
+    field.setAttribute('aria-label', D.blankFor(chunk.native));
+    // Sized to the answer so the row does not shift as it is filled in.
+    field.style.minWidth = blankWidth(chunk.target);
+  }
 
   // The last right letter moves the caret on, so a sentence can be typed
-  // straight through without reaching for Enter.
+  // straight through without reaching for Enter. In a split blank, a
+  // segment filled to its piece hands the caret to the next, and letters
+  // over the brim spill into it.
   field.addEventListener('input', (event) => {
+    const seg = event.target.closest?.('.seg');
+    if (seg && !event.isComposing) spill(field, seg);
     if (!event.isComposing) straighten(field, chunk.target);
     checkField(field, chunk);
     if (isSolved(index)) focusNextOpen();
@@ -1259,12 +1390,31 @@ function chunkField(chunk, index) {
   // between; Shift+Tab steps back. Past the last blank they land on
   // the next-sentence button, not on whatever button comes first.
   field.addEventListener('keydown', (event) => {
-    // Up and down swap the ending under the caret, as the arrows over it do.
+    const seg = event.target.closest?.('.seg');
+    // Up and down swap the ending of the segment the caret is in, as the
+    // arrow over it does; in the root, the first ending.
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       if (helping?.field !== field || !builtIn || !formsShown) return;
       event.preventDefault();
-      stepBuilt(slotAtCaret(field), event.key === 'ArrowDown' ? 1 : -1, field);
-      placeCaretAtEnd(field);
+      stepBuilt(slotOfSegment(field, seg), event.key === 'ArrowDown' ? 1 : -1, seg ?? field);
+      return;
+    }
+    // Backspace and the left and right keys cross from one segment into
+    // the next as if the blank were one line.
+    if (seg && (event.key === 'Backspace' || event.key === 'ArrowLeft') && caretOffsetIn(seg) === 0 && getSelection().isCollapsed) {
+      const before = seg.previousElementSibling;
+      if (before) {
+        event.preventDefault();
+        placeCaretIn(before, true);
+      }
+      return;
+    }
+    if (seg && event.key === 'ArrowRight' && caretOffsetIn(seg) === seg.textContent.length && getSelection().isCollapsed) {
+      const after = seg.nextElementSibling;
+      if (after) {
+        event.preventDefault();
+        placeCaretIn(after, false);
+      }
       return;
     }
     if (event.key !== 'Enter' && event.key !== 'Tab') return;
@@ -1275,7 +1425,7 @@ function chunkField(chunk, index) {
     if (next) placeCaretAtEnd(next);
     else submitButton.focus();
   });
-  field.addEventListener('focus', () => select(index));
+  field.addEventListener('focusin', () => select(index));
 
   const native = document.createElement('button');
   native.type = 'button';
@@ -1324,21 +1474,14 @@ function chunkField(chunk, index) {
   check.className = 'check';
   check.setAttribute('aria-hidden', 'true');
 
-  // The shape of the word under the blank in focus: its pieces as tinted
-  // blocks the size of the letters to come, the letters themselves unseen.
-  const shape = document.createElement('span');
-  shape.className = 'shape';
-  shape.setAttribute('aria-hidden', 'true');
-  const pieces = piecesOf(chunk);
-  if (pieces) shape.append(...paintedPieces(chunk, pieces));
-  // An arrow over each ending block, for a blank being built: it swaps
-  // the ending along that axis, written into the blank. The keyboard's
+  // An arrow over each ending segment, for a blank being built: it swaps
+  // the ending along that axis, written into the segment. The keyboard's
   // up and down keys do the same in both directions.
   const swapsUp = swapRow(chunk, pieces, -1);
   // And over the arrows, what each ending does, as over the drawn word.
   const tags = tagRow(chunk, pieces);
 
-  box.append(parts, tags, swapsUp, shape, field, check, under);
+  box.append(parts, tags, swapsUp, field, check, under);
   renderCaption(box, chunk, []);
 
   // The whole box is the target: a click on its padding, the caption or
@@ -1350,6 +1493,42 @@ function chunkField(chunk, index) {
     placeCaretAtEnd(field);
   });
   return box;
+}
+
+/** Letters typed over a segment's brim go on into the next segment, and
+    a segment filled to its piece hands the caret on, so a word can be
+    typed straight through. The last segment takes whatever is left. */
+function spill(field, seg) {
+  const length = Number(seg.dataset.len) || 0;
+  const next = seg.nextElementSibling;
+  if (!next || !next.classList.contains('seg')) return;
+  const atEnd = caretOffsetIn(seg) === seg.textContent.length;
+  if (seg.textContent.length > length) {
+    const over = seg.textContent.slice(length);
+    seg.textContent = seg.textContent.slice(0, length);
+    next.textContent = over + next.textContent;
+    if (atEnd) {
+      // The caret follows the letters into the next segment.
+      const range = document.createRange();
+      const text = next.firstChild;
+      range.setStart(text, over.length);
+      range.collapse(true);
+      next.focus();
+      const selection = getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    return;
+  }
+  if (atEnd && seg.textContent.length === length) placeCaretIn(next, false);
+}
+
+/** Which ending a segment holds, for the up and down keys: the root's
+    segment, or one with no ending to swap, stands for the first ending. */
+function slotOfSegment(field, seg) {
+  const order = groupEndingFirst() ? ['group', 'label'] : ['label', 'group'];
+  const tint = seg?.dataset.m;
+  return tint === '1' ? 'group' : tint === '2' ? 'label' : order[0];
 }
 
 function morphemeNode({ form, means }, solved, index = 0) {
@@ -2071,38 +2250,6 @@ function inflects(pos) {
     endings left to find with the arrows, which write the form into it. */
 let helping = null;
 
-/** How far into the blank's text the caret stands. */
-function caretOffset(field) {
-  const selection = getSelection();
-  if (!selection?.rangeCount || !field.contains(selection.anchorNode)) return field.textContent.length;
-  const range = selection.getRangeAt(0).cloneRange();
-  range.selectNodeContents(field);
-  range.setEnd(selection.anchorNode, selection.anchorOffset);
-  return range.toString().length;
-}
-
-/** Which ending the up and down keys swap: the one the caret stands in.
-    In the root, or with nothing built yet, the first ending; at the end
-    of the word, the last. */
-function slotAtCaret(field) {
-  const order = groupEndingFirst() ? ['group', 'label'] : ['label', 'group'];
-  const rootLength = piecesOf(helping.chunk)?.[0]?.length ?? 0;
-  const offset = caretOffset(field);
-  if (offset <= rootLength) return order[0];
-  const entry = builtIn?.entry;
-  if (!entry) return order[1];
-  const pieces = piecesOfForm(entry);
-  const tints = pieceTints(entry, builtIn.group.hint, entry.label);
-  let at = rootLength;
-  for (let index = 1; index < pieces.length; index += 1) {
-    at += pieces[index].length;
-    if (offset < at || (offset === at && index === pieces.length - 1)) {
-      return tints[index] === 1 ? 'group' : tints[index] === 2 ? 'label' : order[1];
-    }
-  }
-  return order[1];
-}
-
 /** Hands the help to a blank, or to none; the blank shows its own arrows. */
 function setHelping(next) {
   helping?.field.parentElement.classList.remove('helping');
@@ -2663,18 +2810,27 @@ function stepBuilt(key, delta, from = null) {
   }
   speak(entry.word);
   showBuilt(entry, group, true, key);
-  // The blank being built gets the endings written in after its root
-  // section, whatever stands there, and is checked as if typed.
+  // The blank being built gets the form's endings written into its ending
+  // segments, each into the segment of its kind; the root segment keeps
+  // whatever is typed there. Then the word is checked as if typed.
   if (helping) {
+    const segs = segmentsOf(helping.field);
+    const pieces = piecesOfForm(entry);
+    const tints = pieceTints(entry, group.hint, entry.label);
+    const ending = (tint) => pieces.filter((_, index) => index > 0 && tints[index] === tint).join('');
     const punctuation = /[^\p{L}\p{M}\p{N}'’]+$/u.exec(helping.chunk.target)?.[0] ?? '';
-    const rootLength = piecesOf(helping.chunk)?.[0]?.length ?? 0;
-    const typedRoot = helping.field.textContent.slice(0, rootLength);
-    const endings = piecesOfForm(entry).slice(1).join('');
-    helping.field.textContent = typedRoot + endings + punctuation;
+    const last = segs[segs.length - 1];
+    for (const seg of segs.slice(1)) {
+      const text = seg.dataset.m === '1' ? ending(1) : seg.dataset.m === '2' ? ending(2) : '';
+      seg.textContent = seg === last ? text + punctuation : text;
+    }
     checkField(helping.field, helping.chunk);
   }
-  // The arrow that was pressed is drawn anew; the keyboard stays on it.
-  (from ?? formsBody.querySelector(`.part-arrow[data-slot="${key}"][data-dir="${delta > 0 ? 'down' : 'up'}"]`))?.focus();
+  // The arrow that was pressed is drawn anew; the keyboard stays on it,
+  // or the caret in the segment it came from.
+  const back = from ?? formsBody.querySelector(`.part-arrow[data-slot="${key}"][data-dir="${delta > 0 ? 'down' : 'up'}"]`);
+  if (back?.classList.contains('seg') || back?.classList.contains('tr')) placeCaretIn(back.classList.contains('tr') ? (segmentsOf(back).at(-1) ?? back) : back, true);
+  else back?.focus();
 }
 
 /** An arrow above or below a part, or a blank of the same size where a part

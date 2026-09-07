@@ -458,13 +458,45 @@
   border-radius: inherit;
   pointer-events: none;
 }
+/* A split blank: one segment per piece, each a box in its tint at least
+   as wide as its piece, with a little room around the letters. */
+.chunk .tr.split {
+  display: flex;
+  align-items: stretch;
+  gap: 0.15rem;
+}
+.chunk .tr.split .seg {
+  display: block;
+  box-sizing: content-box;
+  padding: 0 0.2em;
+  border-radius: 4px;
+  outline: none;
+}
+.chunk .tr.split .seg:focus {
+  box-shadow: inset 0 0 0 2px var(--teal);
+}
+/* The tints show on the blank in focus and on a solved one; the rest
+   keep to their line. */
+.chunk:not(.open):not(.correct) .tr.split .seg {
+  background: transparent;
+}
+.chunk .tr.split:focus-within {
+  --line-colour: var(--teal);
+}
+/* The strokes' mirror of the segments: the same boxes, unseen. */
+.chunk .check .seg-mirror {
+  display: flex;
+  flex: none;
+  box-sizing: content-box;
+  padding: 0 0.2em;
+  margin-right: 0.15rem;
+}
 .chunk .under {
   grid-row: 3;
 }
 /* A blank being built stacks up: tags, arrows, the word, and the
    translation last. */
 .chunk.helping .tr,
-.chunk.helping .shape,
 .chunk.helping .check {
   grid-row: 3;
 }
@@ -497,7 +529,9 @@
 .chunk .tags .slot {
   position: relative;
   display: block;
+  box-sizing: border-box;
   height: 100%;
+  margin-right: 0.15rem;
 }
 .chunk .tags .tag {
   position: absolute;
@@ -542,7 +576,9 @@
 .chunk .swaps span,
 .chunk .swaps .swap {
   display: block;
+  box-sizing: border-box;
   height: 1.1rem;
+  margin-right: 0.15rem;
 }
 .chunk .swaps .swap {
   position: relative;
@@ -578,31 +614,6 @@
 }
 .chunk .tr:focus {
   --line-colour: var(--teal);
-}
-/* Under the blank in focus, the shape of the word: its pieces as tinted
-   blocks, set in the same type as the blank so each block is the size
-   of the letters that go on it; the letters themselves are unseen. */
-.chunk .shape {
-  grid-row: 2;
-  grid-column: 1;
-  padding: 0 0.1rem 0.1rem;
-  font-family: var(--mono);
-  font-size: 1.3rem;
-  letter-spacing: 0;
-  line-height: 1.2;
-  font-kerning: none;
-  white-space: pre;
-  border-bottom: 3px solid transparent;
-  color: transparent;
-  visibility: hidden;
-  pointer-events: none;
-  user-select: none;
-}
-.chunk .shape .m {
-  border-radius: 3px;
-}
-.chunk.open .shape {
-  visibility: visible;
 }
 /* While typing, the line under each letter says how it is going: green
    under a letter that is right, red under one that is not. The check is
