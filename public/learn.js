@@ -974,13 +974,29 @@ function syncNative(box, chunk) {
   native.textContent = said || chunk.native;
 }
 
-/** What a choice says beside its ending, a word or two: the keywords cut
-    short, or, where they still run long, the ending's name when that is
-    shorter ("akkusativ" for "bestemt objekt", "lokativ" for "i, på, hos"). */
+/** What a choice says beside its ending, a word or two in plain words:
+    the first keyword; a few tiny ones together ("i/på" from "i, på,
+    hos"); the last word of a long one ("objekt" from "bestemt objekt");
+    the ending's grammar name only when nothing else is short. */
 function chipText(slot, about) {
-  const short = shortMeans(about);
+  const parts = about
+    .split(/[,;:]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const head = parts[0] ?? '';
+  if (head.length < 2) {
+    let joined = head;
+    for (const part of parts.slice(1)) {
+      if (`${joined}/${part}`.length > 6) break;
+      joined = `${joined}/${part}`;
+    }
+    if (joined.length >= 2) return joined;
+  }
+  if (head.length <= 9) return head || shortMeans(about);
+  const last = head.split(/\s+/).at(-1);
+  if (last.length <= 9) return last;
   const name = slot.role?.name ? splitLabel(slot.role.name).name : '';
-  return short.length > 9 && name && name.length < short.length ? name : short;
+  return name && name.length < head.length ? name : head;
 }
 
 /** A piece's meaning cut down to a chip's worth: the name in brackets
