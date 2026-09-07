@@ -1528,10 +1528,12 @@ function chunkField(chunk, index) {
   renderCaption(box, chunk, []);
 
   // The whole box is the target: a click on its padding, the caption or
-  // the translation puts the caret in the blank. The buttons keep their
-  // own jobs, and a click in the blank itself places the caret as usual.
+  // the translation puts the caret in the blank, at the first segment
+  // still to fill. The buttons keep their own jobs, and once the blank
+  // holds the caret a click in it places the caret as usual.
   box.addEventListener('mousedown', (event) => {
-    if (event.target.closest('button, .tr')) return;
+    if (event.target.closest('button')) return;
+    if (event.target.closest('.tr') && field.contains(document.activeElement)) return;
     event.preventDefault();
     placeCaretAtEnd(field);
   });
