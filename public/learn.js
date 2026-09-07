@@ -16,6 +16,7 @@ const classesName = document.querySelector('#classes-name');
 const showFormsButton = document.querySelector('#show-forms');
 const showFormsName = document.querySelector('#show-forms-name');
 const submitButton = document.querySelector('#submit');
+const steps = document.querySelector('.steps');
 const stepLabel = document.querySelector('#step-label');
 const log = document.querySelector('#log');
 const logTitle = document.querySelector('#log-title');
@@ -982,8 +983,12 @@ function paintWord(box, field, chunk) {
 function setReady(ready, filledChest = false) {
   submitButton.classList.toggle('ready', ready);
   stepLabel.textContent = ready ? (filledChest ? D.chestFull : D.done) : D.fresh;
-  // Nothing left to hint at once every word is in place.
-  hintButton.parentElement.hidden = ready;
+  // Nothing left to hint at or type once every word is in place, so the
+  // next button takes the hint button's place, beside the speaker.
+  hintButton.hidden = ready;
+  specialKeys.hidden = ready;
+  if (ready) hintButton.after(submitButton);
+  else steps.prepend(submitButton);
 }
 
 /* Words that needed a hint ------------------------------------------
@@ -1516,7 +1521,7 @@ document.addEventListener('keydown', (event) => {
   // blank ever needs a full stop typed into it.
   if (event.key === '.') {
     event.preventDefault();
-    if (!event.repeat && !hintButton.parentElement.hidden) hintButton.click();
+    if (!event.repeat && !hintButton.hidden) hintButton.click();
     return;
   }
 
@@ -3060,7 +3065,7 @@ function applyDirection() {
   speakButton.setAttribute('aria-label', D.speak);
   hintButton.replaceChildren(`${D.hint} `, Object.assign(kbd('.'), { className: 'key' }));
   renderSpecialKeys();
-  document.querySelector('.steps').setAttribute('aria-label', D.browse);
+  steps.setAttribute('aria-label', D.browse);
   document.querySelector('#bank .sr-only').textContent = D.bank;
 }
 

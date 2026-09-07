@@ -20,6 +20,11 @@
 .hint-row button {
   padding: 0.5rem 1rem;
 }
+/* Once the sentence is done, the next button stands where the hint button was. */
+.hint-row .step {
+  height: 2.6rem;
+  padding: 0 0.6rem 0 1rem;
+}
 /* The letters the language has and a foreign keyboard may not: one
    key each, typed into the blank in focus. */
 .special-keys {
@@ -50,7 +55,8 @@
   }
 }
 @media (hover: none), (pointer: coarse) {
-  .hint-row #hint {
+  .hint-row #hint,
+  .hint-row .step {
     flex: 1 1 auto;
     padding: 0.7rem 1rem;
   }
