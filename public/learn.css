@@ -435,8 +435,9 @@
   grid-column: 1;
   display: block;
   padding: 0 0.1rem 0.1rem;
-  font-size: 1.4rem;
-  letter-spacing: -0.01em;
+  font-family: var(--mono);
+  font-size: 1.3rem;
+  letter-spacing: 0;
   line-height: 1.2;
   font-kerning: none; /* so the check below it lands letter for letter */
   white-space: pre; /* so a space given as a hint stays visible */
@@ -479,8 +480,9 @@
   display: none;
   height: 1.2rem;
   padding: 0 0.1rem;
-  font-size: 1.4rem;
-  letter-spacing: -0.01em;
+  font-family: var(--mono);
+  font-size: 1.3rem;
+  letter-spacing: 0;
   line-height: 0.8;
   font-kerning: none;
   white-space: pre;
@@ -520,8 +522,9 @@
   display: none;
   height: 1.1rem;
   padding: 0 0.1rem;
-  font-size: 1.4rem;
-  letter-spacing: -0.01em;
+  font-family: var(--mono);
+  font-size: 1.3rem;
+  letter-spacing: 0;
   line-height: 0.8;
   font-kerning: none;
   white-space: pre;
@@ -589,8 +592,9 @@
   grid-row: 2;
   grid-column: 1;
   padding: 0 0.1rem 0.1rem;
-  font-size: 1.4rem;
-  letter-spacing: -0.01em;
+  font-family: var(--mono);
+  font-size: 1.3rem;
+  letter-spacing: 0;
   line-height: 1.2;
   font-kerning: none;
   white-space: pre;
@@ -600,67 +604,11 @@
   pointer-events: none;
   user-select: none;
 }
-/* Each piece is a segment of the caterpillar: a pill in its tint with an
-   ink outline drawn inside it, so it is exactly the width of its letters,
-   and a pair of legs under it. */
-.chunk .shape {
-  position: relative;
-  overflow: visible;
-}
 .chunk .shape .m {
-  position: relative;
-  display: inline-block;
-  border-radius: 999px;
-  outline: 2px solid var(--line);
-  outline-offset: -1px;
-}
-.chunk .shape .m::after {
-  content: '';
-  position: absolute;
-  bottom: -0.3em;
-  left: 0.3em;
-  right: 0.3em;
-  height: 0.3em;
-  background:
-    linear-gradient(var(--line), var(--line)) left / 2px 100% no-repeat,
-    linear-gradient(var(--line), var(--line)) right / 2px 100% no-repeat;
-}
-/* The face in front of the root, in the room the box makes for it, and
-   the rump inline after the last segment. */
-.chunk .shape .part-art {
-  fill: var(--card);
-  stroke: var(--line);
-  stroke-width: 2;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-  overflow: visible;
-}
-.chunk .shape .face {
-  position: absolute;
-  top: calc(50% - 0.15rem);
-  left: -1.4em;
-  height: 1.45em;
-  transform: translateY(-50%);
-  fill: var(--m0);
-}
-.chunk .shape .rump {
-  display: inline-block;
-  height: 1.15em;
-  margin-left: -0.1em;
-  vertical-align: middle;
-  fill: var(--m3);
+  border-radius: 3px;
 }
 .chunk.open .shape {
   visibility: visible;
-}
-/* A solved word in focus keeps its segments: the painted pieces over
-   them go clear, so the caterpillar shows through. */
-.chunk.open .tr .m {
-  background: transparent;
-}
-.chunk.open {
-  padding-left: 2.6rem;
-  padding-right: 0.9rem;
 }
 /* While typing, the line under each letter says how it is going: green
    under a letter that is right, red under one that is not. The check is
@@ -676,8 +624,9 @@
   display: flex;
   align-items: stretch;
   padding: 0 0.1rem;
-  font-size: 1.4rem;
-  letter-spacing: -0.01em;
+  font-family: var(--mono);
+  font-size: 1.3rem;
+  letter-spacing: 0;
   line-height: 1.2;
   font-kerning: none;
   white-space: pre;
@@ -1507,15 +1456,12 @@ body.muted .chunk .say {
   margin-right: -0.35rem;
   fill: var(--m0);
 }
-.worm .face .eye,
-.chunk .shape .face .eye {
+.worm .face .eye {
   fill: var(--ink);
   stroke: none;
 }
 .worm .face .smile,
-.worm .face .feeler,
-.chunk .shape .face .smile,
-.chunk .shape .face .feeler {
+.worm .face .feeler {
   fill: none;
 }
 .worm .rump {

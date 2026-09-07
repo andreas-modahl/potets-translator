@@ -45,6 +45,7 @@
   --wobble-small: 120px 8px 110px 9px / 9px 110px 8px 120px;
   --hand: 'Kalam', 'Segoe Print', 'Comic Sans MS', cursive;
   --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, 'Cascadia Mono', Consolas, 'SF Mono', Menlo, 'DejaVu Sans Mono', monospace;
 }
 
 @media (prefers-color-scheme: dark) {

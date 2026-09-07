@@ -1315,13 +1315,7 @@ function chunkField(chunk, index) {
   shape.className = 'shape';
   shape.setAttribute('aria-hidden', 'true');
   const pieces = piecesOf(chunk);
-  if (pieces) {
-    shape.append(...paintedPieces(chunk, pieces));
-    // The blank in focus is the caterpillar: a face before the root, a
-    // segment per piece, a rump behind. Fixed markup from this file.
-    shape.insertAdjacentHTML('afterbegin', BUILDER_ART.worm.head);
-    shape.insertAdjacentHTML('beforeend', BUILDER_ART.worm.tail);
-  }
+  if (pieces) shape.append(...paintedPieces(chunk, pieces));
   // Arrows over and under each ending block, for a blank being helped:
   // they try the next ending along that axis, written into the blank.
   const swapsUp = swapRow(chunk, pieces, -1);
