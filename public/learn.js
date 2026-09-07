@@ -1257,6 +1257,14 @@ function chunkField(chunk, index) {
   // between; Shift+Tab steps back. Past the last blank they land on
   // the next-sentence button, not on whatever button comes first.
   field.addEventListener('keydown', (event) => {
+    // Up and down swap the ending under the caret, as the arrows over it do.
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      if (helping?.field !== field || !builtIn || !formsShown) return;
+      event.preventDefault();
+      stepBuilt(slotAtCaret(field), event.key === 'ArrowDown' ? 1 : -1, field);
+      placeCaretAtEnd(field);
+      return;
+    }
     if (event.key !== 'Enter' && event.key !== 'Tab') return;
     const step = event.key === 'Tab' && event.shiftKey ? -1 : 1;
     const next = comparator.children[index + step]?.querySelector('.tr');
@@ -2060,6 +2068,38 @@ function inflects(pos) {
 /** The blank the drawing is helping along: its root typed right, the
     endings left to find with the arrows, which write the form into it. */
 let helping = null;
+
+/** How far into the blank's text the caret stands. */
+function caretOffset(field) {
+  const selection = getSelection();
+  if (!selection?.rangeCount || !field.contains(selection.anchorNode)) return field.textContent.length;
+  const range = selection.getRangeAt(0).cloneRange();
+  range.selectNodeContents(field);
+  range.setEnd(selection.anchorNode, selection.anchorOffset);
+  return range.toString().length;
+}
+
+/** Which ending the up and down keys swap: the one the caret stands in.
+    In the root, or with nothing built yet, the first ending; at the end
+    of the word, the last. */
+function slotAtCaret(field) {
+  const order = groupEndingFirst() ? ['group', 'label'] : ['label', 'group'];
+  const rootLength = piecesOf(helping.chunk)?.[0]?.length ?? 0;
+  const offset = caretOffset(field);
+  if (offset <= rootLength) return order[0];
+  const entry = builtIn?.entry;
+  if (!entry) return order[1];
+  const pieces = piecesOfForm(entry);
+  const tints = pieceTints(entry, builtIn.group.hint, entry.label);
+  let at = rootLength;
+  for (let index = 1; index < pieces.length; index += 1) {
+    at += pieces[index].length;
+    if (offset < at || (offset === at && index === pieces.length - 1)) {
+      return tints[index] === 1 ? 'group' : tints[index] === 2 ? 'label' : order[1];
+    }
+  }
+  return order[1];
+}
 
 /** Hands the help to a blank, or to none; the blank shows its own arrows. */
 function setHelping(next) {
