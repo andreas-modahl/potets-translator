@@ -121,7 +121,7 @@ to right alongside the text above it.
    scopes, then these bot permissions:
    - View Channels
    - Send Messages
-   - Create Public Threads *(needed for the default thread mode)*
+   - Create Public Threads *(only needed if you switch a channel to thread mode)*
    - Send Messages in Threads
    - Read Message History
    - Manage Webhooks *(only needed if you switch a channel to webhook mode)*
@@ -148,8 +148,8 @@ npm start
 
 `npm test` covers the parts that can be checked without a Discord connection or
 an API key: which messages are worth translating, language-name handling, the
-column layout, and the two checks that decide whether a Turkish breakdown is
-trustworthy enough to show.
+column layout, the checks that decide whether a breakdown is trustworthy enough
+to show, the lesson pool, the picture lookup, and the session and user stores.
 
 ## Web app
 
@@ -325,6 +325,10 @@ If cost is the main constraint, set `CLAUDE_MODEL=claude-haiku-4-5-20251001`.
 | `public/learn.html` | The lesson page's markup |
 | `public/learn.css` | The lesson page's own styles |
 | `public/learn.js` | The lesson page: the comparator, the chest, speech, sync |
+| `public/learn/strings.js` | Everything the lesson page says, in Norwegian and in Turkish |
+| `public/learn/fold.js` | Loose spelling: which typed words count as the same |
+| `public/learn/rarity.js` | The rarity tiers of a chest badge |
+| `public/learn/builder-art.js` | The word builder's drawings: rocket, train, caterpillar |
 | `public/app.css` | Colour tokens and chrome shared by both pages |
 | `src/claude.ts` | The shared Anthropic client |
 | `src/translate.ts` | The Claude call, prompt, and structured output |

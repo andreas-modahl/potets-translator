@@ -39,6 +39,8 @@ interface Asset {
 }
 
 const HTML = 'text/html; charset=utf-8';
+const CSS = 'text/css; charset=utf-8';
+const JS = 'text/javascript; charset=utf-8';
 
 /**
  * The files the site is made of, keyed by the path each is served at.
@@ -58,9 +60,14 @@ const ASSETS = new Map<string, Asset>(
       ['/learn.html', 'learn.html', HTML],
       ['/translate', 'index.html', HTML],
       ['/index.html', 'index.html', HTML],
-      ['/app.css', 'app.css', 'text/css; charset=utf-8'],
-      ['/learn.css', 'learn.css', 'text/css; charset=utf-8'],
-      ['/learn.js', 'learn.js', 'text/javascript; charset=utf-8'],
+      ['/app.css', 'app.css', CSS],
+      ['/learn.css', 'learn.css', CSS],
+      // The learn page's script and the modules it imports.
+      ['/learn.js', 'learn.js', JS],
+      ['/learn/strings.js', 'learn/strings.js', JS],
+      ['/learn/fold.js', 'learn/fold.js', JS],
+      ['/learn/rarity.js', 'learn/rarity.js', JS],
+      ['/learn/builder-art.js', 'learn/builder-art.js', JS],
     ] satisfies Array<[string, string, string]>
   ).map(([path, file, type]) => [
     path,
@@ -97,7 +104,7 @@ function notifyReload(): void {
 if (LIVE_RELOAD) {
   // Editors save in more than one write; one reload per burst is enough.
   let settle: NodeJS.Timeout | undefined;
-  watch(fileURLToPath(new URL('../public/', import.meta.url)), () => {
+  watch(fileURLToPath(new URL('../public/', import.meta.url)), { recursive: true }, () => {
     clearTimeout(settle);
     settle = setTimeout(notifyReload, 80);
   });

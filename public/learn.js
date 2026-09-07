@@ -1,3 +1,10 @@
+import { DIRECTIONS } from './learn/strings.js';
+import { fold, hintFold, sameWord } from './learn/fold.js';
+import { rarityOf, rarityTier } from './learn/rarity.js';
+import { BUILDER_ART, BUILDER_ICONS, BUILDER_VIEWS } from './learn/builder-art.js';
+
+/* The page's elements ------------------------------------------------ */
+
 const form = document.querySelector('#form');
 const levelButton = document.querySelector('#level');
 const levelName = document.querySelector('#level-name');
@@ -38,59 +45,6 @@ const chestStars = document.querySelector('#chest-stars');
 const chestRow = document.querySelector('#group');
 const chestToggle = document.querySelector('#chest-toggle');
 const chestWrap = document.querySelector('.chest-wrap');
-/** Which chest is listed; -1 means the one being filled. */
-let viewGroup = -1;
-/** Closed: the newest few words. Open: a whole chest, with the picker. */
-let chestOpen = false;
-const PEEK = 5;
-
-/** Rarity by pieces: a bare word is common, a word of four or more
-    pieces is legendary. Old entries without a count are common. */
-/** A badge's rarity is earned: a longer word starts higher, and every
-    two more times it is typed unaided lifts it a tier. */
-const RARITIES = ['vanlig', 'sjelden', 'episk', 'legendarisk'];
-
-function rarityTier(word) {
-  const pieces = word.pieces ?? 0;
-  const count = word.count ?? 1;
-  return Math.min(RARITIES.length - 1, Math.floor(pieces / 2) + Math.floor((count - 1) / 2));
-}
-
-function rarityOf(word) {
-  return RARITIES[rarityTier(word)];
-}
-
-/**
- * The words worth meeting again: the least practised, and among those
- * the ones not seen for longest. A few are sent with each request so
- * the next sentence can bring one back.
- */
-function comebacks(words) {
-  // Words that needed a hint come first: they are not earned yet.
-  const chosen = loadStruggled()
-    .slice(-2)
-    .map((word) => word.target);
-  const ranked = [...words]
-    .filter((word) => !chosen.some((target) => fold(target) === fold(word.target)))
-    .sort((a, b) => (a.count ?? 1) - (b.count ?? 1) || (a.at ?? 0) - (b.at ?? 0));
-  // Some choice among the weakest, so the same ones do not come back every time.
-  const weakest = ranked.slice(0, 6);
-  while (chosen.length < 3 && weakest.length) {
-    chosen.push(weakest.splice(Math.floor(Math.random() * weakest.length), 1)[0].target);
-  }
-  return chosen;
-}
-
-chestToggle.addEventListener('click', () => {
-  chestOpen = !chestOpen;
-  renderBank(loadBank());
-});
-/** Words per chest. */
-const CHEST_SIZE = 25;
-/** The word whose badge just rose a tier, folded; its badge gets a flourish once. */
-let upgraded = '';
-/** Whether a word in the sentence on screen filled a chest. */
-let chestFilled = false;
 const chest = document.querySelector('#chest');
 const fireworksBox = document.querySelector('#fireworks');
 const flagFrom = document.querySelector('#flag-from');
@@ -104,257 +58,15 @@ const accountLabel = document.querySelector('#account-label');
 const avatar = document.querySelector('#avatar');
 const menuButton = document.querySelector('#menu');
 const menuPanel = document.querySelector('#menu-panel');
+
 /** The logged-in learner, or null. Set before storage is touched. */
 let account = null;
 
 /* Direction ---------------------------------------------------------
    "tr": a Norwegian speaker learning Turkish. "nb": a Turkish speaker
    learning Norwegian. Everything on the page is written in the language
-   the learner already knows, and the blanks are in the other one. */
-
-const DIRECTIONS = {
-  tr: {
-    target: 'tr',
-    native: 'nb',
-    targetLocale: 'tr-TR',
-    flagFrom: 'flag-no',
-    flagTo: 'flag-tr',
-    label: 'Jeg lærer tyrkisk',
-    title: 'Languageballs — lær tyrkisk',
-    levels: [
-      ['start', 'Første steg'],
-      ['nybegynner', 'Nybegynner'],
-      ['viderekommen', 'Viderekommen'],
-      ['avansert', 'Avansert'],
-    ],
-    levelLabel: 'Nivå',
-    switchLevel: 'Bytt nivå',
-    wordClasses: 'Ordklasser',
-    wordClassesHelp: 'Vis om ordet er substantiv, verb, adjektiv …',
-    formsCard: 'Bøyning',
-    formsCardHelp: 'Vis bøyningen av ordet du holder på med, under setningen',
-    pos: {
-      noun: 'substantiv',
-      verb: 'verb',
-      adjective: 'adjektiv',
-      adverb: 'adverb',
-      pronoun: 'pronomen',
-      adposition: 'postposisjon',
-      conjunction: 'konjunksjon',
-      numeral: 'tallord',
-      determiner: 'determinativ',
-      interjection: 'interjeksjon',
-      particle: 'partikkel',
-    },
-    posHelp: {
-      noun: 'Substantiv: navn på ting, personer og steder. Hund, park, Ayşe.',
-      verb: 'Verb: det som gjøres eller skjer. Løpe, sove, være.',
-      adjective: 'Adjektiv: beskriver et substantiv. Stor, glad, ny.',
-      adverb: 'Adverb: sier hvordan, når eller hvor noe skjer. Fort, alltid, her.',
-      pronoun: 'Pronomen: står i stedet for et substantiv. Jeg, du, den.',
-      adposition: 'Postposisjon: står etter ordet det hører til, der norsk har en preposisjon foran. Med, for, etter.',
-      conjunction: 'Konjunksjon: binder sammen ord eller setninger. Og, men, fordi.',
-      numeral: 'Tallord: et tall eller en rekkefølge. To, fem, første.',
-      determiner: 'Determinativ: peker ut eller mengdeangir et substantiv. Denne, hver, noen.',
-      interjection: 'Interjeksjon: et utrop. Hei, au, ja.',
-      particle: 'Partikkel: et lite ord som endrer tonen eller betydningen. Også, bare, vel.',
-    },
-    topic: 'Tema',
-    topicPlaceholder: 'Tema: på kafé, familie, å reise…',
-    flip: 'Bytt retning: lær norsk fra tyrkisk',
-    themeDark: 'Mørk modus',
-    themeLight: 'Lys modus',
-    soundOff: 'Lyd av',
-    soundOn: 'Lyd på',
-    voice: 'Stemme',
-    topics: [
-      'på kafé',
-      'familie',
-      'å reise',
-      'på markedet',
-      'været',
-      'presens -iyor',
-      'preteritum -di',
-      'futurum -ecek',
-      'dativ -e/-a',
-      'lokativ -de',
-      'eiendomssuffiks',
-      'flertall -ler',
-    ],
-    speak: 'Les opp setningen',
-    keyHelp: ['leser ordet du står i', 'hele setningen'],
-    hint: 'Hint',
-    specials: ['ç', 'ğ', 'ı', 'ö', 'ş', 'ü'],
-    typeLetter: (letter) => `Skriv ${letter}`,
-    hearWord: 'Hør ordet',
-    blankFor: (native) => `Tyrkisk for «${native}»`,
-    done: 'Flott! Neste',
-    log: 'Tidligere setninger',
-    logAll: 'Vis alle',
-    logFewer: 'Vis færre',
-    logOpen: (target) => `Åpne «${target}» igjen`,
-    logDone: 'Fullført',
-    logScore: (n, total) => `${n} av ${total} ord uten hint`,
-    streak: (n) => `${n} på rad`,
-    streakHelp: 'Setninger på rad uten hint',
-    fresh: 'Ny setning',
-    browse: 'Bla i setninger',
-    bank: 'Ordbank',
-    chest: 'Kiste',
-    chestOpen: 'Åpne kisten og vis alle ordene',
-    chestClose: 'Lukk kisten',
-    chestFull: 'Kiste full!',
-    bankEmpty: 'Ord du skriver riktig uten hint, havner i kisten.',
-    fullChests: (n) => (n === 1 ? '1 full kiste' : `${n} fulle kister`),
-    login: 'Logg inn',
-    logout: 'Logg ut',
-    menu: 'Meny',
-    loginFailed: 'Innloggingen gikk ikke. Prøv igjen.',
-    inBank: 'Ligger i ordbanken',
-    tally: 'Ganger skrevet riktig uten hjelp',
-    sayWord: (word) => `Les opp ${word}`,
-    remove: (word) => `Fjern ${word}`,
-    noBreakdown:
-      'Setningen kom, men oppdelingen stemte ikke med den, så den er utelatt. Prøv en gang til.',
-    failed: 'Noe gikk galt.',
-    offline: 'Fikk ikke kontakt med serveren.',
-    credits: 'Bilder: Fluent Emoji (Microsoft) og piktogrammer fra ',
-    creditsTail: ' (Sergio Palao, Aragóns regjering, CC BY-NC-SA).',
-    forms: 'Bøyning',
-    showForms: (word) => `Les opp ${word} og vis bøyningen`,
-    formsLoading: 'Henter bøyningen …',
-    formsFailed: 'Fikk ikke tak i bøyningen. Prøv igjen.',
-    formsNone: 'Dette ordet bøyes ikke.',
-    formsDrawing: 'Tegning',
-    formsTable: 'Tabell',
-    builder: 'Slik bygges ordet',
-    builderViews: { stairs: 'Trapp', rocket: 'Rakett', train: 'Tog', worm: 'Larve' },
-    partUp: 'Forrige',
-    partDown: 'Neste',
-    formsFlip: 'Bytt akser',
-    close: 'Lukk',
-  },
-  nb: {
-    target: 'nb',
-    native: 'tr',
-    targetLocale: 'nb-NO',
-    flagFrom: 'flag-tr',
-    flagTo: 'flag-no',
-    label: 'Norveççe öğreniyorum',
-    title: 'Languageballs — Norveççe öğren',
-    levels: [
-      ['start', 'İlk adım'],
-      ['nybegynner', 'Başlangıç'],
-      ['viderekommen', 'Orta'],
-      ['avansert', 'İleri'],
-    ],
-    levelLabel: 'Seviye',
-    switchLevel: 'Seviyeyi değiştir',
-    wordClasses: 'Sözcük türleri',
-    wordClassesHelp: 'Kelimenin isim, fiil, sıfat … olduğunu göster',
-    formsCard: 'Çekim',
-    formsCardHelp: 'Üzerinde olduğun kelimenin çekimini cümlenin altında göster',
-    pos: {
-      noun: 'isim',
-      verb: 'fiil',
-      adjective: 'sıfat',
-      adverb: 'zarf',
-      pronoun: 'zamir',
-      adposition: 'edat',
-      conjunction: 'bağlaç',
-      numeral: 'sayı',
-      determiner: 'belirleyici',
-      interjection: 'ünlem',
-      particle: 'edat',
-    },
-    posHelp: {
-      noun: 'İsim: varlıkların, kişilerin ve yerlerin adı. Köpek, park, Ola.',
-      verb: 'Fiil: yapılan ya da olan şey. Koşmak, uyumak, olmak.',
-      adjective: 'Sıfat: bir ismi niteler. Büyük, mutlu, yeni.',
-      adverb: 'Zarf: nasıl, ne zaman ya da nerede olduğunu söyler. Hızlı, her zaman, burada.',
-      pronoun: 'Zamir: bir ismin yerine geçer. Ben, sen, o.',
-      adposition: 'Edat: Norveççede isimden önce gelir, Türkçedeki eklerin ve sonra gelen edatların yerine. Med, for, etter.',
-      conjunction: 'Bağlaç: kelimeleri ya da cümleleri birbirine bağlar. Og, men, fordi.',
-      numeral: 'Sayı: bir sayı ya da sıra. To, fem, første.',
-      determiner: 'Belirleyici: bir ismi işaret eder ya da miktarını söyler. Denne, hver, noen.',
-      interjection: 'Ünlem: bir seslenme. Hei, au, ja.',
-      particle: 'Edat/ilgeç: tonu ya da anlamı değiştiren küçük bir kelime. Også, bare, vel.',
-    },
-    topic: 'Konu',
-    topicPlaceholder: 'Konu: kafede, aile, seyahat…',
-    flip: 'Yönü değiştir: Norveççeden Türkçe öğren',
-    themeDark: 'Koyu tema',
-    themeLight: 'Açık tema',
-    soundOff: 'Sesi kapat',
-    soundOn: 'Sesi aç',
-    voice: 'Ses',
-    topics: [
-      'kafede',
-      'aile',
-      'seyahat',
-      'pazarda',
-      'hava durumu',
-      'belirli tanımlık -en/-et',
-      'geçmiş zaman -te',
-      'perfektum har + -t',
-      'ikinci sırada fiil',
-      'çoğul -er/-ene',
-      'edatlar (preposisjoner)',
-    ],
-    speak: 'Cümleyi seslendir',
-    keyHelp: ['bulunduğun kelimeyi okur', 'tüm cümleyi'],
-    hint: 'İpucu',
-    specials: ['æ', 'ø', 'å'],
-    typeLetter: (letter) => `${letter} yaz`,
-    hearWord: 'Kelimeyi dinle',
-    blankFor: (native) => `«${native}» için Norveççe`,
-    done: 'Harika! Sıradaki',
-    log: 'Önceki cümleler',
-    logAll: 'Tümünü göster',
-    logFewer: 'Daha az göster',
-    logOpen: (target) => `«${target}» cümlesini yeniden aç`,
-    logDone: 'Tamamlandı',
-    logScore: (n, total) => `${total} kelimeden ${n} tanesi ipucusuz`,
-    streak: (n) => `${n} üst üste`,
-    streakHelp: 'İpucu almadan üst üste bitirilen cümleler',
-    fresh: 'Yeni cümle',
-    browse: 'Cümleler arasında gez',
-    bank: 'Kelime sandığı',
-    chest: 'Sandık',
-    chestOpen: 'Sandığı aç ve tüm kelimeleri göster',
-    chestClose: 'Sandığı kapat',
-    chestFull: 'Sandık doldu!',
-    bankEmpty: 'İpucu almadan doğru yazdığın kelimeler sandığa girer.',
-    fullChests: (n) => `${n} dolu sandık`,
-    login: 'Giriş yap',
-    logout: 'Çıkış yap',
-    menu: 'Menü',
-    loginFailed: 'Giriş yapılamadı. Tekrar dene.',
-    inBank: 'Sandıkta var',
-    tally: 'Yardımsız doğru yazma sayısı',
-    sayWord: (word) => `${word} kelimesini seslendir`,
-    remove: (word) => `${word} kelimesini kaldır`,
-    noBreakdown:
-      'Cümle geldi ama parçalara ayırma cümleyle uyuşmadı, o yüzden gösterilmedi. Bir daha dene.',
-    failed: 'Bir şeyler ters gitti.',
-    offline: 'Sunucuya ulaşılamadı.',
-    credits: 'Görseller: Fluent Emoji (Microsoft) ve ',
-    creditsTail: ' piktogramları (Sergio Palao, Aragon Hükümeti, CC BY-NC-SA).',
-    forms: 'Çekim',
-    showForms: (word) => `${word} kelimesini seslendir ve çekimini göster`,
-    formsLoading: 'Çekim getiriliyor …',
-    formsFailed: 'Çekim alınamadı. Tekrar dene.',
-    formsNone: 'Bu kelime çekimlenmez.',
-    formsDrawing: 'Çizim',
-    formsTable: 'Tablo',
-    builder: 'Kelime böyle kurulur',
-    builderViews: { stairs: 'Merdiven', rocket: 'Roket', train: 'Tren', worm: 'Tırtıl' },
-    partUp: 'Önceki',
-    partDown: 'Sonraki',
-    formsFlip: 'Eksenleri değiştir',
-    close: 'Kapat',
-  },
-};
+   the learner already knows, and the blanks are in the other one. The
+   strings for each side live in learn/strings.js. */
 
 const DIRECTION_KEY = 'potets.retning';
 /** How many sentences are kept; the oldest fall off the front. */
@@ -768,35 +480,6 @@ function focusNextOpen() {
   const box = [...comparator.children].find((candidate) => !candidate.classList.contains('correct'));
   const field = box?.querySelector('.tr');
   if (field) placeCaretAtEnd(field);
-}
-
-/** Letters folded to their plain Latin base, in either language, so ş
-    and s, ı and i, ğ and g, ö and o, ü and u, ç and c, æ and a, ø and
-    o, å and a all count the same. Both the typed word and the answer go
-    through this: the point is the word and its order, not the keyboard. */
-function fold(text) {
-  return text
-    .trim()
-    .toLocaleLowerCase('tr')
-    .replace(/ı/g, 'i')
-    .replace(/æ/g, 'a')
-    .replace(/ø/g, 'o')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    // The way å, ø and æ are typed on a keyboard without them. Applied to
-    // the answer too, so a word that really has "oe" (poeng) still matches.
-    .replace(/aa/g, 'a')
-    .replace(/oe/g, 'o')
-    .replace(/ae/g, 'a')
-    .replace(/[’'`´]/g, '')
-    // Punctuation the model left glued to a word is not part of the
-    // spelling, and the full stop is the hint key besides.
-    .replace(/[.,;:!?…]/g, '')
-    .replace(/\s+/g, ' ');
-}
-
-function sameWord(typed, answer) {
-  return fold(typed) === fold(answer);
 }
 
 /**
@@ -1335,6 +1018,27 @@ function overcame(chunk) {
   const words = loadStruggled();
   const rest = words.filter((word) => fold(word.target) !== fold(chunk.target));
   if (rest.length !== words.length) saveStruggled(rest);
+}
+
+/**
+ * The words worth meeting again: the least practised, and among those
+ * the ones not seen for longest. A few are sent with each request so
+ * the next sentence can bring one back.
+ */
+function comebacks(words) {
+  // Words that needed a hint come first: they are not earned yet.
+  const chosen = loadStruggled()
+    .slice(-2)
+    .map((word) => word.target);
+  const ranked = [...words]
+    .filter((word) => !chosen.some((target) => fold(target) === fold(word.target)))
+    .sort((a, b) => (a.count ?? 1) - (b.count ?? 1) || (a.at ?? 0) - (b.at ?? 0));
+  // Some choice among the weakest, so the same ones do not come back every time.
+  const weakest = ranked.slice(0, 6);
+  while (chosen.length < 3 && weakest.length) {
+    chosen.push(weakest.splice(Math.floor(Math.random() * weakest.length), 1)[0].target);
+  }
+  return chosen;
 }
 
 /** The chunk: a blank field to type the target word into, standing over
@@ -2094,6 +1798,23 @@ lessonCard.addEventListener('mousedown', (event) => {
 
 /* Word bank -------------------------------------------------------- */
 
+/** Words per chest. */
+const CHEST_SIZE = 25;
+/** Which chest is listed; -1 means the one being filled. */
+let viewGroup = -1;
+/** Closed: the newest few words. Open: a whole chest, with the picker. */
+let chestOpen = false;
+const PEEK = 5;
+/** The word whose badge just rose a tier, folded; its badge gets a flourish once. */
+let upgraded = '';
+/** Whether a word in the sentence on screen filled a chest. */
+let chestFilled = false;
+
+chestToggle.addEventListener('click', () => {
+  chestOpen = !chestOpen;
+  renderBank(loadBank());
+});
+
 /** How many words the chest being filled holds, out of 25. A bank of
     exactly 25 is a full chest, not an empty new one. */
 function inChest(total) {
@@ -2484,19 +2205,6 @@ function formCell(row, entry, group) {
   return cell;
 }
 
-/** An ending the way it is written on a heading, folded so that "-ecek" finds
-    "eceğ", "-ir" finds "er" and "-de" finds "ta": vowels alike, the consonants
-    that harden or soften folded together, dashes and case gone. */
-function hintFold(text) {
-  return text
-    .toLocaleLowerCase('tr')
-    .replace(/^-+/, '')
-    .replace(/ğ/g, 'k')
-    .replace(/t/g, 'd')
-    .replace(/ç/g, 'c')
-    .replace(/[aeıioöuüâîû]/g, '*');
-}
-
 /** Whether a piece is the folded ending, allowing the y, n or s a vowel
     puts before it: "yi" is "-i" in "kediyi", "nin" is "-in" in "kedinin". */
 function hintMatches(piece, wanted) {
@@ -2677,12 +2385,8 @@ function renderForms(table) {
 let builtWord = '';
 let builtIn = null;
 
-/* How the word is drawn: as a staircase of steps, or as a thing that
-   grows a part per ending. The root is the front, each ending a part
-   hitched on behind, so the shape of the word is the shape of the thing. */
+/** How the word is drawn, one of BUILDER_VIEWS; the drawings are in learn/builder-art.js. */
 const BUILDER_VIEW = 'potets.bygger';
-const BUILDER_VIEWS = ['stairs', 'rocket', 'train', 'worm'];
-const BUILDER_ICONS = { stairs: '🪜', rocket: '🚀', train: '🚂', worm: '🐛' };
 let builderView = BUILDER_VIEWS.includes(recall(BUILDER_VIEW)) ? recall(BUILDER_VIEW) : 'rocket';
 
 function builderFrame() {
@@ -2717,48 +2421,6 @@ function builderFrame() {
   frame.append(caption, steps);
   return frame;
 }
-
-/* The drawn parts: what goes in front of the root, and what trails the last
-   ending. Each is sized to the row of parts it joins. */
-const BUILDER_ART = {
-  rocket: {
-    head:
-      '<svg class="part-art nose" viewBox="0 0 40 40" aria-hidden="true">' +
-      '<path d="M40 1 Q 12 6 2 20 Q 12 34 40 39 Z" />' +
-      '<circle cx="27" cy="20" r="5" class="window" />' +
-      '</svg>',
-    tail:
-      '<svg class="part-art flame" viewBox="0 -12 72 64" aria-hidden="true">' +
-      '<path d="M0 1 L22 1 Q 8 -8 0 -18 Z" /><path d="M0 39 L22 39 Q 8 48 0 58 Z" />' +
-      '<path class="fire" d="M6 9 Q 44 4 70 20 Q 44 36 6 31 Z" />' +
-      '<path class="fire-core" d="M6 14 Q 30 12 46 20 Q 30 28 6 26 Z" />' +
-      '</svg>',
-  },
-  train: {
-    head:
-      '<svg class="part-art engine" viewBox="0 -18 52 60" aria-hidden="true">' +
-      '<path class="smoke" d="M12 -6 a5 5 0 1 1 0.1 0" /><path class="smoke" d="M20 -14 a4 4 0 1 1 0.1 0" />' +
-      '<rect x="8" y="-2" width="10" height="12" />' +
-      '<path d="M4 10 H52 V40 H10 L2 30 Z" />' +
-      '<circle cx="18" cy="42" r="6" class="wheel" /><circle cx="40" cy="42" r="6" class="wheel" />' +
-      '</svg>',
-    tail: '',
-  },
-  worm: {
-    head:
-      '<svg class="part-art face" viewBox="0 -14 46 56" aria-hidden="true">' +
-      '<path class="feeler" d="M18 2 Q 12 -10 4 -12" /><path class="feeler" d="M28 2 Q 32 -10 40 -13" />' +
-      '<circle cx="4" cy="-12" r="2.5" /><circle cx="40" cy="-13" r="2.5" />' +
-      '<circle cx="23" cy="21" r="21" />' +
-      '<circle cx="16" cy="16" r="3" class="eye" /><circle cx="30" cy="16" r="3" class="eye" />' +
-      '<path class="smile" d="M14 27 Q 23 35 32 27" />' +
-      '</svg>',
-    tail:
-      '<svg class="part-art rump" viewBox="0 0 24 42" aria-hidden="true">' +
-      '<path d="M0 6 Q 22 8 22 21 Q 22 34 0 36 Z" />' +
-      '</svg>',
-  },
-};
 
 /** Which comes first in the words of this table: the group's ending or the label's. */
 function groupEndingFirst() {
