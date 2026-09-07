@@ -737,6 +737,13 @@
   transform: none;
   box-shadow: none;
 }
+/* What the endings held would have meant, when they are not the ones
+   asked for: struck through, but there to read. */
+.chunk .no.astray {
+  text-decoration: line-through;
+  text-decoration-color: var(--bad);
+  text-decoration-thickness: 2px;
+}
 .chunk .no:active {
   transform: none;
   box-shadow: none;

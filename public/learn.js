@@ -617,8 +617,10 @@ function checkField(field, chunk) {
   box.classList.toggle('filled', typed.trim().length > 0);
   box.classList.toggle('ontrack', fold(chunk.target).startsWith(fold(typed)));
   markLetters(box, typed, chunk.target);
-  // The choices at the top of the card follow what the segments hold.
+  // The choices at the top of the card follow what the segments hold,
+  // and the word underneath says what the endings held make of it.
   if (helping?.chunk === chunk) renderChoices();
+  syncNative(box, chunk);
   const solvedNow = box.classList.contains('correct');
   if (solvedNow === wasSolved) return;
 
@@ -925,6 +927,43 @@ function renderChoices() {
     choicesRow.append(row);
   }
   choicesRow.hidden = choicesRow.children.length === 0;
+}
+
+/**
+ * Under a blank holding an ending the sentence does not want, the word
+ * the forms table gives that form, struck through: "du ser" under a
+ * "görüyorsun" typed where "görüyorum" was asked for, so a wrong ending
+ * still says what it would have meant. The blank's own word comes back
+ * once the endings are right, or gone, or make no form the table has.
+ */
+function syncNative(box, chunk) {
+  const native = box.querySelector('.no');
+  if (!native) return;
+  let said = '';
+  const pieces = helping?.chunk === chunk ? piecesOf(chunk) : null;
+  const groups = formsShown?.groups ?? [];
+  if (pieces && groups.length && !box.classList.contains('correct')) {
+    const segs = segmentsOf(box.querySelector('.tr'));
+    const tints = [1, 2].filter((tint) => segs.some((seg) => seg.dataset.m === String(tint)));
+    const heldOf = (tint) => heldIn(segs.find((seg) => seg.dataset.m === String(tint)));
+    const wantedOf = (tint) => pieces.find((part, index) => index > 0 && endingTint(part.form, index) === tint)?.form ?? '';
+    const astray = tints.some((tint) => heldOf(tint) && fold(heldOf(tint)) !== fold(wantedOf(tint)));
+    if (astray) {
+      const groupFirst = groupEndingFirst();
+      search: for (const group of groups) {
+        for (const form of group.forms) {
+          const slots = slotsOf(form, group, groupFirst);
+          const fits = tints.every((tint) => fold(slots.find((slot) => slot.tint === tint)?.piece ?? '') === fold(heldOf(tint)));
+          if (fits && form.means) {
+            said = form.means;
+            break search;
+          }
+        }
+      }
+    }
+  }
+  native.classList.toggle('astray', !!said);
+  native.textContent = said || chunk.native;
 }
 
 /** What a choice says beside its ending, a word or two: the keywords cut
