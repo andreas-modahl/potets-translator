@@ -729,14 +729,75 @@ function markLetters(box, typed, answer) {
   check.replaceChildren();
   if (box.classList.contains('correct') || !typed.trim()) return;
   const wanted = [...answer];
-  [...typed].forEach((letter, at) => {
+  const marks = [...typed].map((letter, at) => {
     const mark = document.createElement('span');
     const target = wanted[at];
     const right = target !== undefined && (letter === target || (fold(letter) !== '' && fold(letter) === fold(target)));
-    mark.className = right ? 'ok' : 'bad';
     mark.textContent = letter;
-    check.append(mark);
+    return { mark, right };
   });
+  check.append(...marks.map(({ mark }) => mark));
+  check.append(strokesUnder(box.querySelector('.tr'), check, marks));
+}
+
+/**
+ * The blank's line, redrawn in colour under each typed letter. The line is
+ * a border with rounded ends, so its shape is traced from the blank's own
+ * radii and border, and each letter shows the slice of it that lies under
+ * that letter: the strokes then thin out at the ends just as the line does.
+ */
+function strokesUnder(field, check, marks) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const style = getComputedStyle(field);
+  const width = field.offsetWidth;
+  const height = field.offsetHeight;
+  const border = parseFloat(style.borderBottomWidth) || 0;
+  const radius = (value) => {
+    const [x, y = x] = value.split(/\s+/);
+    const px = (part, along) => (part.endsWith('%') ? (parseFloat(part) / 100) * along : parseFloat(part)) || 0;
+    return { x: px(x, width), y: px(y, height) };
+  };
+  const left = radius(style.borderBottomLeftRadius);
+  const right = radius(style.borderBottomRightRadius);
+  // Radii too big for the box are scaled down together, as the browser does.
+  const scale = Math.min(1, width / (left.x + right.x || 1), height / (left.y || 1), height / (right.y || 1));
+  for (const corner of [left, right]) {
+    corner.x *= scale;
+    corner.y *= scale;
+  }
+  const depth = Math.max(border, left.y, right.y);
+  const inner = (corner) => Math.max(0, corner.y - border);
+  const path =
+    `M 0 ${depth - left.y} A ${left.x} ${left.y} 0 0 0 ${left.x} ${depth} ` +
+    `L ${width - right.x} ${depth} A ${right.x} ${right.y} 0 0 0 ${width} ${depth - right.y} ` +
+    `A ${right.x} ${inner(right)} 0 0 1 ${width - right.x} ${depth - border} ` +
+    `L ${left.x} ${depth - border} A ${left.x} ${inner(left)} 0 0 1 0 ${depth - left.y} Z`;
+
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'strokes');
+  svg.setAttribute('width', String(width));
+  svg.setAttribute('height', String(depth));
+  svg.setAttribute('viewBox', `0 0 ${width} ${depth}`);
+  svg.setAttribute('aria-hidden', 'true');
+  const origin = field.getBoundingClientRect();
+  svg.style.left = `${origin.left - check.getBoundingClientRect().left}px`;
+  for (const { mark, right: ok } of marks) {
+    const at = mark.getBoundingClientRect();
+    const from = at.left - origin.left;
+    const span = at.width;
+    // A nested svg shows only what lies inside its own box.
+    const slice = document.createElementNS(NS, 'svg');
+    slice.setAttribute('x', String(from));
+    slice.setAttribute('width', String(span));
+    slice.setAttribute('height', String(depth));
+    slice.setAttribute('viewBox', `${from} 0 ${span} ${depth}`);
+    const stroke = document.createElementNS(NS, 'path');
+    stroke.setAttribute('class', ok ? 'ok' : 'bad');
+    stroke.setAttribute('d', path);
+    slice.append(stroke);
+    svg.append(slice);
+  }
+  return svg;
 }
 
 function checkField(field, chunk) {

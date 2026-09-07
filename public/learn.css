@@ -460,6 +460,7 @@
   /* Each letter is a column stretched to the blank's full height, so its
      stroke lies exactly on the blank's own line rather than on the
      text's baseline. */
+  position: relative;
   display: flex;
   align-items: stretch;
   padding: 0 0.1rem;
@@ -474,10 +475,19 @@
 }
 .chunk .check span {
   flex: none;
-  border-bottom: 3px solid var(--good);
+}
+/* The line itself, traced from the blank's shape and coloured in slices. */
+.chunk .check .strokes {
+  position: absolute;
+  bottom: 0;
+  display: block;
+  overflow: visible;
+}
+.chunk .check .ok {
+  fill: var(--good);
 }
 .chunk .check .bad {
-  border-bottom-color: var(--bad);
+  fill: var(--bad);
 }
 .chunk.filled .tr {
   border-bottom-color: var(--faint);
