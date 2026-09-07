@@ -624,10 +624,16 @@ function select(index) {
   // The drawing helps only the blank it was opened from.
   if (helping && helping.chunk !== current.chunks[index]) setHelping(null);
   followWord(current.chunks[index]);
-  // A solved word in focus is the word builder: its arrows and tags stay.
+  // The word in focus is the word builder, solved or not: its root's forms
+  // come in, and the arrows over its ending blocks pick the endings.
   const chunk = current.chunks[index];
   const field = comparator.children[index]?.querySelector('.tr');
-  if (chunk && field && isSolved(index) && inflects(chunk.pos) && piecesOf(chunk)) setHelping({ field, chunk });
+  if (!chunk || !field) return;
+  if (isSolved(index)) {
+    if (inflects(chunk.pos) && piecesOf(chunk)) setHelping({ field, chunk });
+  } else {
+    startBuilding(field, chunk);
+  }
 }
 
 // The hint button works on the selected word, or failing that the
@@ -833,7 +839,6 @@ function checkField(field, chunk) {
   box.classList.toggle('ontrack', fold(chunk.target).startsWith(fold(typed)));
   markLetters(box, typed, chunk.target);
   const solvedNow = box.classList.contains('correct');
-  if (!solvedNow) helpWithRoot(field, chunk);
   if (solvedNow === wasSolved) return;
 
   // A near-miss on the letters still counts, but the word left on screen
@@ -2069,14 +2074,14 @@ function bareWord(text) {
 }
 
 /**
- * Typing a word's root right, and no more, puts that root in the drawing
- * with the endings bare: the rest of the word is then found by trying
- * endings with the arrows, each try written into the blank.
+ * The blank in focus builds its word in sections, as the drawn word does:
+ * the root section is typed, and the ending sections are picked with the
+ * arrows, which go on after whatever root stands there. The root's forms
+ * are fetched as soon as the blank is in focus, with the endings bare.
  */
-function helpWithRoot(field, chunk) {
+function startBuilding(field, chunk) {
   const root = chunk.morphemes?.[0]?.form ?? '';
-  if (!root || (chunk.morphemes?.length ?? 0) < 2 || !inflects(chunk.pos)) return;
-  if (fold(field.textContent) !== fold(root)) return;
+  if (!root || (chunk.morphemes?.length ?? 0) < 2 || !inflects(chunk.pos) || !piecesOf(chunk)) return;
   setHelping({ field, chunk });
   openForms(bareWord(root), chunk.pos, {
     pic: pictureWord(chunk),
@@ -2616,10 +2621,14 @@ function stepBuilt(key, delta, from = null) {
   }
   speak(entry.word);
   showBuilt(entry, group, true, key);
-  // A blank being helped gets the form written in, and checked as typed.
+  // The blank being built gets the endings written in after its root
+  // section, whatever stands there, and is checked as if typed.
   if (helping) {
     const punctuation = /[^\p{L}\p{M}\p{N}'’]+$/u.exec(helping.chunk.target)?.[0] ?? '';
-    helping.field.textContent = entry.word + punctuation;
+    const rootLength = piecesOf(helping.chunk)?.[0]?.length ?? 0;
+    const typedRoot = helping.field.textContent.slice(0, rootLength);
+    const endings = piecesOfForm(entry).slice(1).join('');
+    helping.field.textContent = typedRoot + endings + punctuation;
     checkField(helping.field, helping.chunk);
   }
   // The arrow that was pressed is drawn anew; the keyboard stays on it.
