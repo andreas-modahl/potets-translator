@@ -468,8 +468,8 @@
      cover it with their own backgrounds. */
   --line-colour: var(--faint);
   position: relative;
-  border-bottom: 3px solid transparent;
-  border-radius: 0 0 40% 60% / 0 0 6px 4px;
+  border-bottom: 4px solid transparent;
+  border-radius: 0 0 40% 60% / 0 0 7px 5px;
   outline: none;
 }
 /* Emptying an editable leaves a line break behind, which the preserved
@@ -480,8 +480,8 @@
 .chunk .tr::after {
   content: '';
   position: absolute;
-  inset: 0 0 -3px;
-  border-bottom: 3px solid var(--line-colour);
+  inset: 0 0 -4px;
+  border-bottom: 4px solid var(--line-colour);
   border-radius: inherit;
   pointer-events: none;
 }
@@ -507,11 +507,13 @@
 .chunk .tr.split:focus-within {
   --line-colour: var(--teal);
 }
-/* The strokes' mirror of the segments: the same boxes, unseen. */
+/* The strokes' mirror of the segments: the same boxes, unseen. Each is
+   given its segment's measured width, padding and all, so it is sized
+   from the border edge. */
 .chunk .check .seg-mirror {
   display: flex;
   flex: none;
-  box-sizing: content-box;
+  box-sizing: border-box;
   padding: 0 0.2em;
   margin-right: 0.15rem;
 }
