@@ -1713,6 +1713,7 @@ function tempoFor(text) {
 
 function speakLocally(text, tempo = 1) {
   if (!canSpeakLocally) return;
+  player.pause();
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = D.targetLocale;
@@ -1778,6 +1779,7 @@ async function speak(text) {
   saying = fold(text);
 
   if (serverSpeech) {
+    let blob = null;
     try {
       const voice = chosenVoice();
       const response = await fetch(
@@ -1787,21 +1789,30 @@ async function speak(text) {
       if (response.status === 503) {
         serverSpeech = false;
       } else if (response.ok) {
-        const blob = await response.blob();
-        if (turn !== speakTurn) return;
-        // Whatever started meanwhile gives way; only one voice at a time.
-        if (canSpeakLocally) speechSynthesis.cancel();
-        player.src = URL.createObjectURL(blob);
-        player.preservesPitch = true;
-        player.playbackRate = tempo;
-        await player.play();
-        return;
+        blob = await response.blob();
       } else {
         saying = '';
         return;
       }
     } catch {
-      // Fall through to the local voice for this one sentence.
+      // The request failed: the local voice steps in for this one reading.
+    }
+    if (turn !== speakTurn) return;
+    if (blob) {
+      // Whatever started meanwhile gives way; only one voice at a time.
+      if (canSpeakLocally) speechSynthesis.cancel();
+      player.src = URL.createObjectURL(blob);
+      player.preservesPitch = true;
+      player.playbackRate = tempo;
+      // A play that is refused, or cut off by a newer reading, stays
+      // silent: the local voice is for a server that did not answer,
+      // not for audio that arrived and was not played.
+      try {
+        await player.play();
+      } catch {
+        if (turn === speakTurn) saying = '';
+      }
+      return;
     }
   }
   if (turn !== speakTurn) return;
