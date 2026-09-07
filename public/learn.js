@@ -1190,42 +1190,42 @@ function tagRow(chunk, pieces) {
   row.className = 'tags';
   row.lang = D.native;
   if (!pieces) return row;
-  for (const part of pieces) {
+  pieces.forEach((part, index) => {
     const slot = document.createElement('span');
     slot.className = 'slot';
     slot.style.minWidth = `calc(${part.length}ch + 0.4em)`;
+    // The tag wears its segment's tint, so the two read as one.
     const tag = document.createElement('span');
-    tag.className = 'tag';
+    tag.className = 'tag m';
+    tag.dataset.m = String(endingTint(part.form, index));
     slot.append(tag);
     row.append(slot);
-  }
+  });
   return row;
 }
 
-/** Writes the tags over a blank's pieces, and lifts any that would run
-    into the one before it onto a second line. */
+/** Writes the tags over a blank's pieces, short, and widens any segment
+    whose tag is wider than it, so every tag stands over its own segment
+    on one line. */
 function renderBlankTags(box, texts) {
   const tags = [...box.querySelectorAll('.tags .tag')];
+  const segs = segmentsOf(box.querySelector('.tr'));
   tags.forEach((tag, index) => {
-    tag.textContent = texts[index] ?? '';
-    tag.classList.remove('raised');
+    const full = texts[index] ?? '';
+    tag.textContent = shortMeans(full);
+    // The whole of it on hover, where the tag is a cut of it.
+    tag.title = tag.textContent !== full ? full : '';
   });
-  const row = box.querySelector('.tags');
-  row.classList.remove('two-lanes');
   requestAnimationFrame(() => {
-    const lanes = [-Infinity, -Infinity];
-    let raised = false;
-    for (const tag of tags) {
-      if (!tag.textContent) continue;
-      const { left, right } = tag.getBoundingClientRect();
-      const lane = left >= lanes[0] + 6 ? 0 : left >= lanes[1] + 6 ? 1 : 0;
-      lanes[lane] = right;
-      if (lane === 1) {
-        tag.classList.add('raised');
-        raised = true;
-      }
-    }
-    row.classList.toggle('two-lanes', raised);
+    tags.forEach((tag, index) => {
+      const seg = segs[index];
+      if (!seg) return;
+      const length = Number(seg.dataset.len) || 0;
+      const pad = 0.4 * parseFloat(getComputedStyle(seg).fontSize);
+      const want = tag.textContent ? tag.getBoundingClientRect().width + 4 - pad : 0;
+      seg.style.minWidth = want > 0 ? `max(${length}ch, ${want.toFixed(1)}px)` : `${length}ch`;
+    });
+    syncRows(box);
   });
 }
 
@@ -1244,7 +1244,8 @@ function syncBlankTags(slots = []) {
   const segs = segmentsOf(helping.field);
   const texts = pieces.map((part, index) => {
     if (index === 0) return '';
-    const wanted = shortMeans(part.means);
+    // In full: the tag is cut short when shown, with the whole on hover.
+    const wanted = part.means ?? '';
     const held = segs[index]?.textContent.replace(/[^\p{L}\p{M}\p{N}]/gu, '') ?? '';
     if (!held || fold(held) === fold(part.form)) return wanted;
     const tint = endingTint(part.form, index);
@@ -1289,6 +1290,7 @@ function paintWord(box, field, chunk) {
       tag.dataset.m = String(tints[index]);
       tag.lang = D.native;
       tag.textContent = shortMeans(part.means);
+      if (tag.textContent !== part.means) tag.title = part.means;
       return tag;
     }),
   );

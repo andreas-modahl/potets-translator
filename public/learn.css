@@ -517,9 +517,6 @@
   white-space: pre;
   color: transparent;
 }
-.chunk .tags.two-lanes {
-  height: 2.3rem;
-}
 .chunk.helping .tags {
   display: flex;
 }
@@ -535,15 +532,17 @@
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
+  padding: 0 0.3em;
   font-family: var(--hand);
   font-size: 0.8rem;
-  line-height: 1.1;
+  line-height: 1.2;
   letter-spacing: 0;
   white-space: nowrap;
-  color: var(--muted);
+  border-radius: 3px;
+  color: var(--ink);
 }
-.chunk .tags .tag.raised {
-  bottom: 1.1rem;
+.chunk .tags .tag:empty {
+  display: none;
 }
 /* For a blank being helped, arrows over and under each ending block, in
    place of the caption above: the pieces again in the blank's type,
