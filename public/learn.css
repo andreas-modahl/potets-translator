@@ -973,9 +973,19 @@ body.muted .chunk .say {
   align-items: baseline;
   justify-content: space-between;
 }
+/* The heading is the word itself: its picture, the word, its meaning. */
 .forms h2 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  align-items: center;
   margin: 0;
   font-size: 1.1rem;
+}
+.forms h2 .pic {
+  width: 2.4rem;
+  height: 2.4rem;
+  object-fit: contain;
 }
 .forms-tools {
   display: flex;
@@ -990,19 +1000,13 @@ body.muted .chunk .say {
 .forms header .ghost[hidden] {
   display: none;
 }
-.forms-head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.2rem 0.75rem;
-  align-items: baseline;
-  margin: 0.6rem 0 0;
-}
 .forms-base {
   font-size: 1.3rem;
   font-weight: 700;
 }
 .forms-meaning {
   font-family: var(--hand);
+  font-weight: 400;
   color: var(--muted);
 }
 /* The word builder: one form growing a piece at a time, a staircase of

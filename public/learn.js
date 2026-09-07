@@ -1829,7 +1829,14 @@ function renderBank(words) {
     const inflects = !word.pos || word.pos === 'verb' || word.pos === 'noun' || word.pos === 'adjective';
     const open = () => {
       speak(word.target);
-      if (inflects) openForms(word.target, word.pos);
+      if (inflects) {
+        openForms(word.target, word.pos, {
+          native: word.native,
+          pic: word.pic,
+          emoji: word.emoji ?? '',
+          english: word.english ?? '',
+        });
+      }
     };
     item.tabIndex = 0;
     item.setAttribute('role', 'button');
@@ -1881,18 +1888,40 @@ function formsNote(text) {
   return note;
 }
 
+/** What the card is headed with: the word's picture, the word, its meaning. */
+let formsLook = {};
+
+function renderFormsTitle(word, meaning) {
+  formsTitle.replaceChildren();
+  const picture = pictureNode(formsLook.pic ?? '', formsLook.emoji ?? '', formsLook.english ?? '');
+  if (picture) formsTitle.append(picture);
+  const base = document.createElement('span');
+  base.className = 'forms-base';
+  base.lang = D.target;
+  base.textContent = word;
+  formsTitle.append(base);
+  if (meaning) {
+    const means = document.createElement('span');
+    means.className = 'forms-meaning';
+    means.lang = D.native;
+    means.textContent = meaning;
+    formsTitle.append(means);
+  }
+}
+
 /** Opens the forms of a word, or closes them when they are the ones open. */
-async function openForms(word, pos) {
+async function openForms(word, pos, look = {}) {
   if (formsFor === word) {
     closeForms();
     return;
   }
   formsFor = word;
+  formsLook = look;
   builtWord = '';
   formsPanel.hidden = false;
   formsShown = null;
   formsFlip.hidden = true;
-  formsTitle.textContent = `${D.forms}: ${word}`;
+  renderFormsTitle(word, look.native ?? '');
   formsBody.replaceChildren(formsNote(D.formsLoading));
   formsPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
@@ -2125,18 +2154,7 @@ function formsList(group) {
 
 function renderForms(table) {
   formsBody.replaceChildren();
-  const head = document.createElement('p');
-  head.className = 'forms-head';
-  const base = document.createElement('span');
-  base.className = 'forms-base';
-  base.lang = D.target;
-  base.textContent = table.base;
-  const meaning = document.createElement('span');
-  meaning.className = 'forms-meaning';
-  meaning.lang = D.native;
-  meaning.textContent = table.meaning;
-  head.append(base, meaning);
-  formsBody.append(head);
+  renderFormsTitle(table.base, table.meaning);
 
   const groups = table.groups ?? [];
   if (groups.length === 0) {
