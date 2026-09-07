@@ -624,6 +624,10 @@ function select(index) {
   // The drawing helps only the blank it was opened from.
   if (helping && helping.chunk !== current.chunks[index]) setHelping(null);
   followWord(current.chunks[index]);
+  // A solved word in focus is the word builder: its arrows and tags stay.
+  const chunk = current.chunks[index];
+  const field = comparator.children[index]?.querySelector('.tr');
+  if (chunk && field && isSolved(index) && inflects(chunk.pos) && piecesOf(chunk)) setHelping({ field, chunk });
 }
 
 // The hint button works on the selected word, or failing that the
@@ -830,7 +834,6 @@ function checkField(field, chunk) {
   markLetters(box, typed, chunk.target);
   const solvedNow = box.classList.contains('correct');
   if (!solvedNow) helpWithRoot(field, chunk);
-  else if (helping?.chunk === chunk) setHelping(null);
   if (solvedNow === wasSolved) return;
 
   // A near-miss on the letters still counts, but the word left on screen
@@ -848,7 +851,9 @@ function checkField(field, chunk) {
 
   // Earned outright — no hint, not shown — so it goes in the bank, and
   // the list jumps to the chest it landed in.
-  if (solvedNow && !box.classList.contains('helped')) {
+  // A word solved again after the arrows took it apart is not earned twice.
+  if (solvedNow && !box.classList.contains('helped') && !box.classList.contains('earned')) {
+    box.classList.add('earned');
     viewGroup = -1;
     bankEarned(chunk);
   }
@@ -1061,6 +1066,71 @@ function swapRow(chunk, pieces, delta) {
   return row;
 }
 
+/**
+ * A row of tags the width of the word's pieces: the pieces again in the
+ * blank's type, unseen, each with a label centred over it that says what
+ * the piece does, filled in as the forms table comes and the arrows move.
+ */
+function tagRow(chunk, pieces) {
+  const row = document.createElement('span');
+  row.className = 'tags';
+  row.lang = D.native;
+  if (!pieces) return row;
+  for (const node of paintedPieces(chunk, pieces)) {
+    const slot = document.createElement('span');
+    slot.className = 'slot';
+    slot.textContent = typeof node === 'string' ? node : node.textContent;
+    if (typeof node !== 'string') {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      slot.append(tag);
+    }
+    row.append(slot);
+  }
+  return row;
+}
+
+/** Writes the tags over a blank's pieces, and lifts any that would run
+    into the one before it onto a second line. */
+function renderBlankTags(box, texts) {
+  const tags = [...box.querySelectorAll('.tags .tag')];
+  tags.forEach((tag, index) => {
+    tag.textContent = texts[index] ?? '';
+    tag.classList.remove('raised');
+  });
+  const row = box.querySelector('.tags');
+  row.classList.remove('two-lanes');
+  requestAnimationFrame(() => {
+    const lanes = [-Infinity, -Infinity];
+    let raised = false;
+    for (const tag of tags) {
+      if (!tag.textContent) continue;
+      const { left, right } = tag.getBoundingClientRect();
+      const lane = left >= lanes[0] + 6 ? 0 : left >= lanes[1] + 6 ? 1 : 0;
+      lanes[lane] = right;
+      if (lane === 1) {
+        tag.classList.add('raised');
+        raised = true;
+      }
+    }
+    row.classList.toggle('two-lanes', raised);
+  });
+}
+
+/** Puts the drawn word's tags over the blank being helped, piece for piece. */
+function syncBlankTags(slots) {
+  if (!helping) return;
+  const pieces = piecesOf(helping.chunk);
+  if (!pieces) return;
+  const texts = pieces.map((part, index) => {
+    const tint = endingTint(part.form, index);
+    const key = index === 0 ? 'root' : tint === 1 ? 'group' : tint === 2 ? 'label' : '';
+    const slot = slots.find((candidate) => candidate.key === key);
+    return slot ? slotTagText(slot) : '';
+  });
+  renderBlankTags(helping.field.parentElement, texts);
+}
+
 /** Paints a solved word piece by piece and writes each piece's meaning
     in the same tint above the blank. */
 function paintWord(box, field, chunk) {
@@ -1250,8 +1320,10 @@ function chunkField(chunk, index) {
   // they try the next ending along that axis, written into the blank.
   const swapsUp = swapRow(chunk, pieces, -1);
   const swapsDown = swapRow(chunk, pieces, 1);
+  // And over the arrows, what each piece does, as over the drawn word.
+  const tags = tagRow(chunk, pieces);
 
-  box.append(parts, swapsUp, shape, field, check, swapsDown, under);
+  box.append(parts, tags, swapsUp, shape, field, check, swapsDown, under);
   renderCaption(box, chunk, []);
 
   // The whole box is the target: a click on its padding, the caption or
@@ -2502,13 +2574,18 @@ function slotOptions() {
 function partTag(slot) {
   const tag = document.createElement('span');
   tag.className = 'option';
+  tag.textContent = slotTagText(slot);
+  return tag;
+}
+
+/** What a slot's tag says: the ending's keywords, else the plain word from
+    its name; the root's meaning. */
+function slotTagText(slot) {
   if (slot.role) {
     const inBrackets = /\(([^)]+)\)/.exec(slot.role.name)?.[1];
-    tag.textContent = slot.role.about || inBrackets || slot.role.name;
-  } else if (slot.key === 'root') {
-    tag.textContent = slot.means;
+    return slot.role.about || inBrackets || slot.role.name;
   }
-  return tag;
+  return slot.key === 'root' ? (slot.means ?? '') : '';
 }
 
 /** Moves the built form one step along one axis of the table: to the next
@@ -2540,7 +2617,7 @@ function stepBuilt(key, delta, from = null) {
   speak(entry.word);
   showBuilt(entry, group, true, key);
   // A blank being helped gets the form written in, and checked as typed.
-  if (helping && !helping.field.parentElement.classList.contains('correct')) {
+  if (helping) {
     const punctuation = /[^\p{L}\p{M}\p{N}'’]+$/u.exec(helping.chunk.target)?.[0] ?? '';
     helping.field.textContent = entry.word + punctuation;
     checkField(helping.field, helping.chunk);
@@ -2746,8 +2823,10 @@ function showBuilt(entry, group, animate = true, changed = '') {
         ? buildStairs([{ piece: slots[0].piece, tint: 0, means: slots[0].means, role: null }], false)
         : renderThing(slots, slotOptions(), builderView, false),
     );
+    syncBlankTags(slots);
     return;
   }
+  syncBlankTags(slotsOf(entry, group));
   const pieces = piecesOfForm(entry);
   const tints = pieceTints(entry, group.hint, entry.label);
   // Each piece with its tint, what it does, and what the word says once it

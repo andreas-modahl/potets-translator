@@ -460,8 +460,57 @@
 .chunk .under {
   grid-row: 3;
 }
+/* A blank being helped stacks up: tags, arrows, the word, arrows, and
+   the translation last. */
+.chunk.helping .tr,
+.chunk.helping .shape,
+.chunk.helping .check {
+  grid-row: 3;
+}
 .chunk.helping .under {
-  grid-row: 4;
+  grid-row: 5;
+}
+/* Over the arrows, what each piece does: the pieces again in the blank's
+   type, unseen, each with its tag centred over it. A tag that would run
+   into the one before is lifted onto a line above. */
+.chunk .tags {
+  grid-row: 1;
+  grid-column: 1;
+  display: none;
+  height: 1.2rem;
+  padding: 0 0.1rem;
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+  line-height: 0.8;
+  font-kerning: none;
+  white-space: pre;
+  color: transparent;
+}
+.chunk .tags.two-lanes {
+  height: 2.3rem;
+}
+.chunk.helping .tags {
+  display: flex;
+}
+.chunk .tags .slot {
+  position: relative;
+  display: block;
+  height: 100%;
+}
+.chunk .tags .tag {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--hand);
+  font-size: 0.8rem;
+  line-height: 1.1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.chunk .tags .tag.raised {
+  bottom: 1.1rem;
 }
 /* For a blank being helped, arrows over and under each ending block, in
    place of the caption above: the pieces again in the blank's type,
@@ -479,10 +528,10 @@
   color: transparent;
 }
 .chunk .swaps.up {
-  grid-row: 1;
+  grid-row: 2;
 }
 .chunk .swaps.down {
-  grid-row: 3;
+  grid-row: 4;
 }
 .chunk.helping .swaps {
   display: flex;
