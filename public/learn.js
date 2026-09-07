@@ -2327,23 +2327,14 @@ function slotOptions() {
   return options;
 }
 
-/** A part's tag: the ending's name in its tint with its keywords, or the
-    root's meaning. */
+/** A part's tag: what the ending does in keywords, or, without any, the
+    plain word from its name ("jeg" from "ben (jeg)"); the root's meaning. */
 function partTag(slot) {
   const tag = document.createElement('span');
   tag.className = 'option';
   if (slot.role) {
-    const name = document.createElement('span');
-    name.className = 'm';
-    name.dataset.m = String(slot.tint);
-    name.textContent = slot.role.name;
-    tag.append(name);
-    if (slot.role.about) {
-      const about = document.createElement('span');
-      about.className = 'part-about';
-      about.textContent = slot.role.about;
-      tag.append(about);
-    }
+    const inBrackets = /\(([^)]+)\)/.exec(slot.role.name)?.[1];
+    tag.textContent = slot.role.about || inBrackets || slot.role.name;
   } else if (slot.key === 'root') {
     tag.textContent = slot.means;
   }

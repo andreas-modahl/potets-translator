@@ -1141,26 +1141,15 @@ body.muted .chunk .say {
   display: grid;
   justify-items: center;
   margin-bottom: 0.1rem;
+  padding: 0 0.3em;
   font-family: var(--hand);
-  font-size: 0.8rem;
   font-weight: 400;
   line-height: 1.15;
   color: var(--muted);
   text-align: center;
 }
 .thing .part-tag .option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.thing .part-tag .m {
-  padding: 0;
-  font-size: 0.9rem;
-  background: transparent;
-  color: var(--ink);
-}
-.thing .part-about {
-  max-width: 7rem;
+  max-width: 8rem;
 }
 .thing .part-art {
   grid-row: 3;
