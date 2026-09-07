@@ -367,6 +367,11 @@
 .chunk.open .parts .pos {
   display: none;
 }
+/* And with the class gone, a caption with nothing else in it takes no
+   room at all; a solved word keeps its painted meanings. */
+.chunk.open .parts:not(:has(.m)) {
+  display: none;
+}
 /* The word class, in the caption row above the blank, in outline. */
 .chunk .parts .pos {
   padding: 0.05rem 0.35rem;
