@@ -519,8 +519,7 @@
   grid-row: 3;
 }
 /* The choices, at the top of the card: a row per axis of the forms
-   table, each ending painted in its tint with what it does beside it,
-   and ahead of the row what the sentence asks for there. */
+   table, each ending painted in its tint with what it does beside it. */
 .choices {
   display: grid;
   gap: 0.4rem;
@@ -536,15 +535,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
-}
-.choices .wanted {
-  margin-right: 0.2rem;
-  padding: 0.05rem 0.4rem;
-  font-family: var(--hand);
-  font-size: 0.85rem;
-  line-height: 1.25;
-  border-radius: 4px;
-  color: var(--ink);
 }
 .choices .choice {
   display: inline-flex;

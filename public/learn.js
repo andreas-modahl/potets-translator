@@ -824,11 +824,10 @@ function paintedPieces(chunk, parts, tints = parts.map((part, index) => endingTi
 
 /* The choices ---------------------------------------------------------
    At the top of the card, for the blank being built: every ending its
-   forms table offers, a row per axis, each ending painted in its tint
-   with what it does beside it. A press writes the ending into the
-   blank's segment of that kind. Ahead of each row stands what the
-   sentence asks for there, from the lesson ("akkusativ", "jeg"): the
-   hint for what to find, there before the table has come. */
+   forms table offers that the blank has a segment for, a row per axis,
+   each ending painted in its tint with what it does beside it. A press
+   writes the ending into the blank's segment of that kind. Nothing
+   shows before the table has come. */
 
 /** Letters only, of what a segment holds. */
 function heldIn(seg) {
@@ -868,7 +867,7 @@ function renderChoices() {
           ? groups.map((group) => {
               // Each group's ending as it goes with the label built, or with its first form.
               const form = (built?.entry && group.forms.find((candidate) => candidate.label === built.entry.label)) ?? group.forms[0];
-              return { slot: slotOf(form, group, 'group'), pick: group, current: built?.group === group };
+              return { slot: slotOf(form, group, 'group'), pick: group };
             })
           : [],
     },
@@ -877,60 +876,63 @@ function renderChoices() {
       tint: 2,
       options:
         along && along.forms.length > 1
-          ? along.forms.map((form) => ({ slot: slotOf(form, along, 'label'), pick: form, current: built?.entry === form }))
+          ? along.forms.map((form) => ({ slot: slotOf(form, along, 'label'), pick: form }))
           : [],
     },
   ];
   if (!groupFirst) axes.reverse();
-  for (const { key, tint, options } of axes) {
-    const wanted = pieces.find((part, index) => index > 0 && endingTint(part.form, index) === tint)?.means ?? '';
-    if (!wanted && options.length === 0) continue;
+  for (const { key, tint, options: all } of axes) {
+    // Only what can be written: an axis the blank has a segment for, and
+    // on it the endings that are something. A bare ending is never what a
+    // segment that exists is waiting for.
+    const seg = segs.find((candidate) => candidate.dataset.m === String(tint));
+    if (!seg) continue;
+    const options = all.filter(({ slot }) => slot?.piece);
+    if (options.length === 0) continue;
     const row = document.createElement('div');
     row.className = 'axis';
-    if (wanted) {
-      const label = document.createElement('span');
-      label.className = 'wanted m';
-      label.dataset.m = String(tint);
-      label.lang = D.native;
-      label.textContent = shortMeans(wanted);
-      if (label.textContent !== wanted) label.title = wanted;
-      row.append(label);
-    }
-    const seg = segs.find((candidate) => candidate.dataset.m === String(tint));
     const held = heldIn(seg);
-    for (const { slot, pick, current } of options) {
-      const piece = slot?.piece ?? '';
+    for (const { slot, pick } of options) {
+      const piece = slot.piece;
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'choice';
       button.tabIndex = -1;
-      // Pressed when the blank holds this very ending; a bare one only
-      // when it is the form built and the segment is empty.
-      const pressed = piece ? fold(held) === fold(piece) : current && held === '';
-      button.setAttribute('aria-pressed', String(pressed));
+      // Pressed when the blank holds this very ending.
+      button.setAttribute('aria-pressed', String(fold(held) === fold(piece)));
       const ending = document.createElement('span');
       ending.className = 'm';
       ending.dataset.m = String(tint);
       ending.lang = D.target;
-      ending.textContent = piece ? `-${piece}` : '–';
+      ending.textContent = `-${piece}`;
       button.append(ending);
-      const about = slot ? slotTagText(slot) : '';
-      if (about) {
+      const about = slotTagText(slot);
+      const short = chipText(slot, about);
+      if (short) {
         const text = document.createElement('span');
         text.className = 'about';
         text.lang = D.native;
-        text.textContent = shortMeans(about);
-        if (text.textContent !== about) button.title = about;
+        text.textContent = short;
+        if (short !== about) button.title = about;
         button.append(text);
       }
       // The caret stays in the blank; the press writes the ending.
       button.addEventListener('mousedown', (event) => event.preventDefault());
-      button.addEventListener('click', () => pickBuilt(key, pick, seg ?? helping?.field ?? null));
+      button.addEventListener('click', () => pickBuilt(key, pick, seg));
       row.append(button);
     }
     choicesRow.append(row);
   }
   choicesRow.hidden = choicesRow.children.length === 0;
+}
+
+/** What a choice says beside its ending, a word or two: the keywords cut
+    short, or, where they still run long, the ending's name when that is
+    shorter ("akkusativ" for "bestemt objekt", "lokativ" for "i, på, hos"). */
+function chipText(slot, about) {
+  const short = shortMeans(about);
+  const name = slot.role?.name ? splitLabel(slot.role.name).name : '';
+  return short.length > 9 && name && name.length < short.length ? name : short;
 }
 
 /** A piece's meaning cut down to a chip's worth: the name in brackets
