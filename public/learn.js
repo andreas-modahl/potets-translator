@@ -980,7 +980,9 @@ function checkField(field, chunk) {
     setReady(true, chestFilled);
     countSentence();
     markDone();
-    submitButton.focus();
+    // A word finished with an arrow keeps the caret: the arrows are for
+    // looking at the word, and Enter is there when done with it.
+    if (!byArrow) submitButton.focus();
   } else {
     explanations.hidden = true;
     setReady(false);
@@ -2782,6 +2784,9 @@ function slotTagText(slot) {
   return slot.key === 'root' ? (slot.means ?? '') : '';
 }
 
+/** Set while a word is being checked because an arrow wrote into it. */
+let byArrow = false;
+
 /** Moves the built form one step along one axis of the table: to the next
     or previous group, keeping the label, or to the next or previous label. */
 function stepBuilt(key, delta, from = null) {
@@ -2824,7 +2829,12 @@ function stepBuilt(key, delta, from = null) {
       const text = seg.dataset.m === '1' ? ending(1) : seg.dataset.m === '2' ? ending(2) : '';
       seg.textContent = seg === last ? text + punctuation : text;
     }
-    checkField(helping.field, helping.chunk);
+    byArrow = true;
+    try {
+      checkField(helping.field, helping.chunk);
+    } finally {
+      byArrow = false;
+    }
   }
   // The arrow that was pressed is drawn anew; the keyboard stays on it,
   // or the caret in the segment it came from.
