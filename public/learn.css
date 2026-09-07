@@ -362,6 +362,11 @@
   background: var(--accent);
   box-shadow: inset 0 0 0 2px var(--panel);
 }
+/* The word in focus keeps its caption clear: the endings on offer take
+   that room, and the class is there again once the focus moves on. */
+.chunk.open .parts .pos {
+  display: none;
+}
 /* The word class, in the caption row above the blank, in outline. */
 .chunk .parts .pos {
   padding: 0.05rem 0.35rem;
