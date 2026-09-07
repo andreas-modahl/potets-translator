@@ -615,6 +615,8 @@ function select(index) {
     box.classList.toggle('open', at === index);
   }
   renderDetail(current.chunks[index]);
+  // The drawing helps only the blank it was opened from.
+  if (helping && helping.chunk !== current.chunks[index]) helping = null;
   followWord(current.chunks[index]);
 }
 
@@ -821,6 +823,8 @@ function checkField(field, chunk) {
   box.classList.toggle('ontrack', fold(chunk.target).startsWith(fold(typed)));
   markLetters(box, typed, chunk.target);
   const solvedNow = box.classList.contains('correct');
+  if (!solvedNow) helpWithRoot(field, chunk);
+  else if (helping?.chunk === chunk) helping = null;
   if (solvedNow === wasSolved) return;
 
   // A near-miss on the letters still counts, but the word left on screen
@@ -1449,6 +1453,7 @@ document.addEventListener('keydown', (event) => {
 function renderSkeleton() {
   current = { chunks: [] };
   selected = -1;
+  helping = null;
   comparator.replaceChildren();
   detail.replaceChildren();
   explanations.replaceChildren();
@@ -1491,6 +1496,7 @@ function bone(width) {
 function renderLesson(result, { read = false } = {}) {
   current = result;
   selected = -1;
+  helping = null;
   chestFilled = false;
   comparator.replaceChildren();
   detail.replaceChildren();
@@ -1901,12 +1907,38 @@ function inflects(pos) {
   return !pos || pos === 'verb' || pos === 'noun' || pos === 'adjective';
 }
 
+/** The blank the drawing is helping along: its root typed right, the
+    endings left to find with the arrows, which write the form into it. */
+let helping = null;
+
+/** The word without the punctuation it carries in the sentence. */
+function bareWord(text) {
+  return text.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}'’]+$/gu, '');
+}
+
+/**
+ * Typing a word's root right, and no more, puts that root in the drawing
+ * with the endings bare: the rest of the word is then found by trying
+ * endings with the arrows, each try written into the blank.
+ */
+function helpWithRoot(field, chunk) {
+  const root = chunk.morphemes?.[0]?.form ?? '';
+  if (!root || (chunk.morphemes?.length ?? 0) < 2 || !inflects(chunk.pos)) return;
+  if (fold(field.textContent) !== fold(root)) return;
+  helping = { field, chunk };
+  openForms(bareWord(root), chunk.pos, {
+    pic: pictureWord(chunk),
+    emoji: pictureEmoji(chunk),
+    english: chunk.english ?? '',
+    bare: true,
+  });
+}
+
 /** The card follows the word in hand, once it is solved: an open blank
     would have its answer given away by the table. */
 function followWord(chunk) {
   if (!chunk || !isSolved(current.chunks.indexOf(chunk)) || !inflects(chunk.pos)) return;
-  // The word without the punctuation it carries in the sentence.
-  const word = chunk.target.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}'’]+$/gu, '');
+  const word = bareWord(chunk.target);
   if (!word) return;
   openForms(word, chunk.pos, {
     native: chunk.native,
@@ -1946,7 +1978,11 @@ function renderFormsTitle(word, meaning) {
 
 /** Opens the forms of a word, or closes them when they are the ones open. */
 async function openForms(word, pos, look = {}) {
-  if (formsFor === word) return;
+  if (formsFor === word) {
+    // The same word again, but now with its endings to be found.
+    if (look.bare && formsShown && builtIn?.entry) showBuilt(null, null, false);
+    return;
+  }
   formsFor = word;
   formsLook = look;
   builtWord = '';
@@ -2206,8 +2242,13 @@ function renderForms(table) {
   formsBody.append(scroll);
   formsShown = table;
   applyFormsViews(aligned);
-  // Built up first: the form last shown, else the word the table was opened
-  // for, else the first form there is.
+  // Built up first: the root alone when the endings are to be found; else
+  // the form last shown, else the word the table was opened for, else the
+  // first form there is.
+  if (formsLook.bare) {
+    showBuilt(null, null, false);
+    return;
+  }
   const wanted = (builtWord || formsFor).toLocaleLowerCase(D.target);
   let pick = null;
   for (const group of groups) {
@@ -2396,7 +2437,20 @@ function stepBuilt(key, delta) {
   if (!builtIn || !formsShown) return;
   const groups = formsShown.groups;
   let { entry, group } = builtIn;
-  if (key === 'group') {
+  const bareIn = (slots, which) => slots.find((slot) => slot.key === which)?.piece === '';
+  if (!entry) {
+    // From the bare root: the first or last along the axis pressed, with
+    // the other axis left bare where the table has such a form.
+    if (key === 'group') {
+      group = groups[delta > 0 ? 0 : groups.length - 1];
+      entry = group.forms.find((form) => bareIn(slotsOf(form, group), 'label')) ?? group.forms[0];
+    } else {
+      group = groups.find((candidate) => candidate.forms.some((form) => bareIn(slotsOf(form, candidate), 'group'))) ?? groups[0];
+      const forms = group.forms.filter((form) => bareIn(slotsOf(form, group), 'group'));
+      const along = forms.length ? forms : group.forms;
+      entry = along[delta > 0 ? 0 : along.length - 1];
+    }
+  } else if (key === 'group') {
     const at = group.forms.indexOf(entry);
     group = groups[(groups.indexOf(group) + delta + groups.length) % groups.length];
     entry = group.forms.find((form) => form.label === entry.label) ?? group.forms[Math.min(at, group.forms.length - 1)];
@@ -2405,6 +2459,12 @@ function stepBuilt(key, delta) {
   }
   speak(entry.word);
   showBuilt(entry, group, true, key);
+  // A blank being helped gets the form written in, and checked as typed.
+  if (helping && !helping.field.parentElement.classList.contains('correct')) {
+    const punctuation = /[^\p{L}\p{M}\p{N}'’]+$/u.exec(helping.chunk.target)?.[0] ?? '';
+    helping.field.textContent = entry.word + punctuation;
+    checkField(helping.field, helping.chunk);
+  }
   // The arrow that was pressed is drawn anew; the keyboard stays on it.
   formsBody.querySelector(`.part-arrow[data-slot="${key}"][data-dir="${delta > 0 ? 'down' : 'up'}"]`)?.focus();
 }
@@ -2580,13 +2640,33 @@ function pieceRole(tint, entry, group) {
   return null;
 }
 
+/** The root alone, with the ending slots bare but their arrows live. */
+function rootSlots() {
+  const root = formsFor;
+  const slots = emptySlots().map((slot) => ({ ...slot, empty: false }));
+  slots[0].piece = root;
+  slots[0].means = formSpelled([root])?.means ?? formsShown?.meaning ?? '';
+  if (!groupEndingFirst()) [slots[1], slots[2]] = [slots[2], slots[1]];
+  return slots;
+}
+
 function showBuilt(entry, group, animate = true, changed = '') {
   const steps = formsBody.querySelector('.build-steps');
   if (!steps) return;
-  builtWord = entry.word;
+  builtWord = entry?.word ?? '';
   builtIn = { entry, group };
   for (const button of formsBody.querySelectorAll('.form')) {
-    button.classList.toggle('built', button.dataset.word === entry.word);
+    button.classList.toggle('built', !!entry && button.dataset.word === entry.word);
+  }
+  if (!entry) {
+    // The root alone: the endings are there to be found with the arrows.
+    const slots = rootSlots();
+    steps.replaceChildren(
+      builderView === 'stairs'
+        ? buildStairs([{ piece: slots[0].piece, tint: 0, means: slots[0].means, role: null }], false)
+        : renderThing(slots, slotOptions(), builderView, false),
+    );
+    return;
   }
   const pieces = piecesOfForm(entry);
   const tints = pieceTints(entry, group.hint, entry.label);
