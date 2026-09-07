@@ -1162,7 +1162,7 @@ function swapRow(chunk, pieces, delta) {
     const slot = index > 0 && tint === 1 ? 'group' : index > 0 && tint === 2 ? 'label' : '';
     if (!slot) {
       const filler = document.createElement('span');
-      filler.style.minWidth = `${part.length}ch`;
+      filler.style.minWidth = `calc(${part.length}ch + 0.4em)`;
       row.append(filler);
       return;
     }
@@ -1172,7 +1172,7 @@ function swapRow(chunk, pieces, delta) {
     button.dataset.slot = slot;
     button.dataset.dir = delta > 0 ? 'down' : 'up';
     button.tabIndex = -1;
-    button.style.minWidth = `${part.length}ch`;
+    button.style.minWidth = `calc(${part.length}ch + 0.4em)`;
     button.setAttribute('aria-label', delta > 0 ? D.partDown : D.partUp);
     button.addEventListener('click', () => stepBuilt(slot, delta, button));
     row.append(button);
@@ -1193,7 +1193,7 @@ function tagRow(chunk, pieces) {
   for (const part of pieces) {
     const slot = document.createElement('span');
     slot.className = 'slot';
-    slot.style.minWidth = `${part.length}ch`;
+    slot.style.minWidth = `calc(${part.length}ch + 0.4em)`;
     const tag = document.createElement('span');
     tag.className = 'tag';
     slot.append(tag);
@@ -2297,7 +2297,11 @@ function setHelping(next) {
   helping?.field.parentElement.classList.remove('helping');
   helping = next;
   next?.field.parentElement.classList.add('helping');
-  if (next) syncBlankTags(currentSlots());
+  if (next) {
+    syncBlankTags(currentSlots());
+    // The rows over the segments take their widths once the rows show.
+    requestAnimationFrame(() => syncRows(next.field.parentElement));
+  }
 }
 
 /** The slots of the form built at the moment, or none before a table is in. */
