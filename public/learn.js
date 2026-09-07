@@ -1127,9 +1127,11 @@ function syncBlankTags(slots) {
   if (!helping) return;
   const pieces = piecesOf(helping.chunk);
   if (!pieces) return;
+  // The endings only: the root's meaning already stands under the blank.
   const texts = pieces.map((part, index) => {
+    if (index === 0) return '';
     const tint = endingTint(part.form, index);
-    const key = index === 0 ? 'root' : tint === 1 ? 'group' : tint === 2 ? 'label' : '';
+    const key = tint === 1 ? 'group' : tint === 2 ? 'label' : '';
     const slot = slots.find((candidate) => candidate.key === key);
     return slot ? slotTagText(slot) : '';
   });
