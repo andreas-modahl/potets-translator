@@ -830,7 +830,7 @@ function paintedPieces(chunk, parts, tints = parts.map((part, index) => endingTi
 }
 
 /* The choices ---------------------------------------------------------
-   In the word's box, under its translation, for the segment the caret
+   In the word's box, over the blank, for the segment the caret
    is in: every ending its forms table offers along that axis, painted
    in its tint with what it does beside it. A press writes the ending
    into the segment. Nothing shows for the root, or before the table

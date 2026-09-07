@@ -518,16 +518,24 @@
 .chunk .under {
   grid-row: 3;
 }
-/* The choices, in the word's box under its translation: the endings of
-   the segment in focus, small, each painted in its tint with what it
-   does beside it. They wrap at about the width of the translation. */
+/* The choices, in the word's box over the blank: the endings of the
+   segment in focus, small, each painted in its tint with what it does
+   beside it. They wrap at about the width of the translation. While
+   they show, the blank and the translation move down a row. */
 .chunk .choices {
-  grid-row: 4;
+  grid-row: 2;
   display: flex;
   flex-wrap: wrap;
   gap: 0.2rem;
   max-width: 16rem;
-  margin-top: 0.3rem;
+  margin-bottom: 0.3rem;
+}
+.chunk:has(.choices:not([hidden])) .tr,
+.chunk:has(.choices:not([hidden])) .check {
+  grid-row: 3;
+}
+.chunk:has(.choices:not([hidden])) .under {
+  grid-row: 4;
 }
 .choices[hidden] {
   display: none;
