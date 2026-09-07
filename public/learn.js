@@ -982,19 +982,11 @@ function refreshCaptions() {
   }
 }
 
-/** Paints a solved word piece by piece and writes each piece's meaning
-    in the same tint above the blank. */
-function paintWord(box, field, chunk) {
-  const parts = piecesOf(chunk);
-  if (!parts) {
-    renderCaption(box, chunk, []);
-    return;
-  }
-  // Each piece takes its letters from the word as it is spelled there,
-  // so a softened consonant is painted, not the dictionary form; any
-  // punctuation on the end stays plain.
+/** The word as tinted spans, one per piece. Each piece takes its letters
+    from the word as it is spelled there, so a softened consonant is
+    painted, not the dictionary form; any punctuation on the end stays plain. */
+function paintedPieces(chunk, parts, tints = parts.map((part, index) => endingTint(part.form, index))) {
   let at = 0;
-  const tints = parts.map((part, index) => endingTint(part.form, index));
   const painted = parts.map((part, index) => {
     const span = document.createElement('span');
     span.className = 'm';
@@ -1009,7 +1001,19 @@ function paintWord(box, field, chunk) {
     at = end;
     return span;
   });
-  field.replaceChildren(...painted, chunk.target.slice(at));
+  return [...painted, chunk.target.slice(at)];
+}
+
+/** Paints a solved word piece by piece and writes each piece's meaning
+    in the same tint above the blank. */
+function paintWord(box, field, chunk) {
+  const parts = piecesOf(chunk);
+  if (!parts) {
+    renderCaption(box, chunk, []);
+    return;
+  }
+  const tints = parts.map((part, index) => endingTint(part.form, index));
+  field.replaceChildren(...paintedPieces(chunk, parts, tints));
   renderCaption(
     box,
     chunk,
@@ -1178,7 +1182,15 @@ function chunkField(chunk, index) {
   check.className = 'check';
   check.setAttribute('aria-hidden', 'true');
 
-  box.append(parts, field, check, under);
+  // The shape of the word under the blank in focus: its pieces as tinted
+  // blocks the size of the letters to come, the letters themselves unseen.
+  const shape = document.createElement('span');
+  shape.className = 'shape';
+  shape.setAttribute('aria-hidden', 'true');
+  const pieces = piecesOf(chunk);
+  if (pieces) shape.append(...paintedPieces(chunk, pieces));
+
+  box.append(parts, shape, field, check, under);
   renderCaption(box, chunk, []);
 
   // The whole box is the target: a click on its padding, the caption or

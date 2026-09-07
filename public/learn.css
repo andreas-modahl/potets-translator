@@ -463,6 +463,33 @@
 .chunk .tr:focus {
   --line-colour: var(--teal);
 }
+/* Under the blank in focus, the shape of the word: its pieces as tinted
+   blocks, set in the same type as the blank so each block is the size
+   of the letters that go on it; the letters themselves are unseen. */
+.chunk .shape {
+  grid-row: 2;
+  grid-column: 1;
+  padding: 0 0.1rem 0.1rem;
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  font-kerning: none;
+  white-space: pre;
+  border-bottom: 3px solid transparent;
+  color: transparent;
+  visibility: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+.chunk .shape .m {
+  border-radius: 3px;
+}
+.chunk.open .shape {
+  visibility: visible;
+}
+.chunk.correct .shape {
+  visibility: hidden;
+}
 /* While typing, the line under each letter says how it is going: green
    under a letter that is right, red under one that is not. The check is
    the typed text again, unseen, laid over the blank in the same cell, so
