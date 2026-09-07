@@ -31,7 +31,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  margin-left: 0.5rem;
 }
 .hint-row .special {
   min-width: 2.4rem;
@@ -57,8 +56,10 @@
 /* On a touch screen the row is two lines of tap targets: the speaker
    and the hint (or the next button) above, the letters below. Every
    button takes the same height, and the letters keep the row's gap, so
-   the two lines read as one keypad. */
-@media (hover: none), (pointer: coarse) {
+   the two lines read as one keypad. A narrow window gets the same
+   layout whatever the pointer, so the keys never wrap on their own
+   with a gap in front of them. */
+@media (hover: none), (pointer: coarse), (max-width: 40rem) {
   .hint-row {
     --tap: 2.9rem;
     align-items: stretch;
@@ -76,7 +77,6 @@
   .special-keys {
     width: 100%;
     gap: 0.5rem;
-    margin-left: 0;
   }
   .hint-row .special {
     flex: 1 1 0;
