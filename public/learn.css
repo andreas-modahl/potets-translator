@@ -54,19 +54,35 @@
     display: none;
   }
 }
+/* On a touch screen the row is two lines of tap targets: the speaker
+   and the hint (or the next button) above, the letters below. Every
+   button takes the same height, and the letters keep the row's gap, so
+   the two lines read as one keypad. */
 @media (hover: none), (pointer: coarse) {
+  .hint-row {
+    --tap: 2.9rem;
+    align-items: stretch;
+  }
+  .hint-row .speak {
+    height: var(--tap);
+    padding: 0 0.65rem 0 0.4rem;
+  }
   .hint-row #hint,
   .hint-row .step {
     flex: 1 1 auto;
-    padding: 0.7rem 1rem;
+    height: var(--tap);
+    padding: 0 1rem;
   }
   .special-keys {
     width: 100%;
+    gap: 0.5rem;
     margin-left: 0;
   }
   .hint-row .special {
     flex: 1 1 0;
-    padding: 0.6rem 0.4rem;
+    min-width: 0;
+    height: var(--tap);
+    padding: 0 0.25rem;
   }
 }
 
