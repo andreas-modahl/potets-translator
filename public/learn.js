@@ -823,11 +823,10 @@ function paintedPieces(chunk, parts, tints = parts.map((part, index) => endingTi
 }
 
 /* The choices ---------------------------------------------------------
-   At the top of the card, for the blank being built: every ending its
-   forms table offers that the blank has a segment for, a row per axis,
-   each ending painted in its tint with what it does beside it. A press
-   writes the ending into the blank's segment of that kind. Nothing
-   shows before the table has come. */
+   At the top of the card, for the segment the caret is in: every ending
+   its forms table offers along that axis, painted in its tint with what
+   it does beside it. A press writes the ending into the segment. Nothing
+   shows for the root, or before the table has come. */
 
 /** Letters only, of what a segment holds. */
 function heldIn(seg) {
@@ -886,7 +885,9 @@ function renderChoices() {
     // on it the endings that are something. A bare ending is never what a
     // segment that exists is waiting for.
     const seg = segs.find((candidate) => candidate.dataset.m === String(tint));
-    if (!seg) continue;
+    // And only while that segment holds the caret: the choices are for
+    // the piece being typed, not the whole word at once.
+    if (!seg || document.activeElement !== seg) continue;
     const options = all.filter(({ slot }) => slot?.piece);
     if (options.length === 0) continue;
     const row = document.createElement('div');
@@ -1171,7 +1172,12 @@ function chunkField(chunk, index) {
     if (next) placeCaretAtEnd(next);
     else submitButton.focus();
   });
-  field.addEventListener('focusin', () => select(index));
+  field.addEventListener('focusin', () => {
+    select(index);
+    // The caret moving from one segment to the next changes which
+    // endings are on offer.
+    if (helping?.field === field) renderChoices();
+  });
 
   const native = document.createElement('button');
   native.type = 'button';
