@@ -1413,20 +1413,36 @@ function chunkField(chunk, index) {
       return;
     }
     // Backspace and the left and right keys cross from one segment into
-    // the next as if the blank were one line.
-    if (seg && (event.key === 'Backspace' || event.key === 'ArrowLeft') && caretOffsetIn(seg) === 0 && getSelection().isCollapsed) {
-      const before = seg.previousElementSibling;
+    // the next as if the blank were one line, and the left and right keys
+    // go on from the blank's ends into the blanks before and after.
+    const editable = seg ?? field;
+    const collapsed = getSelection().isCollapsed;
+    if ((event.key === 'Backspace' || event.key === 'ArrowLeft') && collapsed && caretOffsetIn(editable) === 0) {
+      const before = seg?.previousElementSibling;
       if (before) {
         event.preventDefault();
         placeCaretIn(before, true);
+      } else if (event.key === 'ArrowLeft') {
+        const previous = comparator.children[index - 1]?.querySelector('.tr');
+        if (previous) {
+          event.preventDefault();
+          const last = segmentsOf(previous).at(-1) ?? previous;
+          placeCaretIn(last, true);
+        }
       }
       return;
     }
-    if (seg && event.key === 'ArrowRight' && caretOffsetIn(seg) === seg.textContent.length && getSelection().isCollapsed) {
-      const after = seg.nextElementSibling;
+    if (event.key === 'ArrowRight' && collapsed && caretOffsetIn(editable) === editable.textContent.length) {
+      const after = seg?.nextElementSibling;
       if (after) {
         event.preventDefault();
         placeCaretIn(after, false);
+      } else {
+        const next = comparator.children[index + 1]?.querySelector('.tr');
+        if (next) {
+          event.preventDefault();
+          placeCaretIn(segmentsOf(next)[0] ?? next, false);
+        }
       }
       return;
     }
