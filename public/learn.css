@@ -1685,6 +1685,15 @@ body.muted .chunk .say {
 .chest-pick .chest-stars {
   font-size: 0.45rem;
 }
+/* The chests folded away, as a count that unfolds them. */
+.chest-more {
+  align-self: center;
+  padding: 0.2rem 0.5rem;
+  font-family: var(--hand);
+  font-size: 0.85rem;
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 var(--shadow);
+}
 @media (max-width: 40rem) {
   #bank header {
     flex-wrap: wrap;

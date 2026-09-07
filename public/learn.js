@@ -1896,14 +1896,36 @@ function smallChest(count, full) {
   return [svg, stars, tally];
 }
 
-/** The chest picker: one small chest per 25 words, the newest chest last. */
+/** How many small chests stand in the row before the rest fold into a count. */
+const CHESTS_SHOWN = 5;
+/** Whether the folded chests have been unfolded. */
+let chestsAll = false;
+
+/** The chest row: one small chest per 25 words, the newest last, there
+    whenever there is more than one. Past five, the oldest fold into a
+    "+n" that unfolds them. A small chest opens the bank on that chest;
+    the one open is raised. */
 function renderGroups(total) {
   const groups = Math.max(1, Math.ceil(total / CHEST_SIZE));
   if (viewGroup < 0 || viewGroup >= groups) viewGroup = groups - 1;
   chestRow.hidden = groups < 2;
   chestRow.setAttribute('aria-label', D.chest);
   chestRow.replaceChildren();
-  for (let at = 0; at < groups; at += 1) {
+  const folded = chestsAll ? 0 : Math.max(0, groups - CHESTS_SHOWN);
+  if (folded > 0) {
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'chest-more ghost';
+    more.textContent = `+${folded}`;
+    more.title = D.moreChests(folded);
+    more.setAttribute('aria-label', more.title);
+    more.addEventListener('click', () => {
+      chestsAll = true;
+      renderBank(loadBank());
+    });
+    chestRow.append(more);
+  }
+  for (let at = folded; at < groups; at += 1) {
     const from = at * CHEST_SIZE + 1;
     const to = Math.min(total, (at + 1) * CHEST_SIZE);
     const pick = document.createElement('button');
@@ -1911,10 +1933,11 @@ function renderGroups(total) {
     pick.className = 'chest-pick';
     pick.title = `${D.chest} ${at + 1} · ${from}–${to}`;
     pick.setAttribute('aria-label', pick.title);
-    pick.setAttribute('aria-pressed', String(at === viewGroup));
+    pick.setAttribute('aria-pressed', String(chestOpen && at === viewGroup));
     pick.append(...smallChest(to - from + 1, to - from + 1 === CHEST_SIZE));
     pick.addEventListener('click', () => {
       viewGroup = at;
+      chestOpen = true;
       renderBank(loadBank());
     });
     chestRow.append(pick);
@@ -1936,13 +1959,12 @@ function renderBank(words) {
   chestToggle.title = chestOpen ? D.chestClose : D.chestOpen;
 
   const indexed = words.map((word, index) => [index, word]);
+  const group = renderGroups(words.length);
   let shown;
   if (chestOpen) {
-    const group = renderGroups(words.length);
     const start = group * CHEST_SIZE;
     shown = indexed.slice(start, start + CHEST_SIZE);
   } else {
-    chestRow.hidden = true;
     // The most recently touched, so a comeback surfaces its badge.
     shown = indexed
       .map((entry, order) => [entry, entry[1].at ?? order])
