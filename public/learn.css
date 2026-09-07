@@ -461,15 +461,15 @@
 .chunk .under {
   grid-row: 3;
 }
-/* A blank being helped stacks up: tags, arrows, the word, arrows, and
-   the translation last. */
+/* A blank being built stacks up: tags, arrows, the word, and the
+   translation last. */
 .chunk.helping .tr,
 .chunk.helping .shape,
 .chunk.helping .check {
   grid-row: 3;
 }
 .chunk.helping .under {
-  grid-row: 5;
+  grid-row: 4;
 }
 /* Over the arrows, what each piece does: the pieces again in the blank's
    type, unseen, each with its tag centred over it. A tag that would run
@@ -533,9 +533,6 @@
 .chunk .swaps.up {
   grid-row: 2;
 }
-.chunk .swaps.down {
-  grid-row: 4;
-}
 .chunk.helping .swaps {
   display: flex;
 }
@@ -568,9 +565,6 @@
   letter-spacing: 0;
   text-align: center;
   color: var(--muted);
-}
-.chunk .swaps.down .swap::after {
-  content: '▼';
 }
 .chunk .swaps .swap:hover::after,
 .chunk .swaps .swap:focus-visible::after {

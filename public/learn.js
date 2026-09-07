@@ -1331,14 +1331,14 @@ function chunkField(chunk, index) {
   shape.setAttribute('aria-hidden', 'true');
   const pieces = piecesOf(chunk);
   if (pieces) shape.append(...paintedPieces(chunk, pieces));
-  // Arrows over and under each ending block, for a blank being helped:
-  // they try the next ending along that axis, written into the blank.
+  // An arrow over each ending block, for a blank being built: it swaps
+  // the ending along that axis, written into the blank. The keyboard's
+  // up and down keys do the same in both directions.
   const swapsUp = swapRow(chunk, pieces, -1);
-  const swapsDown = swapRow(chunk, pieces, 1);
-  // And over the arrows, what each piece does, as over the drawn word.
+  // And over the arrows, what each ending does, as over the drawn word.
   const tags = tagRow(chunk, pieces);
 
-  box.append(parts, tags, swapsUp, shape, field, check, swapsDown, under);
+  box.append(parts, tags, swapsUp, shape, field, check, under);
   renderCaption(box, chunk, []);
 
   // The whole box is the target: a click on its padding, the caption or
