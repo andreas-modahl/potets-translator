@@ -222,6 +222,8 @@ const DIRECTIONS = {
     formsFailed: 'Fikk ikke tak i bøyningen. Prøv igjen.',
     formsNone: 'Dette ordet bøyes ikke.',
     formsPick: 'Løs et ord, eller trykk på et ord i kista, så vises bøyningen her.',
+    formsDrawing: 'Tegning',
+    formsTable: 'Tabell',
     builder: 'Slik bygges ordet',
     builderViews: { stairs: 'Trapp', rocket: 'Rakett', train: 'Tog', worm: 'Larve' },
     partUp: 'Forrige',
@@ -339,6 +341,8 @@ const DIRECTIONS = {
     formsFailed: 'Çekim alınamadı. Tekrar dene.',
     formsNone: 'Bu kelime çekimlenmez.',
     formsPick: 'Bir kelimeyi çöz ya da sandıktaki bir kelimeye dokun; çekimi burada görünür.',
+    formsDrawing: 'Çizim',
+    formsTable: 'Tablo',
     builder: 'Kelime böyle kurulur',
     builderViews: { stairs: 'Merdiven', rocket: 'Roket', train: 'Tren', worm: 'Tırtıl' },
     partUp: 'Önceki',
@@ -2200,8 +2204,7 @@ function renderForms(table) {
   else scroll.append(...groups.map(formsList));
   formsBody.append(scroll);
   formsShown = table;
-  // Only a matrix has axes to swap.
-  formsFlip.hidden = !aligned;
+  applyFormsViews(aligned);
   // Built up first: the form last shown, else the word the table was opened
   // for, else the first form there is.
   const wanted = (builtWord || formsFor).toLocaleLowerCase(D.target);
@@ -2579,6 +2582,39 @@ function showBuilt(entry, group, animate = true, changed = '') {
   );
 }
 
+/* What the card shows: the drawing, the table, or both. The table is
+   tucked away to begin with; the drawing is the first thing. Both choices
+   are kept. */
+const FORMS_DRAWING = 'potets.bøyning.tegning';
+const FORMS_TABLE = 'potets.bøyning.tabell';
+const formsDrawingButton = document.querySelector('#forms-drawing');
+const formsTableButton = document.querySelector('#forms-table');
+let showDrawing = recall(FORMS_DRAWING) !== 'off';
+let showTable = recall(FORMS_TABLE) === 'on';
+
+/** Shows and hides the card's parts by the choices, and the flip with the table. */
+function applyFormsViews(aligned = formsBody.querySelector('.forms-table:not(.forms-group)') !== null) {
+  formsDrawingButton.setAttribute('aria-pressed', String(showDrawing));
+  formsTableButton.setAttribute('aria-pressed', String(showTable));
+  const builder = formsBody.querySelector('.builder');
+  if (builder) builder.hidden = !showDrawing;
+  const scroll = formsBody.querySelector('.forms-scroll');
+  if (scroll) scroll.hidden = !showTable;
+  // Only a matrix has axes to swap, and only while it is on view.
+  formsFlip.hidden = !aligned || !showTable || !scroll;
+}
+
+formsDrawingButton.addEventListener('click', () => {
+  showDrawing = !showDrawing;
+  remember(FORMS_DRAWING, showDrawing ? 'on' : 'off');
+  applyFormsViews();
+});
+formsTableButton.addEventListener('click', () => {
+  showTable = !showTable;
+  remember(FORMS_TABLE, showTable ? 'on' : 'off');
+  applyFormsViews();
+});
+
 formsFlip.addEventListener('click', () => {
   formsGroupsAcross = !formsGroupsAcross;
   remember(FORMS_AXES, formsGroupsAcross ? 'across' : 'down');
@@ -2792,6 +2828,13 @@ function applyDirection() {
   renderVoices();
   renderCredits();
   resetForms();
+  for (const [button, label] of [
+    [formsDrawingButton, D.formsDrawing],
+    [formsTableButton, D.formsTable],
+  ]) {
+    button.title = label;
+    button.setAttribute('aria-label', label);
+  }
   formsFlip.title = D.formsFlip;
   formsFlip.setAttribute('aria-label', D.formsFlip);
   loginLabel.textContent = D.login;

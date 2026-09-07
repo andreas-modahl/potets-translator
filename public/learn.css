@@ -997,6 +997,15 @@ body.muted .chunk .say {
 .forms header .ghost[hidden] {
   display: none;
 }
+/* The drawing and table toggles: dimmed while off. */
+.forms header .ghost[aria-pressed='false'] {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+.builder[hidden],
+.forms-scroll[hidden] {
+  display: none;
+}
 .forms-base {
   font-size: 1.3rem;
   font-weight: 700;
