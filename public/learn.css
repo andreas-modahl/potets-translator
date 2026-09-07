@@ -1014,20 +1014,243 @@ body.muted .chunk .say {
   border-radius: var(--wobble-small);
 }
 .builder figcaption {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 0.35rem;
   font-family: var(--hand);
   font-size: 0.9rem;
   color: var(--muted);
 }
+.build-views {
+  display: flex;
+  gap: 0.2rem;
+}
+.build-views .ghost {
+  padding: 0 0.3rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  opacity: 0.55;
+  filter: grayscale(1);
+}
+.build-views .ghost[aria-pressed='true'] {
+  opacity: 1;
+  filter: none;
+  background: var(--card);
+}
 .build-steps {
+  overflow-x: auto;
+}
+.stairs {
   display: grid;
   grid-template-columns: auto auto 1fr;
   gap: 0.3rem 0.9rem;
   align-items: baseline;
-  overflow-x: auto;
 }
 .build-step {
   display: contents;
+}
+/* The thing: the root at the front, and a part per ending behind it,
+   the tag under each saying what it is. */
+.thing {
+  --part-line: var(--line);
+  --part-height: 2.5rem;
+  display: flex;
+  align-items: flex-start;
+  padding: 1rem 0.2rem 0.4rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+.thing .part {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+.thing .part-body {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: var(--part-height);
+  padding: 0 0.55em;
+  border: 2px solid var(--part-line);
+  white-space: nowrap;
+}
+.thing .part-tag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--hand);
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--muted);
+  text-align: center;
+}
+.thing .part-tag .m {
+  padding: 0 0.3em;
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 3px;
+  color: var(--ink);
+}
+.thing .part-about {
+  max-width: 7rem;
+}
+.thing .part-art {
+  flex: none;
+  height: var(--part-height);
+  overflow: visible;
+  fill: var(--sunk-deep, var(--card));
+  stroke: var(--part-line);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.thing .new {
+  animation: hitch-on 0.4s calc(var(--step) * 0.15s) both;
+}
+.thing.still .new {
+  animation: none;
+}
+@keyframes hitch-on {
+  from {
+    opacity: 0;
+    transform: translateX(1.2em);
+  }
+  70% {
+    transform: translateX(-0.15em);
+  }
+}
+.thing-sum {
+  margin: 0.2rem 0 0;
+  font-family: var(--hand);
+  color: var(--ink);
+}
+.thing-sum span:first-child {
+  font-family: var(--sans);
+  font-weight: 700;
+}
+/* Rocket: a nose in front, the parts as sections, fins and a flame behind. */
+.rocket .part-body {
+  border-left-width: 0;
+}
+.rocket .part + .part .part-body {
+  border-left-width: 2px;
+  border-left-style: dashed;
+}
+.rocket .nose {
+  fill: var(--m0);
+  margin-right: -2px;
+}
+.rocket .nose .window {
+  fill: var(--card);
+}
+.rocket .flame {
+  margin-left: -2px;
+  fill: var(--sunk);
+}
+.rocket .flame .fire {
+  fill: var(--accent);
+  stroke: none;
+  animation: flicker 0.5s infinite alternate;
+  transform-origin: 6px 20px;
+}
+.rocket .flame .fire-core {
+  fill: var(--ochre);
+  stroke: none;
+  animation: flicker 0.35s infinite alternate-reverse;
+  transform-origin: 6px 20px;
+}
+@keyframes flicker {
+  to {
+    transform: scaleX(0.82);
+  }
+}
+/* Train: an engine in front pulling a wagon per part, wheels under each. */
+.train .part + .part {
+  margin-left: 0.55rem;
+}
+.train .part + .part .part-body::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: calc(-0.55rem - 2px);
+  width: 0.55rem;
+  height: 0;
+  border-top: 2px solid var(--part-line);
+}
+.train .part-body {
+  position: relative;
+  border-radius: 4px;
+}
+.train .part-body::after {
+  content: '';
+  position: absolute;
+  bottom: -0.55rem;
+  left: 0.3rem;
+  right: 0.3rem;
+  height: 0.6rem;
+  background:
+    radial-gradient(circle at 0.3rem 0.3rem, var(--part-line) 0.28rem, transparent 0.32rem) left / 0.6rem 0.6rem no-repeat,
+    radial-gradient(circle at 0.3rem 0.3rem, var(--part-line) 0.28rem, transparent 0.32rem) right / 0.6rem 0.6rem no-repeat;
+}
+.train .part {
+  gap: 0.8rem;
+}
+.train .engine {
+  margin-right: 0.2rem;
+  fill: var(--sunk);
+}
+.train .engine .wheel {
+  fill: var(--part-line);
+}
+.train .engine .smoke {
+  fill: var(--card);
+  stroke-width: 1.5;
+}
+/* Caterpillar: a face in front, the parts as round segments, a rump behind. */
+.worm .part-body {
+  border-radius: 999px;
+}
+.worm .part + .part {
+  margin-left: -0.3rem;
+}
+.worm .part-body {
+  position: relative;
+}
+.worm .part-body::after {
+  content: '';
+  position: absolute;
+  bottom: -0.45rem;
+  left: 0.6rem;
+  right: 0.6rem;
+  height: 0.5rem;
+  background:
+    linear-gradient(var(--part-line), var(--part-line)) left / 2px 100% no-repeat,
+    linear-gradient(var(--part-line), var(--part-line)) right / 2px 100% no-repeat;
+}
+.worm .part {
+  gap: 0.75rem;
+}
+.worm .face {
+  z-index: 1;
+  margin-right: -0.35rem;
+  fill: var(--m0);
+}
+.worm .face .eye {
+  fill: var(--ink);
+  stroke: none;
+}
+.worm .face .smile,
+.worm .face .feeler {
+  fill: none;
+}
+.worm .rump {
+  margin-left: -0.35rem;
+  fill: var(--m3);
 }
 .build-word {
   font-size: 1.15rem;

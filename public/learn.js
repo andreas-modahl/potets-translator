@@ -223,6 +223,7 @@ const DIRECTIONS = {
     formsFailed: 'Fikk ikke tak i bøyningen. Prøv igjen.',
     formsNone: 'Dette ordet bøyes ikke.',
     builder: 'Slik bygges ordet',
+    builderViews: { stairs: 'Trapp', rocket: 'Rakett', train: 'Tog', worm: 'Larve' },
     formsFlip: 'Bytt akser',
     close: 'Lukk',
   },
@@ -336,6 +337,7 @@ const DIRECTIONS = {
     formsFailed: 'Çekim alınamadı. Tekrar dene.',
     formsNone: 'Bu kelime çekimlenmez.',
     builder: 'Kelime böyle kurulur',
+    builderViews: { stairs: 'Merdiven', rocket: 'Roket', train: 'Tren', worm: 'Tırtıl' },
     formsFlip: 'Eksenleri değiştir',
     close: 'Kapat',
   },
@@ -2163,17 +2165,191 @@ function renderForms(table) {
 
 /** The word built up last, so a redraw of the table keeps it. */
 let builtWord = '';
+let builtIn = null;
+
+/* How the word is drawn: as a staircase of steps, or as a thing that
+   grows a part per ending. The root is the front, each ending a part
+   hitched on behind, so the shape of the word is the shape of the thing. */
+const BUILDER_VIEW = 'potets.bygger';
+const BUILDER_VIEWS = ['stairs', 'rocket', 'train', 'worm'];
+const BUILDER_ICONS = { stairs: '🪜', rocket: '🚀', train: '🚂', worm: '🐛' };
+let builderView = BUILDER_VIEWS.includes(recall(BUILDER_VIEW)) ? recall(BUILDER_VIEW) : 'rocket';
 
 function builderFrame() {
   const frame = document.createElement('figure');
   frame.className = 'builder';
   const caption = document.createElement('figcaption');
-  caption.lang = D.native;
-  caption.textContent = D.builder;
+  const title = document.createElement('span');
+  title.lang = D.native;
+  title.textContent = D.builder;
+  const views = document.createElement('span');
+  views.className = 'build-views';
+  views.setAttribute('role', 'group');
+  for (const view of BUILDER_VIEWS) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ghost';
+    button.dataset.view = view;
+    button.title = D.builderViews[view];
+    button.setAttribute('aria-label', D.builderViews[view]);
+    button.setAttribute('aria-pressed', String(view === builderView));
+    button.textContent = BUILDER_ICONS[view];
+    button.addEventListener('click', () => {
+      builderView = view;
+      remember(BUILDER_VIEW, view);
+      for (const other of views.children) other.setAttribute('aria-pressed', String(other === button));
+      if (builtIn) showBuilt(builtIn.entry, builtIn.group);
+    });
+    views.append(button);
+  }
+  caption.append(title, views);
   const steps = document.createElement('div');
   steps.className = 'build-steps';
   frame.append(caption, steps);
   return frame;
+}
+
+/* The drawn parts: what goes in front of the root, and what trails the last
+   ending. Each is sized to the row of parts it joins. */
+const BUILDER_ART = {
+  rocket: {
+    head:
+      '<svg class="part-art nose" viewBox="0 0 40 40" aria-hidden="true">' +
+      '<path d="M40 1 Q 12 6 2 20 Q 12 34 40 39 Z" />' +
+      '<circle cx="27" cy="20" r="5" class="window" />' +
+      '</svg>',
+    tail:
+      '<svg class="part-art flame" viewBox="0 -12 72 64" aria-hidden="true">' +
+      '<path d="M0 1 L22 1 Q 8 -8 0 -18 Z" /><path d="M0 39 L22 39 Q 8 48 0 58 Z" />' +
+      '<path class="fire" d="M6 9 Q 44 4 70 20 Q 44 36 6 31 Z" />' +
+      '<path class="fire-core" d="M6 14 Q 30 12 46 20 Q 30 28 6 26 Z" />' +
+      '</svg>',
+  },
+  train: {
+    head:
+      '<svg class="part-art engine" viewBox="0 -18 52 60" aria-hidden="true">' +
+      '<path class="smoke" d="M12 -6 a5 5 0 1 1 0.1 0" /><path class="smoke" d="M20 -14 a4 4 0 1 1 0.1 0" />' +
+      '<rect x="8" y="-2" width="10" height="12" />' +
+      '<path d="M4 10 H52 V40 H10 L2 30 Z" />' +
+      '<circle cx="18" cy="42" r="6" class="wheel" /><circle cx="40" cy="42" r="6" class="wheel" />' +
+      '</svg>',
+    tail: '',
+  },
+  worm: {
+    head:
+      '<svg class="part-art face" viewBox="0 -14 46 56" aria-hidden="true">' +
+      '<path class="feeler" d="M18 2 Q 12 -10 4 -12" /><path class="feeler" d="M28 2 Q 32 -10 40 -13" />' +
+      '<circle cx="4" cy="-12" r="2.5" /><circle cx="40" cy="-13" r="2.5" />' +
+      '<circle cx="23" cy="21" r="21" />' +
+      '<circle cx="16" cy="16" r="3" class="eye" /><circle cx="30" cy="16" r="3" class="eye" />' +
+      '<path class="smile" d="M14 27 Q 23 35 32 27" />' +
+      '</svg>',
+    tail:
+      '<svg class="part-art rump" viewBox="0 0 24 42" aria-hidden="true">' +
+      '<path d="M0 6 Q 22 8 22 21 Q 22 34 0 36 Z" />' +
+      '</svg>',
+  },
+};
+
+/** The word as a thing: a nose or face, a part per piece, and a tail. */
+function buildThing(parts, kind, animate) {
+  const thing = document.createElement('div');
+  thing.className = `thing ${kind}${animate ? '' : ' still'}`;
+  thing.lang = D.target;
+  const art = BUILDER_ART[kind];
+  // The art is fixed markup from this file; nothing from outside goes in.
+  if (art.head) thing.insertAdjacentHTML('beforeend', art.head);
+  parts.forEach(({ piece, tint, role, means }, index) => {
+    const part = document.createElement('span');
+    part.className = index > 0 ? 'part new' : 'part';
+    part.style.setProperty('--step', String(index));
+    const body = document.createElement('span');
+    body.className = 'part-body m';
+    body.dataset.m = String(tint);
+    body.textContent = piece;
+    const tag = document.createElement('span');
+    tag.className = 'part-tag';
+    tag.lang = D.native;
+    if (role) {
+      const name = document.createElement('span');
+      name.className = 'm';
+      name.dataset.m = String(tint);
+      name.textContent = role.name;
+      tag.append(name);
+      if (role.about) {
+        const about = document.createElement('span');
+        about.className = 'part-about';
+        about.textContent = role.about;
+        tag.append(about);
+      }
+    } else if (index === 0) {
+      tag.textContent = means;
+    }
+    part.append(body, tag);
+    thing.append(part);
+  });
+  if (art.tail) thing.insertAdjacentHTML('beforeend', art.tail);
+  const sum = document.createElement('p');
+  sum.className = 'thing-sum';
+  const word = document.createElement('span');
+  word.lang = D.target;
+  word.textContent = parts.map((part) => part.piece).join('');
+  const means = document.createElement('span');
+  means.lang = D.native;
+  means.textContent = parts.at(-1)?.means ?? '';
+  sum.append(word, ' = ', means);
+  const frame = document.createDocumentFragment();
+  frame.append(thing, sum);
+  return frame;
+}
+
+/** The word as a staircase: each row one piece longer than the last. */
+function buildStairs(parts, animate) {
+  const steps = document.createElement('div');
+  steps.className = `stairs${animate ? '' : ' still'}`;
+  parts.forEach((_, count) => {
+    const step = document.createElement('div');
+    step.className = 'build-step';
+    step.style.setProperty('--step', String(count));
+
+    const word = document.createElement('span');
+    word.className = 'build-word';
+    word.lang = D.target;
+    parts.slice(0, count + 1).forEach(({ piece, tint }, index) => {
+      if (index > 0) {
+        const joint = document.createElement('span');
+        joint.className = 'joint';
+        joint.textContent = '+';
+        word.append(joint);
+      }
+      const block = document.createElement('span');
+      block.className = index === count && count > 0 ? 'm new' : 'm';
+      block.dataset.m = String(tint);
+      block.textContent = piece;
+      word.append(block);
+    });
+
+    const means = document.createElement('span');
+    means.className = 'build-means';
+    means.lang = D.native;
+    means.textContent = parts[count].means;
+
+    const role = document.createElement('span');
+    role.className = 'build-role';
+    role.lang = D.native;
+    const what = parts[count].role;
+    if (what) {
+      const name = document.createElement('span');
+      name.className = 'm';
+      name.dataset.m = String(parts[count].tint);
+      name.textContent = what.name;
+      role.append(name);
+      if (what.about) role.append(` ${what.about}`);
+    }
+    step.append(word, means, role);
+    steps.append(step);
+  });
+  return steps;
 }
 
 /** The form in the table spelled by these pieces, if one is: "sev" + "eceğ"
@@ -2200,60 +2376,25 @@ function showBuilt(entry, group, animate = true) {
   const steps = formsBody.querySelector('.build-steps');
   if (!steps) return;
   builtWord = entry.word;
+  builtIn = { entry, group };
   for (const button of formsBody.querySelectorAll('.form')) {
     button.classList.toggle('built', button.dataset.word === entry.word);
   }
   const pieces = piecesOfForm(entry);
   const tints = pieceTints(entry, group.hint, entry.label);
-  steps.classList.toggle('still', !animate);
-  steps.replaceChildren(
-    ...pieces.map((_, count) => {
-      const sofar = pieces.slice(0, count + 1);
-      const step = document.createElement('div');
-      step.className = 'build-step';
-      step.style.setProperty('--step', String(count));
-
-      const word = document.createElement('span');
-      word.className = 'build-word';
-      word.lang = D.target;
-      sofar.forEach((piece, index) => {
-        if (index > 0) {
-          const joint = document.createElement('span');
-          joint.className = 'joint';
-          joint.textContent = '+';
-          word.append(joint);
-        }
-        const block = document.createElement('span');
-        block.className = index === count && count > 0 ? 'm new' : 'm';
-        block.dataset.m = String(tints[index] ?? index % 4);
-        block.textContent = piece;
-        word.append(block);
-      });
-
-      // What the word says so far: the table's own words where the shorter
-      // word is in it, the base meaning for a bare root.
-      const means = document.createElement('span');
-      means.className = 'build-means';
-      means.lang = D.native;
-      const known = count === pieces.length - 1 ? entry : formSpelled(sofar);
-      means.textContent = known?.means ?? (count === 0 ? (formsShown?.meaning ?? '') : '');
-
-      const role = document.createElement('span');
-      role.className = 'build-role';
-      role.lang = D.native;
-      const what = count > 0 ? pieceRole(tints[count], entry, group) : null;
-      if (what) {
-        const name = document.createElement('span');
-        name.className = 'm';
-        name.dataset.m = String(tints[count]);
-        name.textContent = what.name;
-        role.append(name);
-        if (what.about) role.append(` ${what.about}`);
-      }
-      step.append(word, means, role);
-      return step;
-    }),
-  );
+  // Each piece with its tint, what it does, and what the word says once it
+  // is on: the table's own words where the shorter word is in it, the base
+  // meaning for a bare root.
+  const parts = pieces.map((piece, index) => {
+    const known = index === pieces.length - 1 ? entry : formSpelled(pieces.slice(0, index + 1));
+    return {
+      piece,
+      tint: tints[index] ?? index % 4,
+      role: index > 0 ? pieceRole(tints[index], entry, group) : null,
+      means: known?.means ?? (index === 0 ? (formsShown?.meaning ?? '') : ''),
+    };
+  });
+  steps.replaceChildren(builderView === 'stairs' ? buildStairs(parts, animate) : buildThing(parts, builderView, animate));
 }
 
 formsClose.addEventListener('click', closeForms);
