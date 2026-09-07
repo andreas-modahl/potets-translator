@@ -943,6 +943,8 @@ function checkField(field, chunk) {
   box.classList.toggle('ontrack', fold(chunk.target).startsWith(fold(typed)));
   markLetters(box, typed, chunk.target);
   syncRows(box);
+  // The tags over the endings follow what the segments hold.
+  if (helping?.chunk === chunk) syncBlankTags(currentSlots());
   const solvedNow = box.classList.contains('correct');
   if (solvedNow === wasSolved) return;
 
@@ -1227,18 +1229,28 @@ function renderBlankTags(box, texts) {
   });
 }
 
-/** Puts the drawn word's tags over the blank being helped, piece for piece. */
-function syncBlankTags(slots) {
+/**
+ * Puts tags over the blank being built, ending by ending. A segment that
+ * is empty or holds the right ending is tagged with what the sentence
+ * wants there, from the lesson ("akkusativ", "jeg"): the hint for what
+ * to find. One holding some other ending is tagged with what that
+ * ending does, from the forms table. The root has no tag; its meaning
+ * already stands under the blank.
+ */
+function syncBlankTags(slots = []) {
   if (!helping) return;
   const pieces = piecesOf(helping.chunk);
   if (!pieces) return;
-  // The endings only: the root's meaning already stands under the blank.
+  const segs = segmentsOf(helping.field);
   const texts = pieces.map((part, index) => {
     if (index === 0) return '';
+    const wanted = shortMeans(part.means);
+    const held = segs[index]?.textContent.replace(/[^\p{L}\p{M}\p{N}]/gu, '') ?? '';
+    if (!held || fold(held) === fold(part.form)) return wanted;
     const tint = endingTint(part.form, index);
     const key = tint === 1 ? 'group' : tint === 2 ? 'label' : '';
     const slot = slots.find((candidate) => candidate.key === key);
-    return slot ? slotTagText(slot) : '';
+    return slot ? slotTagText(slot) || wanted : wanted;
   });
   renderBlankTags(helping.field.parentElement, texts);
 }
@@ -2279,11 +2291,19 @@ function inflects(pos) {
     endings left to find with the arrows, which write the form into it. */
 let helping = null;
 
-/** Hands the help to a blank, or to none; the blank shows its own arrows. */
+/** Hands the help to a blank, or to none; the blank shows its own arrows,
+    and the hints over its endings, before any table has come. */
 function setHelping(next) {
   helping?.field.parentElement.classList.remove('helping');
   helping = next;
   next?.field.parentElement.classList.add('helping');
+  if (next) syncBlankTags(currentSlots());
+}
+
+/** The slots of the form built at the moment, or none before a table is in. */
+function currentSlots() {
+  if (!builtIn || !formsShown) return [];
+  return builtIn.entry ? slotsOf(builtIn.entry, builtIn.group) : rootSlots();
 }
 
 /** The word without the punctuation it carries in the sentence. */
