@@ -833,6 +833,29 @@ function piecesOf(chunk) {
   return parts.map((part, index) => ({ ...part, length: forms[index].length }));
 }
 
+/* Tints -------------------------------------------------------------
+   A piece is painted by what it does, not by where it sits, so the same
+   ending wears the same tint in every word and in the forms table: the
+   root in the first tint, number and tense in the second, case and person
+   in the third. An ending that is none of these goes by its place. */
+
+const TR_ENDINGS = [
+  // Plural and the tenses: the endings a forms table puts across the top.
+  { tint: 1, pattern: /^([iıuü]yor|[dt][iıuü]|y?[ea]c[ea][kğ]|[aeıiuü]r|m[iıuü]ş|s[ea]|m[ea]kt[ea])$/u },
+  // Case and person: the endings it lists down the side.
+  { tint: 2, pattern: /^(y?[iıuü]|y?[ea]|[dt][ea]n?|n?[iıuü]n|s?[iıuü]|[iıuü]?m|[iıuü]?z|s?[iıuü]n|s?[iıuü]n[iıuü]z|k)$/u },
+];
+
+function endingTint(form, index) {
+  if (index === 0) return 0;
+  if (D.target !== 'tr') return index % 4;
+  const folded = (form ?? '').replace(/[^\p{L}]/gu, '').toLocaleLowerCase('tr');
+  // -ler straight after the root is the plural; after a tense it is "they".
+  if (/^l[ae]r$/u.test(folded)) return index === 1 ? 1 : 2;
+  for (const { tint, pattern } of TR_ENDINGS) if (pattern.test(folded)) return tint;
+  return index % 4;
+}
+
 /* Word classes ------------------------------------------------------
    On by default: every blank says what kind of word it wants, in the
    caption row above it, before the painted pieces. Off stays off. */
@@ -890,10 +913,11 @@ function paintWord(box, field, chunk) {
   // so a softened consonant is painted, not the dictionary form; any
   // punctuation on the end stays plain.
   let at = 0;
+  const tints = parts.map((part, index) => endingTint(part.form, index));
   const painted = parts.map((part, index) => {
     const span = document.createElement('span');
     span.className = 'm';
-    span.dataset.m = String(index % 4);
+    span.dataset.m = String(tints[index]);
     let taken = 0;
     let end = at;
     while (taken < part.length && end < chunk.target.length) {
@@ -911,7 +935,7 @@ function paintWord(box, field, chunk) {
     parts.map((part, index) => {
       const tag = document.createElement('span');
       tag.className = 'm';
-      tag.dataset.m = String(index % 4);
+      tag.dataset.m = String(tints[index]);
       tag.lang = D.native;
       tag.textContent = part.means;
       return tag;
@@ -1091,7 +1115,7 @@ function morphemeNode({ form, means }, solved, index = 0) {
   const piece = document.createElement('span');
   piece.className = 'morpheme';
   // The same tint as the piece wears in the blank.
-  if (solved) piece.dataset.m = String(index % 4);
+  if (solved) piece.dataset.m = String(endingTint(form, index));
 
   const formNode = document.createElement('span');
   formNode.className = 'form';
@@ -1837,10 +1861,9 @@ function pieceTints(entry, groupHint, label) {
   const own = labelHint ? hintFold(labelHint) : null;
   return piecesOfForm(entry).map((piece, index) => {
     if (index === 0) return 0;
-    const folded = hintFold(piece);
-    if (group !== null && folded === group) return 1;
-    if (own !== null && folded === own) return 2;
-    return index % 4;
+    if (group !== null && hintMatches(piece, group)) return 1;
+    if (own !== null && hintMatches(piece, own)) return 2;
+    return endingTint(piece, index);
   });
 }
 
@@ -1872,13 +1895,24 @@ function formButton(entry, tints = []) {
 }
 
 /** An ending the way it is written on a heading, folded so that "-ecek" finds
-    "eceğ" and "-ir" finds "er": vowels alike, ğ as k, dashes and case gone. */
+    "eceğ", "-ir" finds "er" and "-de" finds "ta": vowels alike, the consonants
+    that harden or soften folded together, dashes and case gone. */
 function hintFold(text) {
   return text
     .toLocaleLowerCase('tr')
     .replace(/^-+/, '')
     .replace(/ğ/g, 'k')
+    .replace(/t/g, 'd')
+    .replace(/ç/g, 'c')
     .replace(/[aeıioöuüâîû]/g, '*');
+}
+
+/** Whether a piece is the folded ending, allowing the y, n or s a vowel
+    puts before it: "yi" is "-i" in "kediyi", "nin" is "-in" in "kedinin". */
+function hintMatches(piece, wanted) {
+  const folded = hintFold(piece);
+  if (folded === wanted) return true;
+  return folded.length === wanted.length + 1 && /^[yns]/u.test(folded) && folded.slice(1) === wanted;
 }
 
 /** Which piece of these forms the ending is: the index it sits at most often, or -1. */
@@ -1886,7 +1920,7 @@ function hintIndex(hint, forms) {
   const wanted = hintFold(hint);
   const votes = new Map();
   for (const form of forms) {
-    const index = (form.pieces ?? []).findIndex((piece) => hintFold(piece) === wanted);
+    const index = (form.pieces ?? []).findIndex((piece) => hintMatches(piece, wanted));
     if (index >= 0) votes.set(index, (votes.get(index) ?? 0) + 1);
   }
   let best = -1;
