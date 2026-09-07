@@ -1262,9 +1262,9 @@ function syncBlankTags(slots = []) {
 function shortMeans(means) {
   const text = (means ?? '').trim();
   const inBrackets = /\(([^)]{1,16})\)/.exec(text)?.[1];
-  if (inBrackets && text.length > 18) return inBrackets.trim();
+  if (inBrackets && inBrackets.trim().length < text.length) return inBrackets.trim();
   const head = text.split(/[,;:]/)[0].trim();
-  return head.length >= 2 && text.length > 18 ? head : text;
+  return head.length >= 2 ? head : text;
 }
 
 /** Paints a solved word piece by piece and writes each piece's meaning
