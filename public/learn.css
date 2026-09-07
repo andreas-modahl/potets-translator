@@ -440,15 +440,28 @@
   line-height: 1.2;
   font-kerning: none; /* so the check below it lands letter for letter */
   white-space: pre; /* so a space given as a hint stays visible */
-  border-bottom: 3px solid var(--faint);
+  /* The border only keeps the line's room and shape: the line itself is
+     drawn by ::after, over the painted pieces, which would otherwise
+     cover it with their own backgrounds. */
+  --line-colour: var(--faint);
+  position: relative;
+  border-bottom: 3px solid transparent;
   border-radius: 0 0 40% 60% / 0 0 6px 4px;
   outline: none;
+}
+.chunk .tr::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 -3px;
+  border-bottom: 3px solid var(--line-colour);
+  border-radius: inherit;
+  pointer-events: none;
 }
 .chunk .under {
   grid-row: 3;
 }
 .chunk .tr:focus {
-  border-bottom-color: var(--teal);
+  --line-colour: var(--teal);
 }
 /* While typing, the line under each letter says how it is going: green
    under a letter that is right, red under one that is not. The check is
@@ -490,13 +503,13 @@
   fill: var(--bad);
 }
 .chunk.filled .tr {
-  border-bottom-color: var(--faint);
+  --line-colour: var(--faint);
 }
 .chunk.filled.ontrack.correct .tr {
-  border-bottom-color: var(--accent);
+  --line-colour: var(--accent);
 }
 .chunk.correct .tr {
-  border-bottom-color: var(--accent);
+  --line-colour: var(--accent);
   color: var(--accent);
 }
 /* A solved word is painted piece by piece: the root and each suffix
@@ -626,7 +639,7 @@
 }
 .chunk.bone-chunk .tr {
   color: transparent;
-  border-bottom-color: var(--line);
+  --line-colour: var(--line);
 }
 .chunk.bone-chunk .no {
   cursor: default;
