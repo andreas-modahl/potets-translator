@@ -457,6 +457,11 @@
 .chunk .check {
   grid-row: 2;
   grid-column: 1;
+  /* Each letter is a column stretched to the blank's full height, so its
+     stroke lies exactly on the blank's own line rather than on the
+     text's baseline. */
+  display: flex;
+  align-items: stretch;
   padding: 0 0.1rem;
   font-size: 1.4rem;
   letter-spacing: -0.01em;
@@ -468,10 +473,8 @@
   user-select: none;
 }
 .chunk .check span {
-  display: inline-block;
-  padding-bottom: 0.1rem;
+  flex: none;
   border-bottom: 3px solid var(--good);
-  border-radius: 0 0 40% 60% / 0 0 6px 4px;
 }
 .chunk .check .bad {
   border-bottom-color: var(--bad);
