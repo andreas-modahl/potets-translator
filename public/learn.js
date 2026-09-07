@@ -224,6 +224,8 @@ const DIRECTIONS = {
     formsNone: 'Dette ordet bøyes ikke.',
     builder: 'Slik bygges ordet',
     builderViews: { stairs: 'Trapp', rocket: 'Rakett', train: 'Tog', worm: 'Larve' },
+    partUp: 'Forrige',
+    partDown: 'Neste',
     formsFlip: 'Bytt akser',
     close: 'Lukk',
   },
@@ -338,6 +340,8 @@ const DIRECTIONS = {
     formsNone: 'Bu kelime çekimlenmez.',
     builder: 'Kelime böyle kurulur',
     builderViews: { stairs: 'Merdiven', rocket: 'Roket', train: 'Tren', worm: 'Tırtıl' },
+    partUp: 'Önceki',
+    partDown: 'Sonraki',
     formsFlip: 'Eksenleri değiştir',
     close: 'Kapat',
   },
@@ -2265,41 +2269,127 @@ const BUILDER_ART = {
   },
 };
 
-/** The word as a thing: a nose or face, a part per piece, and a tail. */
-function buildThing(parts, kind, animate) {
+/** Which comes first in the words of this table: the group's ending or the label's. */
+function groupEndingFirst() {
+  for (const group of formsShown?.groups ?? []) {
+    for (const entry of group.forms) {
+      const tints = pieceTints(entry, group.hint, entry.label);
+      const ofGroup = tints.indexOf(1);
+      const ofLabel = tints.indexOf(2);
+      if (ofGroup > 0 && ofLabel > 0) return ofGroup < ofLabel;
+    }
+  }
+  return true;
+}
+
+/**
+ * The word in slots that are always there: the root, the group's ending and
+ * the label's ending, in the order they come in this table, with an empty
+ * slot where the form has no ending there. So "kedi" has the same three
+ * parts as "kedilerden", two of them bare, and each can be swapped.
+ */
+function slotsOf(entry, group) {
+  const pieces = piecesOfForm(entry);
+  const tints = pieceTints(entry, group.hint, entry.label);
+  const ending = (tint) => pieces.filter((_, index) => index > 0 && tints[index] === tint).join('');
+  const root = {
+    key: 'root',
+    piece: pieces[0],
+    tint: 0,
+    means: formSpelled([pieces[0]])?.means ?? formsShown?.meaning ?? '',
+  };
+  const ofGroup = { key: 'group', piece: ending(1), tint: 1, role: { name: group.name, about: group.about ?? '' } };
+  const ofLabel = {
+    key: 'label',
+    piece: ending(2),
+    tint: 2,
+    role: { name: splitLabel(entry.label).name, about: entry.about ?? '' },
+  };
+  const extra = pieces
+    .map((piece, index) => ({ key: 'extra', piece, tint: tints[index], index }))
+    .filter(({ tint, index }) => index > 0 && tint !== 1 && tint !== 2);
+  return [root, ...(groupEndingFirst() ? [ofGroup, ofLabel] : [ofLabel, ofGroup]), ...extra];
+}
+
+/** Moves the built form one step along one axis of the table: to the next
+    or previous group, keeping the label, or to the next or previous label. */
+function stepBuilt(key, delta) {
+  if (!builtIn || !formsShown) return;
+  const groups = formsShown.groups;
+  let { entry, group } = builtIn;
+  if (key === 'group') {
+    const at = group.forms.indexOf(entry);
+    group = groups[(groups.indexOf(group) + delta + groups.length) % groups.length];
+    entry = group.forms.find((form) => form.label === entry.label) ?? group.forms[Math.min(at, group.forms.length - 1)];
+  } else {
+    entry = group.forms[(group.forms.indexOf(entry) + delta + group.forms.length) % group.forms.length];
+  }
+  speak(entry.word);
+  showBuilt(entry, group, true, key);
+  // The arrow that was pressed is drawn anew; the keyboard stays on it.
+  formsBody.querySelector(`.part-arrow[data-slot="${key}"][data-dir="${delta > 0 ? 'down' : 'up'}"]`)?.focus();
+}
+
+/** An arrow above or below a part, or a blank of the same size where a part
+    has nothing to swap for. */
+function partArrow(slot, delta) {
+  const swappable = slot.key === 'group' || slot.key === 'label';
+  if (!swappable) {
+    const blank = document.createElement('span');
+    blank.className = 'part-arrow blank';
+    return blank;
+  }
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `part-arrow ${delta > 0 ? 'down' : 'up'}`;
+  button.dataset.slot = slot.key;
+  button.dataset.dir = delta > 0 ? 'down' : 'up';
+  button.setAttribute('aria-label', delta > 0 ? D.partDown : D.partUp);
+  button.textContent = delta > 0 ? '▼' : '▲';
+  button.addEventListener('click', () => stepBuilt(slot.key, delta));
+  return button;
+}
+
+/** The word as a thing: a nose or face, a part per slot, and a tail. Every
+    part but the root has arrows to swap it for the next one in the table. */
+function buildThing(entry, group, kind, animate, changed = '') {
+  const slots = slotsOf(entry, group);
   const thing = document.createElement('div');
   thing.className = `thing ${kind}${animate ? '' : ' still'}`;
   thing.lang = D.target;
   const art = BUILDER_ART[kind];
   // The art is fixed markup from this file; nothing from outside goes in.
   if (art.head) thing.insertAdjacentHTML('beforeend', art.head);
-  parts.forEach(({ piece, tint, role, means }, index) => {
+  slots.forEach((slot, index) => {
     const part = document.createElement('span');
-    part.className = index > 0 ? 'part new' : 'part';
-    part.style.setProperty('--step', String(index));
+    part.className = 'part';
+    // Every ending arrives anew for a form picked in the table; only the
+    // swapped one for an arrow.
+    if (index > 0 && (!changed || slot.key === changed)) part.classList.add('new');
+    part.style.setProperty('--step', String(changed ? 0 : index));
     const body = document.createElement('span');
-    body.className = 'part-body m';
-    body.dataset.m = String(tint);
-    body.textContent = piece;
+    body.className = slot.piece ? 'part-body m' : 'part-body m bare';
+    body.dataset.m = String(slot.tint);
+    body.textContent = slot.piece;
     const tag = document.createElement('span');
     tag.className = 'part-tag';
     tag.lang = D.native;
-    if (role) {
+    if (slot.role) {
       const name = document.createElement('span');
       name.className = 'm';
-      name.dataset.m = String(tint);
-      name.textContent = role.name;
+      name.dataset.m = String(slot.tint);
+      name.textContent = slot.role.name;
       tag.append(name);
-      if (role.about) {
+      if (slot.role.about) {
         const about = document.createElement('span');
         about.className = 'part-about';
-        about.textContent = role.about;
+        about.textContent = slot.role.about;
         tag.append(about);
       }
-    } else if (index === 0) {
-      tag.textContent = means;
+    } else if (slot.key === 'root') {
+      tag.textContent = slot.means;
     }
-    part.append(body, tag);
+    part.append(partArrow(slot, -1), body, partArrow(slot, 1), tag);
     thing.append(part);
   });
   if (art.tail) thing.insertAdjacentHTML('beforeend', art.tail);
@@ -2307,10 +2397,10 @@ function buildThing(parts, kind, animate) {
   sum.className = 'thing-sum';
   const word = document.createElement('span');
   word.lang = D.target;
-  word.textContent = parts.map((part) => part.piece).join('');
+  word.textContent = entry.word;
   const means = document.createElement('span');
   means.lang = D.native;
-  means.textContent = parts.at(-1)?.means ?? '';
+  means.textContent = entry.means ?? '';
   sum.append(word, ' = ', means);
   const frame = document.createDocumentFragment();
   frame.append(thing, sum);
@@ -2386,7 +2476,7 @@ function pieceRole(tint, entry, group) {
   return null;
 }
 
-function showBuilt(entry, group, animate = true) {
+function showBuilt(entry, group, animate = true, changed = '') {
   const steps = formsBody.querySelector('.build-steps');
   if (!steps) return;
   builtWord = entry.word;
@@ -2408,7 +2498,9 @@ function showBuilt(entry, group, animate = true) {
       means: known?.means ?? (index === 0 ? (formsShown?.meaning ?? '') : ''),
     };
   });
-  steps.replaceChildren(builderView === 'stairs' ? buildStairs(parts, animate) : buildThing(parts, builderView, animate));
+  steps.replaceChildren(
+    builderView === 'stairs' ? buildStairs(parts, animate) : buildThing(entry, group, builderView, animate, changed),
+  );
 }
 
 formsClose.addEventListener('click', closeForms);

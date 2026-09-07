@@ -1056,9 +1056,10 @@ body.muted .chunk .say {
 .thing {
   --part-line: var(--line);
   --part-height: 2.5rem;
+  --arrow-height: 1.1rem;
   display: flex;
   align-items: flex-start;
-  padding: 1rem 0.2rem 0.4rem;
+  padding: 0.4rem 0.2rem 0.4rem;
   font-size: 1.2rem;
   font-weight: 600;
 }
@@ -1066,16 +1067,55 @@ body.muted .chunk .say {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.2rem;
 }
 .thing .part-body {
   display: flex;
   align-items: center;
+  justify-content: center;
+  /* As wide as the tag under it, so a long tag makes a long part rather
+     than a gap between parts. */
+  align-self: stretch;
   box-sizing: border-box;
   height: var(--part-height);
   padding: 0 0.55em;
   border: 2px solid var(--part-line);
   white-space: nowrap;
+}
+/* A slot the form has no ending in: an empty part, still there to swap. */
+.thing .part-body.bare {
+  min-width: 2.4em;
+}
+/* The arrows that swap a part for the next one along its axis. */
+.thing .part-arrow {
+  display: block;
+  box-sizing: border-box;
+  height: var(--arrow-height);
+  padding: 0 0.6em;
+  font-size: 0.65rem;
+  line-height: var(--arrow-height);
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  cursor: pointer;
+}
+.thing .part-arrow:hover,
+.thing .part-arrow:focus-visible {
+  color: var(--ink);
+  background: var(--card);
+  transform: none;
+  box-shadow: none;
+}
+.thing .part-arrow.blank {
+  visibility: hidden;
+}
+.thing .part-tag {
+  margin-top: 0.1rem;
+}
+.thing .part-art {
+  margin-top: calc(var(--arrow-height) + 0.2rem);
 }
 .thing .part-tag {
   display: flex;
@@ -1197,8 +1237,8 @@ body.muted .chunk .say {
     radial-gradient(circle at 0.3rem 0.3rem, var(--part-line) 0.28rem, transparent 0.32rem) left / 0.6rem 0.6rem no-repeat,
     radial-gradient(circle at 0.3rem 0.3rem, var(--part-line) 0.28rem, transparent 0.32rem) right / 0.6rem 0.6rem no-repeat;
 }
-.train .part {
-  gap: 0.8rem;
+.train .part-arrow.down {
+  margin-top: 0.5rem;
 }
 .train .engine {
   margin-right: 0.2rem;
@@ -1232,8 +1272,8 @@ body.muted .chunk .say {
     linear-gradient(var(--part-line), var(--part-line)) left / 2px 100% no-repeat,
     linear-gradient(var(--part-line), var(--part-line)) right / 2px 100% no-repeat;
 }
-.worm .part {
-  gap: 0.75rem;
+.worm .part-arrow.down {
+  margin-top: 0.45rem;
 }
 .worm .face {
   z-index: 1;
