@@ -1056,7 +1056,7 @@ body.muted .chunk .say {
 .thing {
   --part-line: var(--line);
   --part-height: 2.5rem;
-  --arrow-height: 1.1rem;
+  --arrow-height: 1.6rem;
   display: flex;
   align-items: flex-start;
   padding: 0.4rem 0.2rem 0.4rem;
@@ -1070,9 +1070,9 @@ body.muted .chunk .say {
   gap: 0.2rem;
 }
 .thing .part-body {
-  display: flex;
+  display: grid;
   align-items: center;
-  justify-content: center;
+  justify-items: center;
   /* As wide as the tag under it, so a long tag makes a long part rather
      than a gap between parts. */
   align-self: stretch;
@@ -1086,18 +1086,25 @@ body.muted .chunk .say {
 .thing .part-body.bare {
   min-width: 2.4em;
 }
+/* The options a part may hold lie on top of each other; only one shows. */
+.thing .option {
+  grid-area: 1 / 1;
+}
+.thing .option.ghost {
+  visibility: hidden;
+}
 /* The arrows that swap a part for the next one along its axis. */
 .thing .part-arrow {
   display: block;
   box-sizing: border-box;
   height: var(--arrow-height);
-  padding: 0 0.6em;
-  font-size: 0.65rem;
+  padding: 0 0.5em;
+  font-size: 1.05rem;
   line-height: var(--arrow-height);
   color: var(--muted);
   background: none;
   border: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   box-shadow: none;
   cursor: pointer;
 }
@@ -1118,15 +1125,19 @@ body.muted .chunk .say {
   margin-top: calc(var(--arrow-height) + 0.2rem);
 }
 .thing .part-tag {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  justify-items: center;
   font-family: var(--hand);
   font-size: 0.8rem;
   font-weight: 400;
   line-height: 1.15;
   color: var(--muted);
   text-align: center;
+}
+.thing .part-tag .option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .thing .part-tag .m {
   padding: 0 0.3em;

@@ -2288,7 +2288,7 @@ function groupEndingFirst() {
  * slot where the form has no ending there. So "kedi" has the same three
  * parts as "kedilerden", two of them bare, and each can be swapped.
  */
-function slotsOf(entry, group) {
+function slotsOf(entry, group, groupFirst = groupEndingFirst()) {
   const pieces = piecesOfForm(entry);
   const tints = pieceTints(entry, group.hint, entry.label);
   const ending = (tint) => pieces.filter((_, index) => index > 0 && tints[index] === tint).join('');
@@ -2308,7 +2308,48 @@ function slotsOf(entry, group) {
   const extra = pieces
     .map((piece, index) => ({ key: 'extra', piece, tint: tints[index], index }))
     .filter(({ tint, index }) => index > 0 && tint !== 1 && tint !== 2);
-  return [root, ...(groupEndingFirst() ? [ofGroup, ofLabel] : [ofLabel, ofGroup]), ...extra];
+  return [root, ...(groupFirst ? [ofGroup, ofLabel] : [ofLabel, ofGroup]), ...extra];
+}
+
+/** Every slot as it is in every form of the table, keyed by slot, each once:
+    what a part may have to hold, so it can be made wide enough for all. */
+function slotOptions() {
+  const groupFirst = groupEndingFirst();
+  const options = new Map();
+  for (const group of formsShown?.groups ?? []) {
+    for (const entry of group.forms) {
+      for (const slot of slotsOf(entry, group, groupFirst)) {
+        const seen = options.get(slot.key) ?? new Map();
+        const id = `${slot.piece}|${slot.role?.name ?? slot.means ?? ''}|${slot.role?.about ?? ''}`;
+        if (!seen.has(id)) seen.set(id, slot);
+        options.set(slot.key, seen);
+      }
+    }
+  }
+  return options;
+}
+
+/** A part's tag: the ending's name in its tint with its keywords, or the
+    root's meaning. */
+function partTag(slot) {
+  const tag = document.createElement('span');
+  tag.className = 'option';
+  if (slot.role) {
+    const name = document.createElement('span');
+    name.className = 'm';
+    name.dataset.m = String(slot.tint);
+    name.textContent = slot.role.name;
+    tag.append(name);
+    if (slot.role.about) {
+      const about = document.createElement('span');
+      about.className = 'part-about';
+      about.textContent = slot.role.about;
+      tag.append(about);
+    }
+  } else if (slot.key === 'root') {
+    tag.textContent = slot.means;
+  }
+  return tag;
 }
 
 /** Moves the built form one step along one axis of the table: to the next
@@ -2354,6 +2395,7 @@ function partArrow(slot, delta) {
     part but the root has arrows to swap it for the next one in the table. */
 function buildThing(entry, group, kind, animate, changed = '') {
   const slots = slotsOf(entry, group);
+  const options = slotOptions();
   const thing = document.createElement('div');
   thing.className = `thing ${kind}${animate ? '' : ' still'}`;
   thing.lang = D.target;
@@ -2367,27 +2409,33 @@ function buildThing(entry, group, kind, animate, changed = '') {
     // swapped one for an arrow.
     if (index > 0 && (!changed || slot.key === changed)) part.classList.add('new');
     part.style.setProperty('--step', String(changed ? 0 : index));
+    // Everything the slot may hold lies stacked and unseen under what it
+    // holds now, so the part is as wide and as tall as its widest option
+    // and nothing shifts when it is swapped.
+    const others = [...(options.get(slot.key)?.values() ?? [])].filter(
+      (option) => option.piece !== slot.piece || option.role?.name !== slot.role?.name || option.role?.about !== slot.role?.about,
+    );
     const body = document.createElement('span');
     body.className = slot.piece ? 'part-body m' : 'part-body m bare';
     body.dataset.m = String(slot.tint);
-    body.textContent = slot.piece;
+    const shown = document.createElement('span');
+    shown.className = 'option';
+    shown.textContent = slot.piece;
+    body.append(shown);
+    for (const option of others) {
+      const ghost = document.createElement('span');
+      ghost.className = 'option ghost';
+      ghost.textContent = option.piece;
+      body.append(ghost);
+    }
     const tag = document.createElement('span');
     tag.className = 'part-tag';
     tag.lang = D.native;
-    if (slot.role) {
-      const name = document.createElement('span');
-      name.className = 'm';
-      name.dataset.m = String(slot.tint);
-      name.textContent = slot.role.name;
-      tag.append(name);
-      if (slot.role.about) {
-        const about = document.createElement('span');
-        about.className = 'part-about';
-        about.textContent = slot.role.about;
-        tag.append(about);
-      }
-    } else if (slot.key === 'root') {
-      tag.textContent = slot.means;
+    tag.append(partTag(slot));
+    for (const option of others) {
+      const ghost = partTag(option);
+      ghost.classList.add('ghost');
+      tag.append(ghost);
     }
     part.append(partArrow(slot, -1), body, partArrow(slot, 1), tag);
     thing.append(part);
