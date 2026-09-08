@@ -1032,20 +1032,6 @@ body.muted .chunk .say {
   font-weight: 700;
   line-height: 1.4;
 }
-/* The finished sentence in the language being learned, beside the one
-   it says, behind a thin rule. */
-.natural .done {
-  padding-left: 0.75rem;
-  border-left: 2px solid var(--line);
-  color: var(--accent, var(--ink));
-  animation: settle 0.3s ease-out;
-}
-@keyframes settle {
-  from {
-    opacity: 0;
-    transform: translateX(-0.25rem);
-  }
-}
 /* The line can be written over: it stands on a dashed line, which turns
    to the accent while writing. Square corners, like a line on a form. */
 .natural p[contenteditable]:not([contenteditable='false']) {

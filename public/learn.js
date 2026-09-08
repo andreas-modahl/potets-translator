@@ -43,7 +43,6 @@ choicesRow.setAttribute('role', 'group');
 choicesRow.hidden = true;
 const naturalRow = document.querySelector('#natural-row');
 const naturalLine = document.querySelector('#natural');
-const doneLine = document.querySelector('#natural-done');
 const streakPill = document.querySelector('#streak');
 const speakButton = document.querySelector('#speak');
 const speakBall = document.querySelector('#speak-ball');
@@ -1056,12 +1055,6 @@ function setReady(ready, filledChest = false) {
   hintButton.hidden = ready;
   specialKeys.hidden = ready;
   submitTwin.hidden = !ready;
-  // The whole sentence, now that it is all there, beside the one it says.
-  if (ready && current.target) {
-    doneLine.textContent = current.target;
-    doneLine.lang = D.target;
-  }
-  doneLine.hidden = !ready || !current.target;
 }
 
 // The twin in the hint row is the next button over again: whatever the
@@ -1869,7 +1862,6 @@ function renderSkeleton() {
 
   naturalLine.replaceChildren(bone('60%'));
   naturalLine.contentEditable = 'false';
-  doneLine.hidden = true;
   naturalRow.hidden = false;
 
   for (const width of [3, 6, 4, 7, 5]) {
