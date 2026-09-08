@@ -1247,6 +1247,17 @@ function addTopic(text) {
   if (!submitButton.disabled) form.requestSubmit();
 }
 
+/**
+ * The grammar point cut down to its name for the chip: what comes before
+ * an explanation ("-dir for generell sannhet" is "-dir"), and at most a
+ * few words. The whole phrase is in the tooltip.
+ */
+function shortFocus(text) {
+  const head = text.split(/\s+(?:for|som|til|i|med|ile|için|olarak)\s+|\s*[(:;–—,]/)[0].trim();
+  const words = (head || text).split(/\s+/);
+  return words.length > 3 ? `${words.slice(0, 3).join(' ')}…` : head || text;
+}
+
 function renderChips() {
   chipsRow.replaceChildren(
     ...chips.map((chip) => {
@@ -1276,7 +1287,7 @@ function renderChips() {
             : D.chipTopic(chip.text);
       }
       text.className = 'chip-text';
-      text.textContent = chip.text;
+      text.textContent = chip.kind === 'focus' ? shortFocus(chip.text) : chip.text;
       if (chip.kind === 'word') text.lang = D.target;
 
       const x = document.createElement('button');

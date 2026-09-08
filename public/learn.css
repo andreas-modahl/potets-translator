@@ -415,7 +415,7 @@
 /* The grammar chip's text is the switch. */
 .chip.focus .chip-text {
   /* Kept short; the whole phrase is in the tooltip. */
-  max-width: 6.5rem;
+  max-width: 5rem;
   padding-right: 0.3rem;
   font: inherit;
   color: inherit;
