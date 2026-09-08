@@ -433,12 +433,17 @@
   background: none;
   border: 0;
   border-radius: 999px;
+  box-shadow: none;
+  transform: none;
   cursor: pointer;
 }
 .chip .chip-x:hover,
-.chip .chip-x:focus-visible {
+.chip .chip-x:focus-visible,
+.chip .chip-x:active {
   color: var(--ink);
   background: var(--sunk);
+  box-shadow: none;
+  transform: none;
 }
 /* The level: a chip in the marker tint, which cycles on click. */
 .level {
