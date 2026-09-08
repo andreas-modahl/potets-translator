@@ -543,6 +543,11 @@
   color: var(--faint);
   letter-spacing: 0.15em;
 }
+/* The twin in the hint row is hidden until the sentence is done; the
+   display below would otherwise win over the hidden attribute. */
+.step[hidden] {
+  display: none;
+}
 .step {
   display: inline-flex;
   align-items: center;
