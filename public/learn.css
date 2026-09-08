@@ -980,23 +980,6 @@
   background: var(--sunk);
   border-radius: var(--wobble);
 }
-/* A notebook: faint rules to write on, and a margin line down the left. */
-#lesson.card {
-  padding-left: 1.6rem;
-  background-color: var(--panel);
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--accent) 45%, transparent) 1px, transparent 1px),
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent calc(1.75rem - 1px),
-      color-mix(in srgb, var(--line) 9%, transparent) calc(1.75rem - 1px),
-      color-mix(in srgb, var(--line) 9%, transparent) 1.75rem
-    );
-  background-repeat: no-repeat, repeat;
-  background-position: 1rem 0, 0 0.6rem;
-  background-size: 1px 100%, 100% 1.75rem;
-}
 /* The speaker: the target ball with a couple of sound waves beside it. */
 .speak {
   flex: 0 0 auto;
