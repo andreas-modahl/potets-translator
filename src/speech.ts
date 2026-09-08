@@ -2,9 +2,10 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { config } from './config.js';
+import type { Learning } from './lesson.js';
 
 /**
- * Turkish read aloud by Azure Speech.
+ * The language being learned, read aloud by Azure Speech.
  *
  * Each sentence is synthesised once and kept as an MP3 on disk, keyed by a
  * hash of the voice and the text, so stepping back through the history replays
@@ -35,11 +36,12 @@ function escapeXml(text: string): string {
   });
 }
 
-export type SpeechLang = 'tr' | 'nb';
+export type SpeechLang = Learning;
 
 const VOICES: Record<SpeechLang, { voice: string; locale: string }> = {
   tr: { voice: config.azureSpeechVoice, locale: 'tr-TR' },
   nb: { voice: config.azureSpeechVoiceNb, locale: 'nb-NO' },
+  en: { voice: config.azureSpeechVoiceEn, locale: 'en-GB' },
 };
 
 export interface VoiceChoice {
@@ -61,6 +63,12 @@ const KNOWN_VOICES: Record<SpeechLang, VoiceChoice[]> = {
     { id: 'nb-NO-PernilleNeural', name: 'Pernille' },
     { id: 'nb-NO-FinnNeural', name: 'Finn' },
     { id: 'nb-NO-IselinNeural', name: 'Iselin' },
+  ],
+  en: [
+    { id: 'en-GB-SoniaNeural', name: 'Sonia' },
+    { id: 'en-GB-RyanNeural', name: 'Ryan' },
+    { id: 'en-GB-LibbyNeural', name: 'Libby' },
+    { id: 'en-GB-ThomasNeural', name: 'Thomas' },
   ],
 };
 
@@ -107,7 +115,7 @@ function styleFor(voice: string): string {
  */
 export const speechFingerprint = createHash('sha256')
   .update(
-    `${VOICES.tr.voice}\n${VOICES.nb.voice}\n${PROSODY.pitch}\n${PROSODY.rate}\n${config.speechStyle}`,
+    `${VOICES.tr.voice}\n${VOICES.nb.voice}\n${VOICES.en.voice}\n${PROSODY.pitch}\n${PROSODY.rate}\n${config.speechStyle}`,
   )
   .digest('hex')
   .slice(0, 8);

@@ -52,11 +52,12 @@ nothing is stored on the server.
 ## Lær tyrkisk
 
 The front page (also reachable as `/learn`) has one specific job: learning Turkish as a Norwegian
-speaker, or, flipped with the ⇄ button at the top, learning Norwegian as a
-Turkish speaker. Everything on the page is written in the language the learner
-already knows, and each direction keeps its own history, level and word chest.
-The rest of this section describes the Turkish-learning side; the other side is
-the mirror image, with the Norwegian read aloud by a Norwegian voice.
+speaker, or, switched with the ⇄ button at the top, learning English as a
+Norwegian speaker, or Norwegian as a Turkish speaker. Everything on the page is
+written in the language the learner already knows, and each direction keeps its
+own history, level and word chest. The rest of this section describes the
+Turkish-learning side; the other sides are the mirror image, with the English
+or Norwegian read aloud by a voice of its own.
 
 Every noun that lands in the chest gets a small picture. The lesson names an
 emoji for the noun when one shows it plainly, and the server draws that from

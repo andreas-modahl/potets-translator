@@ -90,6 +90,19 @@ For an adjective, give one group "dereceler" with the positive, comparative and 
 "uyum" with the forms after "en", "et" and in plural.
 For a pronoun or anything else that does not inflect, give no groups.`,
   },
+  en: {
+    target: 'English',
+    native: 'Norwegian (bokmål)',
+    layout: `For a verb, give one group named "tider" with five forms, in this order, labelled in Norwegian:
+"infinitiv", "presens (3. person)", "preteritum", "perfektum partisipp", "-ing-form". Write the
+infinitive with "to". For an irregular verb the forms simply differ; say so in "about".
+For a noun, give one group "tall" with two forms, "entall" and "flertall", with the article in the
+singular, as in "a dog", and "an" where the noun starts with a vowel sound.
+For an adjective or an adverb, give one group "grader" with the positive, comparative and superlative,
+using -er/-est or "more"/"most" as the word takes.
+For a pronoun, give one group "former" with the subject, object and possessive forms.
+For anything else that does not inflect, give no groups.`,
+  },
 };
 
 function systemPrompt(learning: Learning): string {

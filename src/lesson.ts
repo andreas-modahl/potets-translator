@@ -7,9 +7,14 @@ import { config } from './config.js';
  * Which language is being learned. The other one is the learner's own, and is
  * the language every explanation is written in.
  */
-export type Learning = 'tr' | 'nb';
+export type Learning = 'tr' | 'nb' | 'en';
 
-export const LEARNINGS: readonly Learning[] = ['tr', 'nb'];
+export const LEARNINGS: readonly Learning[] = ['tr', 'nb', 'en'];
+
+/** The direction a request names, or the Turkish side when it names none. */
+export function learningOf(value: unknown): Learning {
+  return LEARNINGS.find((candidate) => candidate === value) ?? 'tr';
+}
 
 /** One piece of a word in the target language: the root, or a suffix glued onto it. */
 export interface Morpheme {
@@ -146,6 +151,27 @@ const DIRECTIONS: Record<Learning, Direction> = {
     notes:
       'why a noun takes -en or -et, what a preposition does that Turkish would mark with a suffix, why the verb comes second, why "det" or "der" appears where Turkish has no subject',
     focus: '"belirli tanımlık -en/-et", "geçmiş zaman -te", "ikinci sırada fiil"',
+  },
+  en: {
+    target: 'English',
+    native: 'Norwegian (bokmål)',
+    level: {
+      start:
+        'A very first sentence for someone who knows almost no English: 2-4 words, present tense, only the most common words (I, you, this, a dog, to be, to have, to like, good, big), and no ending beyond the one the sentence cannot do without. Keep any note to one short line.',
+      nybegynner:
+        'A first-year sentence: 4-7 words, present tense, everyday vocabulary, at most one grammar point worth explaining.',
+      viderekommen:
+        'An intermediate sentence: 6-12 words. Use the past or the present perfect, the -ing form, a modal verb, or a preposition or article that Norwegian chooses differently.',
+      avansert:
+        'An advanced sentence: a conditional, the passive, reported speech, a relative clause, or a phrasal verb, the constructions where English and Norwegian part ways.',
+    },
+    morphology:
+      'English and Norwegian are close cousins, so what the student needs to see is the handful of endings, and the little words: articles, do-support, the -ing form. ' +
+      'Split a word only where it really carries an ending: "dogs" = "dog" (hund) + "s" (flertall), "walked" = "walk" + "ed" (preteritum), "running" = "runn" + "ing" (pågående form), "she\'s" = "she" + "\'s" (er). ' +
+      'The forms joined together must spell the word exactly as it stands. Skip the split for words with no ending: "I", "and", "with".',
+    notes:
+      'why it is "a" and not "an", or "the" and not nothing, why a verb takes -s, what "do" is doing in a question, why the -ing form or the present perfect is used where Norwegian would use the plain present or the preteritum, a preposition that Norwegian chooses differently',
+    focus: '"presens -s i tredje person", "spørsmål med do", "the og a/an"',
   },
 };
 

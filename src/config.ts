@@ -58,11 +58,12 @@ export const config = {
   webPort: positiveInt('WEB_PORT', 3000),
   /** The languages the translator page starts with; the page can change them per request. */
   webTargets: languageList('WEB_TARGETS', ['English', 'Norwegian']),
-  /** Azure Speech, for reading Turkish aloud on the learn page. Optional. */
+  /** Azure Speech, for reading the language being learned aloud on the learn page. Optional. */
   azureSpeechKey: optional('AZURE_SPEECH_KEY'),
   azureSpeechRegion: optional('AZURE_SPEECH_REGION'),
   azureSpeechVoice: optional('AZURE_SPEECH_VOICE') ?? 'tr-TR-AhmetNeural',
   azureSpeechVoiceNb: optional('AZURE_SPEECH_VOICE_NB') ?? 'nb-NO-PernilleNeural',
+  azureSpeechVoiceEn: optional('AZURE_SPEECH_VOICE_EN') ?? 'en-GB-SoniaNeural',
   speechCacheDir: optional('SPEECH_CACHE_DIR') ?? 'data/speech',
   /**
    * Recraft, drawing nouns that neither the emoji set nor the pictograms

@@ -8,6 +8,7 @@ import { parseTargets } from './languages.js';
 import {
   LEARNINGS,
   LEVELS,
+  learningOf,
   lesson,
   lessons,
   type Learning,
@@ -287,7 +288,7 @@ function parseLesson(raw: string): {
     : [];
 
   return {
-    learning: LEARNINGS.find((candidate) => candidate === learning) ?? 'tr',
+    learning: learningOf(learning),
     ...(sentence ? { text: sentence } : {}),
     ...(typeof topic === 'string' && topic.trim() ? { topic: topic.trim().slice(0, 200) } : {}),
     level: LEVELS.find((candidate) => candidate === level) ?? 'start',
@@ -356,7 +357,7 @@ async function handleForms(url: URL, response: ServerResponse): Promise<void> {
   if (!word || word.length > 40 || !/^[\p{L}\p{M}][\p{L}\p{M}'’ -]*$/u.test(word)) {
     throw new BadRequest('Not a word that has forms.');
   }
-  const learning: Learning = url.searchParams.get('lang') === 'nb' ? 'nb' : 'tr';
+  const learning = learningOf(url.searchParams.get('lang'));
   const pos = url.searchParams.get('pos') ?? '';
   const key = word.toLocaleLowerCase(learning);
 
@@ -374,7 +375,7 @@ async function handleForms(url: URL, response: ServerResponse): Promise<void> {
 }
 
 /**
- * Turkish read aloud. The text rides in the query string so the browser can
+ * The language being learned, read aloud. The text rides in the query string so the browser can
  * point an audio element straight at it and cache the result like any file.
  */
 async function handleSpeak(url: URL, response: ServerResponse): Promise<void> {
@@ -383,7 +384,7 @@ async function handleSpeak(url: URL, response: ServerResponse): Promise<void> {
     return;
   }
   const text = url.searchParams.get('text') ?? '';
-  const lang = url.searchParams.get('lang') === 'nb' ? 'nb' : 'tr';
+  const lang = learningOf(url.searchParams.get('lang'));
   const voice = url.searchParams.get('voice') ?? '';
   let audio: Buffer;
   try {
@@ -406,12 +407,11 @@ async function handleSpeak(url: URL, response: ServerResponse): Promise<void> {
  * lets it run nothing, since some of them come from third parties.
  */
 async function handlePicture(url: URL, response: ServerResponse): Promise<void> {
-  const lang = url.searchParams.get('lang');
   let drawn;
   try {
     drawn = await picture({
       word: url.searchParams.get('word') ?? '',
-      lang: lang === 'nb' ? 'nb' : 'tr',
+      lang: learningOf(url.searchParams.get('lang')),
       emoji: url.searchParams.get('emoji') ?? undefined,
       hint: url.searchParams.get('hint') ?? undefined,
     });
@@ -524,7 +524,7 @@ function publicUser(user: User): { name: string; email: string; picture: string 
   return { name: user.name, email: user.email, picture: user.picture };
 }
 
-const DIRECTION_KEYS = ['tr', 'nb'] as const;
+const DIRECTION_KEYS = LEARNINGS;
 
 /** Replaces the synced blobs the page sent, one per direction it included. */
 async function handleStateWrite(request: IncomingMessage, response: ServerResponse, user: User): Promise<void> {
@@ -627,7 +627,9 @@ const server = createServer((request, response) => {
         send(response, 200, {
           version: VERSION,
           speech: speechFingerprint,
-          voices: speechConfigured ? { tr: voiceChoices('tr'), nb: voiceChoices('nb') } : null,
+          voices: speechConfigured
+            ? Object.fromEntries(LEARNINGS.map((learning) => [learning, voiceChoices(learning)]))
+            : null,
           pictures: picturesConfigured ? pictureFingerprint : null,
         });
         return;

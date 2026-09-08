@@ -1,13 +1,18 @@
 /* Everything the learn page says, in the language the learner already
    knows. "tr": a Norwegian speaker learning Turkish, so the page is in
+   Norwegian. "en": a Norwegian speaker learning English, also in
    Norwegian. "nb": a Turkish speaker learning Norwegian, so the page is
-   in Turkish. Both sides carry the same keys; learn.js picks one as D. */
+   in Turkish. Every direction carries the same keys; learn.js picks one
+   as D. "next" is where the ⇄ button goes from here, round the ring. */
 
 export const DIRECTIONS = {
   tr: {
     target: 'tr',
     native: 'nb',
+    next: 'en',
     targetLocale: 'tr-TR',
+    /** The name of the storage keys: the Turkish side keeps its old name. */
+    store: 'potets.tyrkisk',
     flagFrom: 'flag-no',
     flagTo: 'flag-tr',
     label: 'Jeg lærer tyrkisk',
@@ -52,7 +57,7 @@ export const DIRECTIONS = {
     },
     topic: 'Tema',
     topicPlaceholder: 'Tema: på kafé, familie, å reise…',
-    flip: 'Bytt retning: lær norsk fra tyrkisk',
+    flip: 'Bytt språk: lær engelsk',
     themeDark: 'Mørk modus',
     themeLight: 'Lys modus',
     soundOff: 'Lyd av',
@@ -124,7 +129,9 @@ export const DIRECTIONS = {
   nb: {
     target: 'nb',
     native: 'tr',
+    next: 'tr',
     targetLocale: 'nb-NO',
+    store: 'potets.norsk',
     flagFrom: 'flag-tr',
     flagTo: 'flag-no',
     label: 'Norveççe öğreniyorum',
@@ -238,4 +245,28 @@ export const DIRECTIONS = {
     formsFlip: 'Eksenleri değiştir',
     close: 'Kapat',
   },
+};
+
+/* English for a Norwegian speaker: the same page as the Turkish side,
+   in the same Norwegian, with only what names the language changed. */
+DIRECTIONS.en = {
+  ...DIRECTIONS.tr,
+  target: 'en',
+  native: 'nb',
+  next: 'nb',
+  targetLocale: 'en-GB',
+  store: 'potets.engelsk',
+  flagFrom: 'flag-no',
+  flagTo: 'flag-gb',
+  label: 'Jeg lærer engelsk',
+  title: 'Languageballs — lær engelsk',
+  flip: 'Bytt språk: lær norsk fra tyrkisk',
+  pos: { ...DIRECTIONS.tr.pos, adposition: 'preposisjon' },
+  posHelp: {
+    ...DIRECTIONS.tr.posHelp,
+    adposition: 'Preposisjon: står foran ordet det hører til, som på norsk. In, on, with, for.',
+  },
+  // English is typed on any keyboard as it is.
+  specials: [],
+  blankFor: (native) => `Engelsk for «${native}»`,
 };

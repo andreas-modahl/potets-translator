@@ -72,24 +72,31 @@ const menuPanel = document.querySelector('#menu-panel');
 let account = null;
 
 /* Direction ---------------------------------------------------------
-   "tr": a Norwegian speaker learning Turkish. "nb": a Turkish speaker
-   learning Norwegian. Everything on the page is written in the language
-   the learner already knows, and the blanks are in the other one. The
-   strings for each side live in learn/strings.js. */
+   "tr": a Norwegian speaker learning Turkish. "en": a Norwegian speaker
+   learning English. "nb": a Turkish speaker learning Norwegian.
+   Everything on the page is written in the language the learner already
+   knows, and the blanks are in the other one. The strings for each side
+   live in learn/strings.js. */
 
 const DIRECTION_KEY = 'potets.retning';
 /** How many sentences are kept; the oldest fall off the front. */
 const HISTORY_LIMIT = 100;
 
-let learning = recall(DIRECTION_KEY) === 'nb' ? 'nb' : 'tr';
+/** Every direction there is, in the order the ⇄ button walks them. */
+const LEARNINGS = Object.keys(DIRECTIONS);
+
+/** A direction name from storage or a request, or the Turkish side. */
+function directionOf(value) {
+  return LEARNINGS.includes(value) ? value : 'tr';
+}
+
+let learning = directionOf(recall(DIRECTION_KEY));
 /** The strings and settings for the current direction. */
 let D = DIRECTIONS[learning];
 
 /** Storage is per direction, so each side keeps its own sentences and chest. */
 function keyFor(name) {
-  // The Turkish-learning keys keep their old names, so nothing saved
-  // before there were two directions is lost.
-  return learning === 'tr' ? `potets.tyrkisk.${name}` : `potets.norsk.${name}`;
+  return directionKey(learning, name);
 }
 
 /** The lesson on screen, and which of its chunks is open. */
@@ -122,7 +129,7 @@ function remember(key, value) {
     // A saved word is a convenience; the page works without one.
   }
   // Anything that belongs to a direction is worth carrying to the server.
-  if (key.startsWith('potets.tyrkisk.') || key.startsWith('potets.norsk.')) scheduleSync();
+  if (LEARNINGS.some((direction) => key.startsWith(`${DIRECTIONS[direction].store}.`))) scheduleSync();
 }
 
 function recall(key) {
@@ -3439,7 +3446,7 @@ function setFavicon(id) {
 
 /** Switches sides: own labels, own level, own history, own chest. */
 function setDirection(value) {
-  learning = value === 'nb' ? 'nb' : 'tr';
+  learning = directionOf(value);
   remember(DIRECTION_KEY, learning);
   pending += 1;
   player.pause();
@@ -3471,7 +3478,8 @@ function setDirection(value) {
   }
 }
 
-flipButton.addEventListener('click', () => setDirection(learning === 'tr' ? 'nb' : 'tr'));
+// Round the ring: Turkish, English, then Norwegian from Turkish, and back.
+flipButton.addEventListener('click', () => setDirection(D.next));
 
 /* Theme ------------------------------------------------------------
    The page follows the system until the switch is used; from then on
@@ -3546,7 +3554,7 @@ const PLAIN_NAMES = ['niva'];
 let syncTimer = 0;
 
 function directionKey(direction, name) {
-  return direction === 'tr' ? `potets.tyrkisk.${name}` : `potets.norsk.${name}`;
+  return `${DIRECTIONS[direction].store}.${name}`;
 }
 
 /** One direction's storage as a plain object, ready to send. */
@@ -3639,7 +3647,7 @@ async function pushState() {
     await fetch('/api/me/state', {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ tr: snapshot('tr'), nb: snapshot('nb') }),
+      body: JSON.stringify(Object.fromEntries(LEARNINGS.map((direction) => [direction, snapshot(direction)]))),
     });
   } catch {
     // Offline: the next change tries again.
@@ -3657,7 +3665,7 @@ async function pullState() {
     const response = await fetch('/api/me/state');
     if (!response.ok) return;
     const state = await response.json();
-    for (const direction of ['tr', 'nb']) applyRemote(direction, state[direction]);
+    for (const direction of LEARNINGS) applyRemote(direction, state[direction]);
     refreshFromStorage();
     await pushState();
   } catch {
