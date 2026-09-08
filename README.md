@@ -102,7 +102,8 @@ puts it back together.
   no Google script runs on the page, and the session is a signed cookie.
 
 Ask for a sentence at a level (start, nybegynner, viderekommen, avansert) and optionally
-on a topic, or paste in your own sentence — Norwegian or Turkish, either way.
+on a topic, or write your own sentence over the line above the card and press
+Enter — in either language, either way.
 The chips in the topic box are the one thing that decides the next sentence.
 The + opens a field; a topic typed there becomes a chip. The page adds up to three chest
 words to bring back, picked afresh for each sentence, dashed when the word

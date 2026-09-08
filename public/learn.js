@@ -1827,6 +1827,8 @@ chest.addEventListener('animationend', () => chest.classList.remove('hop'));
 
 document.addEventListener('keydown', (event) => {
   if (event.ctrlKey || event.altKey || event.metaKey || lessonCard.hidden) return;
+  // A sentence being written needs its full stops.
+  if (event.target === naturalLine) return;
 
   // The . key is a one-letter hint. Punctuation is not checked, so no
   // blank ever needs a full stop typed into it.
@@ -1864,6 +1866,7 @@ function renderSkeleton() {
   explanations.hidden = true;
 
   naturalLine.replaceChildren(bone('60%'));
+  naturalLine.contentEditable = 'false';
   naturalRow.hidden = false;
 
   for (const width of [3, 6, 4, 7, 5]) {
@@ -1910,6 +1913,7 @@ function renderLesson(result, { read = false } = {}) {
 
   naturalLine.textContent = result.native;
   naturalLine.lang = D.native;
+  setEditable(naturalLine);
   naturalRow.hidden = false;
 
   for (const [index, chunk] of result.chunks.entries()) {
@@ -3192,6 +3196,58 @@ formsFlip.addEventListener('click', () => {
   if (formsShown) renderForms(formsShown);
 });
 
+/* Your own sentence ---------------------------------------------------
+   The line above the card can be written over. Enter asks for that
+   sentence instead of a generated one, in whichever language it was
+   typed; Escape, or leaving the line, puts the old one back. */
+
+/** A sentence typed into the line, waiting for the next request to carry it. */
+let ownText = null;
+/** Set while Enter is being acted on, so the blur it causes does not undo it. */
+let committingOwn = false;
+
+/** Plain text only, where the browser can be told so; formatting is never wanted. */
+function setEditable(node) {
+  try {
+    node.contentEditable = 'plaintext-only';
+  } catch {
+    node.contentEditable = 'true';
+  }
+}
+
+function restoreNatural() {
+  if (current.native !== undefined) naturalLine.textContent = current.native;
+}
+
+naturalLine.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    restoreNatural();
+    naturalLine.blur();
+    return;
+  }
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  const text = naturalLine.textContent.replace(/\s+/g, ' ').trim();
+  if (!text || text === current.native || submitButton.disabled) {
+    restoreNatural();
+    naturalLine.blur();
+    return;
+  }
+  ownText = text;
+  naturalLine.textContent = text;
+  committingOwn = true;
+  naturalLine.blur();
+  committingOwn = false;
+  // The sentence readied in the background is not the one asked for.
+  prefetched = null;
+  form.requestSubmit();
+});
+
+naturalLine.addEventListener('blur', () => {
+  if (!committingOwn && !ownText) restoreNatural();
+});
+
 /* Fetching --------------------------------------------------------- */
 
 form.addEventListener('submit', async (event) => {
@@ -3243,6 +3299,20 @@ form.addEventListener('submit', async (event) => {
 
 /** Asks the server for a new sentence for the current settings. */
 async function requestLesson() {
+  // A sentence of the learner's own is asked for as it is; the chips
+  // have no say in it.
+  const text = ownText;
+  ownText = null;
+  if (text) {
+    const response = await fetch('/api/lesson', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ learning, level, text }),
+    });
+    const result = await response.json().catch(() => ({}));
+    return { ok: response.ok, result };
+  }
+
   // The chips say what to ask for. The words ride along with the answer,
   // so the history keeps what each sentence was asked to bring back.
   const { topic, review } = steering();
@@ -3383,6 +3453,8 @@ function applyDirection() {
   menuButton.title = D.menu;
   menuButton.setAttribute('aria-label', D.menu);
   flipButton.setAttribute('aria-label', D.flip);
+  naturalLine.title = D.ownSentence;
+  naturalLine.setAttribute('aria-label', D.ownSentence);
   levelButton.title = D.switchLevel;
   classesName.textContent = D.wordClasses;
   classesButton.title = D.wordClassesHelp;

@@ -1021,6 +1021,23 @@ body.muted .chunk .say {
   font-weight: 700;
   line-height: 1.4;
 }
+/* The line can be written over: a pencil's worth of hint on hover, a
+   quiet underline while writing. */
+.natural p[contenteditable]:not([contenteditable='false']) {
+  cursor: text;
+  padding: 0 0.15rem;
+  margin: 0 -0.15rem;
+  border-radius: 0.3rem;
+  border-bottom: 2px dashed transparent;
+  outline: none;
+}
+.natural p[contenteditable]:not([contenteditable='false']):hover {
+  border-bottom-color: var(--line);
+}
+.natural p[contenteditable]:not([contenteditable='false']):focus {
+  background: var(--sunk);
+  border-bottom-color: var(--accent, var(--ink));
+}
 /* Sentences finished in a row without a hint, beside the next button. */
 .streak {
   display: inline-flex;
