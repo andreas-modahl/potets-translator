@@ -1336,10 +1336,26 @@ function renderChips() {
       x.setAttribute('aria-label', D.chipRemove(chip.text));
       x.addEventListener('click', () => removeChip(chip));
 
+      // A word chip is a word out of the chest, so it carries a tiny one.
+      if (chip.kind === 'word') box.prepend(chipChest());
       box.append(text, x);
       return box;
     }),
   );
+}
+
+/** The chest drawing, small enough for a chip. */
+function chipChest() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class', 'chip-chest');
+  svg.setAttribute('viewBox', '0 0 60 50');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const use = document.createElementNS(ns, 'use');
+  use.setAttribute('href', '#chest-shape');
+  svg.append(use);
+  return svg;
 }
 
 /* The field is shown only while a chip is being written: the + opens it,

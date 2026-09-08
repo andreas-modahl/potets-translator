@@ -423,6 +423,15 @@
 .chip.hinted {
   border-style: dashed;
 }
+/* The tiny chest on a word chip: the same drawing as the bank's. */
+.chip .chip-chest {
+  --chest-line: var(--line);
+  --chest-latch: var(--ochre);
+  flex: 0 0 auto;
+  width: 0.95rem;
+  height: 0.8rem;
+  margin-right: 0.05rem;
+}
 .chip.focus:not(.off) {
   color: var(--ink);
   background: var(--accent-soft);
