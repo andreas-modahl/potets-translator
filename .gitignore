@@ -6,3 +6,6 @@ dist/
 
 # Runtime state: the lesson pool and the cached speech and pictures.
 data/
+
+# Screenshots and traces left by the Playwright MCP browser.
+.playwright-mcp/
