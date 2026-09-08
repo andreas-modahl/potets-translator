@@ -3,7 +3,7 @@ import { readFileSync, watch } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { fileURLToPath } from 'node:url';
-import { assertTranslatorConfigured, config, type ExplainMode } from './config.js';
+import { assertConfigured, config, type ExplainMode } from './config.js';
 import { parseTargets } from './languages.js';
 import {
   LEARNINGS,
@@ -667,7 +667,7 @@ const server = createServer((request, response) => {
 });
 
 function main(): void {
-  assertTranslatorConfigured();
+  assertConfigured();
   server.listen(config.webPort, () => {
     console.log(`Translator web app on http://localhost:${config.webPort} using model ${config.model}.`);
   });

@@ -4,5 +4,5 @@ dist/
 .env.*
 !.env.example
 
-# Runtime state: per-channel configuration written by the bot.
+# Runtime state: the lesson pool and the cached speech and pictures.
 data/

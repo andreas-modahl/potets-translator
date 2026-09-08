@@ -1,5 +1,3 @@
-# Web app only. The Discord bot has its own entry point (dist/index.js) and can
-# be run from the same image by overriding CMD.
 FROM node:24-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./

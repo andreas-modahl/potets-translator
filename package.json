@@ -2,17 +2,15 @@
   "name": "potets-translator",
   "version": "0.1.0",
   "private": true,
-  "description": "Discord bot that auto-translates messages in designated channels using Claude",
+  "description": "languageballs.com: a learn-a-language web app built on Claude",
   "type": "module",
   "engines": {
     "node": ">=20.10"
   },
   "scripts": {
-    "dev": "node --watch --watch-path=src --watch-path=.env --watch-preserve-output --import tsx src/index.ts",
     "web": "node --watch --watch-path=src --watch-path=.env --watch-preserve-output --import tsx src/server.ts",
     "web:start": "node dist/server.js",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -20,7 +18,6 @@
     "@anthropic-ai/sdk": "^0.120.0",
     "@iconify-json/fluent-emoji-flat": "^1.2.6",
     "@iconify/utils": "^3.1.6",
-    "discord.js": "^14.27.0",
     "dotenv": "^17.4.2"
   },
   "devDependencies": {
