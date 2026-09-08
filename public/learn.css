@@ -414,12 +414,22 @@
 }
 /* The grammar chip's text is the switch. */
 .chip.focus .chip-text {
+  /* Kept short; the whole phrase is in the tooltip. */
+  max-width: 6.5rem;
   padding-right: 0.3rem;
   font: inherit;
   color: inherit;
   background: none;
   border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
   cursor: pointer;
+}
+.chip.focus .chip-text:hover,
+.chip.focus .chip-text:active {
+  box-shadow: none;
+  transform: none;
 }
 .chip .chip-x {
   flex: 0 0 auto;
