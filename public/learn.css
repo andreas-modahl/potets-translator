@@ -970,10 +970,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 0.75rem;
-  margin: 1.1rem 0 0;
-  padding-bottom: 0.5rem;
-  /* The line the sentence sits on. */
-  border-bottom: 1.5px dashed color-mix(in srgb, var(--line) 45%, transparent);
+  margin: 1.1rem 0 0.2rem;
 }
 /* The chips, the next button and the sentence they got, on one sunken
    tray: no line around it, just a step down from the page. */
@@ -1099,21 +1096,17 @@ body.muted .chunk .say {
     transform: translateX(-0.25rem);
   }
 }
-/* The line can be written over: a pencil's worth of hint on hover, a
-   quiet underline while writing. */
+/* The line can be written over: it stands on a dashed line, which turns
+   to the accent while writing. Square corners, like a line on a form. */
 .natural p[contenteditable]:not([contenteditable='false']) {
   cursor: text;
   padding: 0 0.15rem;
   margin: 0 -0.15rem;
-  border-radius: 0.3rem;
-  border-bottom: 2px dashed transparent;
+  border-bottom: 2px dashed var(--line);
   outline: none;
 }
-.natural p[contenteditable]:not([contenteditable='false']):hover {
-  border-bottom-color: var(--line);
-}
 .natural p[contenteditable]:not([contenteditable='false']):focus {
-  background: var(--sunk);
+  background: var(--panel);
   border-bottom-color: var(--accent, var(--ink));
 }
 /* Sentences finished in a row without a hint, beside the next button. */
