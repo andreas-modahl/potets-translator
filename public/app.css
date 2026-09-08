@@ -11,9 +11,11 @@
 
 :root {
   color-scheme: light dark;
-  --bg: #f3e9d6;
+  /* The page is a light, slightly warm green; the panels stay cream, so
+     a card reads as paper laid on a green cloth. */
+  --bg: #e6eedb;
   --panel: #fbf5e8;
-  --sunk: #ecdfc6;
+  --sunk: #d8e4c9;
   --ink: #2b2118;
   --muted: #6b5a49;
   --faint: #9c8a75;
