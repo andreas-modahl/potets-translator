@@ -34,6 +34,11 @@
           <span class="flag" id="flag-to" aria-hidden="true"></span>
           <span class="direction-label" id="direction-label"></span>
         </div>
+        <!-- The level, a chip in the marker tint that cycles on click. It
+             sets the whole session, so it sits up here by the direction. -->
+        <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
+          <span id="level-name">Nybegynner</span>
+        </button>
         <!-- The menu: theme, and login or logout. Once signed in the button
              wears the learner's picture. -->
         <div class="menu-wrap">
@@ -148,9 +153,6 @@
       <div class="ask">
       <form id="form">
         <div class="topic-wrap">
-          <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
-            <span id="level-name">Nybegynner</span>
-          </button>
           <!-- The steering: chips for what the next sentence is asked to be
                about and to bring back, and a field that turns what is typed
                into another chip. Each chip goes with its ×. -->

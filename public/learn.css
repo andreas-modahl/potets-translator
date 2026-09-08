@@ -453,16 +453,18 @@
   box-shadow: none;
   transform: none;
 }
-/* The level: a chip in the marker tint, which cycles on click. */
+/* The level: a chip in the marker tint, which cycles on click. In the
+   top bar it is a touch taller than the chips below, to sit with the
+   round menu button. */
 .level {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 1.45rem;
-  padding: 0 0.45rem;
+  height: 1.7rem;
+  padding: 0 0.6rem;
   font-family: var(--hand);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 700;
   line-height: 1.3rem;
   letter-spacing: 0.01em;
