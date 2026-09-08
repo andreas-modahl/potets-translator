@@ -3267,7 +3267,7 @@ form.addEventListener('submit', async (event) => {
   prefetched = null;
 
   try {
-    const { ok, result } = await ahead;
+    const { ok, result, own } = await ahead;
     // A flip while waiting means this answer belongs to the other side.
     if (attempt !== pending || asked !== learning) return;
 
@@ -3275,6 +3275,11 @@ form.addEventListener('submit', async (event) => {
       setStatus(result.error ?? D.failed, true);
       return;
     }
+    // A sentence written in the learner's own language stays as they
+    // wrote it, rather than as the model would put it. Written in the
+    // language being learned, it is the answer, so the line gets its
+    // translation instead.
+    if (own && !sameWord(own, result.target)) result.native = own;
     history.push(result);
     if (history.length > HISTORY_LIMIT) history.splice(0, history.length - HISTORY_LIMIT);
     cursor = history.length - 1;
@@ -3310,7 +3315,7 @@ async function requestLesson() {
       body: JSON.stringify({ learning, level, text }),
     });
     const result = await response.json().catch(() => ({}));
-    return { ok: response.ok, result };
+    return { ok: response.ok, result, own: text };
   }
 
   // The chips say what to ask for. The words ride along with the answer,
