@@ -1154,6 +1154,13 @@ function comebacks(words) {
 let chips = [];
 
 const CHIP_KINDS = ['topic', 'word', 'focus'];
+// The page's own chips first, the learner's own topics last, nearest the
+// + they were typed with. Within a kind, the order they came in.
+const CHIP_RANK = { focus: 0, word: 1, topic: 2 };
+
+function orderChips() {
+  chips.sort((a, b) => CHIP_RANK[a.kind] - CHIP_RANK[b.kind]);
+}
 
 function loadChips() {
   try {
@@ -1218,9 +1225,8 @@ function refreshWordChips() {
     text: entry.target,
     hinted: entry.hinted,
   }));
-  const at = chips.findIndex((chip) => chip.kind === 'word');
-  const rest = chips.filter((chip) => chip.kind !== 'word');
-  chips = at < 0 ? [...rest, ...words] : [...rest.slice(0, at), ...words, ...rest.slice(at)];
+  chips = [...chips.filter((chip) => chip.kind !== 'word'), ...words];
+  orderChips();
 }
 
 /**
@@ -1290,6 +1296,7 @@ function shortFocus(text) {
 }
 
 function renderChips() {
+  orderChips();
   chipsRow.replaceChildren(
     ...chips.map((chip) => {
       const box = document.createElement('span');
