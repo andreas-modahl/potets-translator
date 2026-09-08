@@ -1144,19 +1144,19 @@ function comebacks(words) {
 
 /* Steering chips ----------------------------------------------------
    The chips in the topic box are the one thing that decides the next
-   sentence: the topics the learner typed, the chest words the page
-   picked to bring back, and the grammar point of the sentence on
-   screen once it is switched on. The page adds and replaces the word
-   chips and the grammar chip itself; the learner adds topics by typing
-   and sends any chip away with its ×. */
+   sentence: the topics the learner typed and the chest words the page
+   picked to bring back. The page adds and replaces the word chips
+   itself; the learner adds topics by typing and sends any chip away
+   with its ×. */
 
-/** {kind: 'topic' | 'word' | 'focus', text, hinted?, on?}, in the order shown. */
+/** {kind: 'topic' | 'word', text, hinted?}, in the order shown. */
 let chips = [];
 
-const CHIP_KINDS = ['topic', 'word', 'focus'];
+// A grammar-point chip used to be offered too; one saved from then is dropped.
+const CHIP_KINDS = ['topic', 'word'];
 // The page's own chips first, the learner's own topics last, nearest the
 // + they were typed with. Within a kind, the order they came in.
-const CHIP_RANK = { focus: 0, word: 1, topic: 2 };
+const CHIP_RANK = { word: 0, topic: 1 };
 
 function orderChips() {
   chips.sort((a, b) => CHIP_RANK[a.kind] - CHIP_RANK[b.kind]);
@@ -1180,20 +1180,19 @@ function saveChips() {
   remember(keyFor('styring'), JSON.stringify(chips));
 }
 
-/** What the learner has sent away: words, folded, and the last grammar point. */
+/** What the learner has sent away: words, folded. */
 function loadDismissed() {
   try {
     const parsed = JSON.parse(recall(keyFor('avvist')) ?? 'null');
     if (parsed && typeof parsed === 'object') {
       return {
         words: Array.isArray(parsed.words) ? parsed.words.filter((w) => typeof w === 'string') : [],
-        focus: typeof parsed.focus === 'string' ? parsed.focus : '',
       };
     }
   } catch {
     // As if nothing was sent away.
   }
-  return { words: [], focus: '' };
+  return { words: [] };
 }
 
 function saveDismissed(dismissed) {
@@ -1209,9 +1208,7 @@ function undismiss(target) {
 
 /** What the chips ask of the next sentence: its topic line and the words to bring back. */
 function steering() {
-  const topics = chips
-    .filter((chip) => chip.kind === 'topic' || (chip.kind === 'focus' && chip.on))
-    .map((chip) => chip.text);
+  const topics = chips.filter((chip) => chip.kind === 'topic').map((chip) => chip.text);
   const review = chips
     .filter((chip) => chip.kind === 'word')
     .map((chip) => ({ target: chip.text, hinted: Boolean(chip.hinted) }));
@@ -1229,26 +1226,9 @@ function refreshWordChips() {
   orderChips();
 }
 
-/**
- * The grammar point of a new sentence is offered as a chip, switched off.
- * One the learner has switched on stays and is not replaced; one just
- * sent away is not offered again.
- */
-function suggestFocus(lesson) {
-  if (chips.some((chip) => chip.kind === 'focus' && chip.on)) return;
-  const text = typeof lesson.focus === 'string' ? lesson.focus.trim() : '';
-  const dismissed = loadDismissed();
-  const away = text && fold(text) === dismissed.focus;
-  chips = chips.filter((chip) => chip.kind !== 'focus');
-  if (text && !away) chips.unshift({ kind: 'focus', text, on: false });
-  // A different point offered means the old one may be offered again later.
-  if (text && !away && dismissed.focus) saveDismissed({ ...dismissed, focus: '' });
-}
-
 /** A new sentence has come: the page's own chips are made over for the next one. */
-function chipsForNext(lesson) {
+function chipsForNext() {
   refreshWordChips();
-  suggestFocus(lesson);
   saveChips();
   renderChips();
 }
@@ -1263,11 +1243,9 @@ function steeringChanged() {
 
 function removeChip(chip) {
   chips = chips.filter((other) => other !== chip);
-  const dismissed = loadDismissed();
   if (chip.kind === 'word') {
+    const dismissed = loadDismissed();
     saveDismissed({ ...dismissed, words: [...new Set([...dismissed.words, fold(chip.text)])] });
-  } else if (chip.kind === 'focus') {
-    saveDismissed({ ...dismissed, focus: fold(chip.text) });
   }
   steeringChanged();
 }
@@ -1284,17 +1262,6 @@ function addTopic(text) {
   if (!submitButton.disabled) form.requestSubmit();
 }
 
-/**
- * The grammar point cut down to its name for the chip: what comes before
- * an explanation ("-dir for generell sannhet" is "-dir"), and at most a
- * few words. The whole phrase is in the tooltip.
- */
-function shortFocus(text) {
-  const head = text.split(/\s+(?:for|som|til|i|med|ile|için|olarak)\s+|\s*[(:;–—,]/)[0].trim();
-  const words = (head || text).split(/\s+/);
-  return words.length > 3 ? `${words.slice(0, 3).join(' ')}…` : head || text;
-}
-
 function renderChips() {
   orderChips();
   chipsRow.replaceChildren(
@@ -1303,29 +1270,16 @@ function renderChips() {
       box.className = `chip ${chip.kind}`;
       box.setAttribute('role', 'listitem');
       if (chip.hinted) box.classList.add('hinted');
-      if (chip.kind === 'focus' && !chip.on) box.classList.add('off');
 
-      let text;
-      if (chip.kind === 'focus') {
-        text = document.createElement('button');
-        text.type = 'button';
-        text.setAttribute('aria-pressed', String(Boolean(chip.on)));
-        text.title = chip.on ? D.chipFocusOn(chip.text) : D.chipFocusOff(chip.text);
-        text.addEventListener('click', () => {
-          chip.on = !chip.on;
-          steeringChanged();
-        });
-      } else {
-        text = document.createElement('span');
-        text.title =
-          chip.kind === 'word'
-            ? chip.hinted
-              ? D.chipWordHinted(chip.text)
-              : D.chipWord(chip.text)
-            : D.chipTopic(chip.text);
-      }
+      const text = document.createElement('span');
       text.className = 'chip-text';
-      text.textContent = chip.kind === 'focus' ? shortFocus(chip.text) : chip.text;
+      text.title =
+        chip.kind === 'word'
+          ? chip.hinted
+            ? D.chipWordHinted(chip.text)
+            : D.chipWord(chip.text)
+          : D.chipTopic(chip.text);
+      text.textContent = chip.text;
       if (chip.kind === 'word') text.lang = D.target;
 
       const x = document.createElement('button');
@@ -3337,7 +3291,7 @@ form.addEventListener('submit', async (event) => {
     updateSteps();
     setStatus(result.chunks.length === 0 ? D.noBreakdown : '', result.chunks.length === 0);
     // The chips are made over for the sentence after this one, then it is readied.
-    chipsForNext(result);
+    chipsForNext();
     schedulePrefetch();
   } catch {
     if (attempt === pending) setStatus(D.offline, true);

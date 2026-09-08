@@ -107,10 +107,9 @@ Enter — in either language, either way.
 The chips in the topic box are the one thing that decides the next sentence.
 The + opens a field; a topic typed there becomes a chip. The page adds up to three chest
 words to bring back, picked afresh for each sentence, dashed when the word
-needed a hint last time. The grammar point of the sentence on screen is
-offered as an outlined chip; clicking it switches it on, so the next sentence
-practises the same point until it is switched off. Any chip goes with its ×,
-and a word sent away is not picked again until it has been practised.
+needed a hint last time, with a small chest on the ones earned outright. Any
+chip goes with its ×, and a word sent away is not picked again until it has
+been practised.
 
 Generated lessons are pooled in an SQLite file (`LESSON_DB`). A request for a
 direction, level and topic that already has lessons on its shelf is answered

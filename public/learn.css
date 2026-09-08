@@ -408,12 +408,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* The page's own chips, the words to bring back and the grammar point,
-   are quieter than the learner's topics: no fill, no shadow, a fainter
-   line and ink. A grammar point switched on is the learner's choice, so
-   it gets its tint back. */
-.chip.word,
-.chip.focus {
+/* The page's own chips, the words to bring back, are quieter than the
+   learner's topics: no fill, no shadow, a fainter line and ink. */
+.chip.word {
   font-weight: 600;
   color: var(--muted);
   background: transparent;
@@ -431,35 +428,6 @@
   width: 0.95rem;
   height: 0.8rem;
   margin-right: 0.05rem;
-}
-.chip.focus:not(.off) {
-  color: var(--ink);
-  background: var(--accent-soft);
-  border-color: var(--line);
-}
-.chip.focus.off {
-  background: transparent;
-  border-style: dotted;
-  color: var(--muted);
-}
-/* The grammar chip's text is the switch. */
-.chip.focus .chip-text {
-  /* Kept short; the whole phrase is in the tooltip. */
-  max-width: 5rem;
-  padding-right: 0.3rem;
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  transform: none;
-  cursor: pointer;
-}
-.chip.focus .chip-text:hover,
-.chip.focus .chip-text:active {
-  box-shadow: none;
-  transform: none;
 }
 .chip .chip-x {
   flex: 0 0 auto;
