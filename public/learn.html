@@ -163,19 +163,6 @@
             <button type="button" id="add-chip" class="chip-add" aria-label="Legg til tema" title="Legg til tema">+</button>
             <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" autocomplete="off" hidden />
           </div>
-          <!-- The next sentence, asked for with what the chips say, sits at
-               the end of the row they are on, and stays there. Beside it,
-               the run of sentences finished without a hint. -->
-          <div class="steps" role="group" aria-label="Bla i setninger">
-            <button id="submit" type="submit" form="form" class="step" aria-label="Ny setning" title="Ny setning">
-              <span class="step-label" id="step-label">Ny setning</span>
-              <svg class="play-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-                <path d="M8 4.5v15l12-7.5z" fill="currentColor" />
-              </svg>
-              <span class="spinner" aria-hidden="true"></span>
-            </button>
-            <span class="streak" id="streak" hidden></span>
-          </div>
         </div>
       </form>
 
@@ -201,21 +188,24 @@
             <kbd class="key">|</kbd>
           </button>
           <button type="button" id="hint" class="ghost">Hint <kbd class="key">.</kbd></button>
-          <!-- A twin of the next button up by the chips, shown in the hint
-               button's place once the sentence is done. It mirrors the one
-               above, so the two never disagree. -->
-          <button id="submit-done" type="submit" form="form" class="step" aria-label="Ny setning" title="Ny setning" hidden>
-            <span class="step-label">Ny setning</span>
-            <svg class="play-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-              <path d="M8 4.5v15l12-7.5z" fill="currentColor" />
-            </svg>
-            <span class="spinner" aria-hidden="true"></span>
-          </button>
           <div class="special-keys" id="special-keys" role="group"></div>
         </div>
         <div id="detail"></div>
         <div id="explanations" hidden></div>
       </article>
+
+      <!-- The next sentence, asked for with what the chips say, under the
+           card. Beside it, the run of sentences finished without a hint. -->
+      <div class="steps" role="group" aria-label="Bla i setninger">
+        <button id="submit" type="submit" form="form" class="step" aria-label="Ny setning" title="Ny setning">
+          <span class="step-label" id="step-label">Ny setning</span>
+          <svg class="play-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+            <path d="M8 4.5v15l12-7.5z" fill="currentColor" />
+          </svg>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+        <span class="streak" id="streak" hidden></span>
+      </div>
 
       <!-- The word in hand, opened up: every form the language makes of it,
            drawn and as a table. It follows the word in focus once that word

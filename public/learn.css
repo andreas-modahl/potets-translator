@@ -1,21 +1,10 @@
-/* The next button and the streak beside it, at the end of the chip row:
-   the chips say what the button asks for, so the two sit together. */
+/* The next button and the streak beside it, centred under the card. */
 .steps {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-left: 0.35rem;
-}
-/* Sized to the chips it stands with; in the hint row it has its own size. */
-.topic-wrap .step {
-  min-width: 2.1rem;
-  height: 2.1rem;
-  padding: 0 0.5rem 0 0.8rem;
-  font-size: 0.95rem;
-}
-.topic-wrap .step .play-icon {
-  width: 16px;
-  height: 16px;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0 0;
 }
 /* The small Norwegian word is a fiddly target on a touch screen, so a
    proper button gives the same one-letter hint for the word in focus.
@@ -29,11 +18,6 @@
 }
 .hint-row button {
   padding: 0.5rem 1rem;
-}
-/* Once the sentence is done, the next button's twin stands where the hint button was. */
-.hint-row .step {
-  height: 2.6rem;
-  padding: 0 0.6rem 0 1rem;
 }
 /* The letters the language has and a foreign keyboard may not: one
    key each, typed into the blank in focus. */
@@ -64,7 +48,7 @@
   }
 }
 /* On a touch screen the row is two lines of tap targets: the speaker
-   and the hint (or the next button) above, the letters below. Every
+   and the hint above, the letters below. Every
    button takes the same height, and the letters keep the row's gap, so
    the two lines read as one keypad. A narrow window gets the same
    layout whatever the pointer, so the keys never wrap on their own
@@ -78,8 +62,7 @@
     height: var(--tap);
     padding: 0 0.65rem 0 0.4rem;
   }
-  .hint-row #hint,
-  .hint-row .step {
+  .hint-row #hint {
     flex: 1 1 auto;
     height: var(--tap);
     padding: 0 1rem;
@@ -521,11 +504,6 @@
 .hidden-word {
   color: var(--faint);
   letter-spacing: 0.15em;
-}
-/* The twin in the hint row is hidden until the sentence is done; the
-   display below would otherwise win over the hidden attribute. */
-.step[hidden] {
-  display: none;
 }
 .step {
   display: inline-flex;
