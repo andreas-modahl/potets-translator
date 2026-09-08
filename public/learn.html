@@ -137,11 +137,11 @@
           <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
             <span id="level-name">Nybegynner</span>
           </button>
-          <!-- The topic, written on, with badges in front for what the sentence
-               on screen is practising: its grammar point, and the chest words
-               it brought back. -->
+          <!-- The steering: chips for what the next sentence is asked to be
+               about and to bring back, and a field that turns what is typed
+               into another chip. Each chip goes with its ×. -->
           <div class="topic-box" id="topic-box">
-            <span class="badges" id="topic-badges"></span>
+            <span class="chips" id="chips" role="list"></span>
             <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" autocomplete="off" />
           </div>
         </div>

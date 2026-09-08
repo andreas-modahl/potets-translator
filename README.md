@@ -102,9 +102,13 @@ puts it back together.
 
 Ask for a sentence at a level (start, nybegynner, viderekommen, avansert) and optionally
 on a topic, or paste in your own sentence — Norwegian or Turkish, either way.
-Badges in the topic box say what the sentence on screen practises: the
-grammar point it teaches, which asks for more of the same when clicked, and
-the chest words it brought back, dashed when the word needed a hint last time.
+The chips in the topic box are the one thing that decides the next sentence.
+A topic typed in and entered becomes a chip. The page adds up to three chest
+words to bring back, picked afresh for each sentence, dashed when the word
+needed a hint last time. The grammar point of the sentence on screen is
+offered as an outlined chip; clicking it switches it on, so the next sentence
+practises the same point until it is switched off. Any chip goes with its ×,
+and a word sent away is not picked again until it has been practised.
 
 Generated lessons are pooled in an SQLite file (`LESSON_DB`). A request for a
 direction, level and topic that already has lessons on its shelf is answered

@@ -11,7 +11,7 @@ const levelName = document.querySelector('#level-name');
 const bankEmpty = document.querySelector('#bank-empty');
 const topicField = document.querySelector('#topic');
 const topicBox = document.querySelector('#topic-box');
-const topicBadges = document.querySelector('#topic-badges');
+const chipsRow = document.querySelector('#chips');
 const classesButton = document.querySelector('#classes');
 const classesName = document.querySelector('#classes-name');
 const showFormsButton = document.querySelector('#show-forms');
@@ -1073,6 +1073,7 @@ function struggled(chunk) {
   const words = loadStruggled().filter((word) => fold(word.target) !== fold(chunk.target));
   words.push({ target: chunk.target, native: chunk.native, at: Date.now() });
   saveStruggled(words);
+  undismiss(chunk.target);
 }
 
 /** The word was typed unaided, so it needs no more chasing. */
@@ -1080,20 +1081,24 @@ function overcame(chunk) {
   const words = loadStruggled();
   const rest = words.filter((word) => fold(word.target) !== fold(chunk.target));
   if (rest.length !== words.length) saveStruggled(rest);
+  undismiss(chunk.target);
 }
 
 /**
  * The words worth meeting again: the least practised, and among those
- * the ones not seen for longest. A few are sent with each request so
- * the next sentence can bring one back. Each says why it was picked, so
- * the badge over the sentence can say the same.
+ * the ones not seen for longest. Words the learner has sent away with a
+ * chip's × are left alone until they are practised again.
  */
 function comebacks(words) {
+  const away = loadDismissed().words;
+  const dismissed = (target) => away.includes(fold(target));
   // Words that needed a hint come first: they are not earned yet.
   const chosen = loadStruggled()
+    .filter((word) => !dismissed(word.target))
     .slice(-2)
     .map((word) => ({ target: word.target, hinted: true }));
   const ranked = [...words]
+    .filter((word) => !dismissed(word.target))
     .filter((word) => !chosen.some((entry) => fold(entry.target) === fold(word.target)))
     .sort((a, b) => (a.count ?? 1) - (b.count ?? 1) || (a.at ?? 0) - (b.at ?? 0));
   // Some choice among the weakest, so the same ones do not come back every time.
@@ -1105,65 +1110,210 @@ function comebacks(words) {
   return chosen;
 }
 
-/** A word the way the pool looks for it in a sentence: folded, and short
-    of its last letter when long enough that an ending may have changed it. */
-function stemOf(word) {
-  const folded = fold(word);
-  return folded.length > 4 ? folded.slice(0, -1) : folded;
+/* Steering chips ----------------------------------------------------
+   The chips in the topic box are the one thing that decides the next
+   sentence: the topics the learner typed, the chest words the page
+   picked to bring back, and the grammar point of the sentence on
+   screen once it is switched on. The page adds and replaces the word
+   chips and the grammar chip itself; the learner adds topics by typing
+   and sends any chip away with its ×. */
+
+/** {kind: 'topic' | 'word' | 'focus', text, hinted?, on?}, in the order shown. */
+let chips = [];
+
+const CHIP_KINDS = ['topic', 'word', 'focus'];
+
+function loadChips() {
+  try {
+    const parsed = JSON.parse(recall(keyFor('styring')) ?? 'null');
+    if (Array.isArray(parsed)) {
+      return parsed.filter((chip) => typeof chip?.text === 'string' && CHIP_KINDS.includes(chip.kind));
+    }
+  } catch {
+    // Unreadable: start over below.
+  }
+  // Before chips, the topic was one line of text.
+  const topic = recall(keyFor('emne'));
+  return topic ? [{ kind: 'topic', text: topic }] : [];
 }
 
-/** The blank holding a word brought back, or -1 when the sentence has not got it. */
-function chunkWith(lesson, word) {
-  const piece = stemOf(word);
-  if (!piece) return -1;
-  return lesson.chunks.findIndex((chunk) => fold(chunk.target).includes(piece));
+function saveChips() {
+  remember(keyFor('styring'), JSON.stringify(chips));
+}
+
+/** What the learner has sent away: words, folded, and the last grammar point. */
+function loadDismissed() {
+  try {
+    const parsed = JSON.parse(recall(keyFor('avvist')) ?? 'null');
+    if (parsed && typeof parsed === 'object') {
+      return {
+        words: Array.isArray(parsed.words) ? parsed.words.filter((w) => typeof w === 'string') : [],
+        focus: typeof parsed.focus === 'string' ? parsed.focus : '',
+      };
+    }
+  } catch {
+    // As if nothing was sent away.
+  }
+  return { words: [], focus: '' };
+}
+
+function saveDismissed(dismissed) {
+  remember(keyFor('avvist'), JSON.stringify(dismissed));
+}
+
+/** A word practised again may come back again. */
+function undismiss(target) {
+  const dismissed = loadDismissed();
+  const rest = dismissed.words.filter((word) => word !== fold(target));
+  if (rest.length !== dismissed.words.length) saveDismissed({ ...dismissed, words: rest });
+}
+
+/** What the chips ask of the next sentence: its topic line and the words to bring back. */
+function steering() {
+  const topics = chips
+    .filter((chip) => chip.kind === 'topic' || (chip.kind === 'focus' && chip.on))
+    .map((chip) => chip.text);
+  const review = chips
+    .filter((chip) => chip.kind === 'word')
+    .map((chip) => ({ target: chip.text, hinted: Boolean(chip.hinted) }));
+  return { topic: topics.join(', '), review };
+}
+
+/** The word chips are the page's: picked afresh from the chest for each sentence. */
+function refreshWordChips() {
+  const words = comebacks(loadBank()).map((entry) => ({
+    kind: 'word',
+    text: entry.target,
+    hinted: entry.hinted,
+  }));
+  const at = chips.findIndex((chip) => chip.kind === 'word');
+  const rest = chips.filter((chip) => chip.kind !== 'word');
+  chips = at < 0 ? [...rest, ...words] : [...rest.slice(0, at), ...words, ...rest.slice(at)];
 }
 
 /**
- * The badges in the topic box: what the sentence on screen is practising.
- * The grammar point it teaches, and the chest words it brought back. The
- * grammar point asks for more of the same; a word jumps to its blank.
+ * The grammar point of a new sentence is offered as a chip, switched off.
+ * One the learner has switched on stays and is not replaced; one just
+ * sent away is not offered again.
  */
-function renderBadges(lesson) {
-  const badges = [];
-  const focus = typeof lesson.focus === 'string' ? lesson.focus.trim() : '';
-  if (focus) {
-    const badge = document.createElement('button');
-    badge.type = 'button';
-    badge.className = 'badge grammar';
-    badge.textContent = focus;
-    badge.title = D.focusBadge(focus);
-    badge.addEventListener('click', () => {
-      topicField.value = focus;
-      remember(keyFor('emne'), focus);
-      topicSettled();
-    });
-    badges.push(badge);
-  }
-  for (const entry of Array.isArray(lesson.review) ? lesson.review : []) {
-    const index = chunkWith(lesson, entry.target);
-    if (index < 0) continue;
-    const badge = document.createElement('button');
-    badge.type = 'button';
-    badge.className = entry.hinted ? 'badge hinted' : 'badge';
-    badge.lang = D.target;
-    badge.textContent = entry.target;
-    badge.title = entry.hinted ? D.backFromHint(entry.target) : D.backFromChest(entry.target);
-    badge.addEventListener('click', () => {
-      const field = comparator.children[index]?.querySelector('.tr');
-      if (!field) return;
-      select(index);
-      placeCaretAtEnd(field);
-    });
-    badges.push(badge);
-  }
-  topicBadges.replaceChildren(...badges);
+function suggestFocus(lesson) {
+  if (chips.some((chip) => chip.kind === 'focus' && chip.on)) return;
+  const text = typeof lesson.focus === 'string' ? lesson.focus.trim() : '';
+  const dismissed = loadDismissed();
+  const away = text && fold(text) === dismissed.focus;
+  chips = chips.filter((chip) => chip.kind !== 'focus');
+  if (text && !away) chips.unshift({ kind: 'focus', text, on: false });
+  // A different point offered means the old one may be offered again later.
+  if (text && !away && dismissed.focus) saveDismissed({ ...dismissed, focus: '' });
 }
 
-// The box is the field: a click on its painted edge or between the badges
+/** A new sentence has come: the page's own chips are made over for the next one. */
+function chipsForNext(lesson) {
+  refreshWordChips();
+  suggestFocus(lesson);
+  saveChips();
+  renderChips();
+}
+
+/** The steering changed: the sentence readied ahead no longer fits, so ask again. */
+function steeringChanged() {
+  saveChips();
+  renderChips();
+  prefetched = null;
+  schedulePrefetch();
+}
+
+function removeChip(chip) {
+  chips = chips.filter((other) => other !== chip);
+  const dismissed = loadDismissed();
+  if (chip.kind === 'word') {
+    saveDismissed({ ...dismissed, words: [...new Set([...dismissed.words, fold(chip.text)])] });
+  } else if (chip.kind === 'focus') {
+    saveDismissed({ ...dismissed, focus: fold(chip.text) });
+  }
+  steeringChanged();
+}
+
+/** A topic typed in becomes a chip, and a sentence about it is asked for at once. */
+function addTopic(text) {
+  const clean = text.trim().replace(/\s+/g, ' ');
+  topicField.value = '';
+  if (!clean) return;
+  if (chips.some((chip) => chip.kind === 'topic' && fold(chip.text) === fold(clean))) return;
+  chips.push({ kind: 'topic', text: clean });
+  saveChips();
+  renderChips();
+  if (!submitButton.disabled) form.requestSubmit();
+}
+
+function renderChips() {
+  chipsRow.replaceChildren(
+    ...chips.map((chip) => {
+      const box = document.createElement('span');
+      box.className = `chip ${chip.kind}`;
+      box.setAttribute('role', 'listitem');
+      if (chip.hinted) box.classList.add('hinted');
+      if (chip.kind === 'focus' && !chip.on) box.classList.add('off');
+
+      let text;
+      if (chip.kind === 'focus') {
+        text = document.createElement('button');
+        text.type = 'button';
+        text.setAttribute('aria-pressed', String(Boolean(chip.on)));
+        text.title = chip.on ? D.chipFocusOn(chip.text) : D.chipFocusOff(chip.text);
+        text.addEventListener('click', () => {
+          chip.on = !chip.on;
+          steeringChanged();
+        });
+      } else {
+        text = document.createElement('span');
+        text.title =
+          chip.kind === 'word'
+            ? chip.hinted
+              ? D.chipWordHinted(chip.text)
+              : D.chipWord(chip.text)
+            : D.chipTopic(chip.text);
+      }
+      text.className = 'chip-text';
+      text.textContent = chip.text;
+      if (chip.kind === 'word') text.lang = D.target;
+
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'chip-x';
+      x.textContent = '×';
+      x.title = D.chipRemove(chip.text);
+      x.setAttribute('aria-label', D.chipRemove(chip.text));
+      x.addEventListener('click', () => removeChip(chip));
+
+      box.append(text, x);
+      return box;
+    }),
+  );
+}
+
+// The box is the field: a click on its painted edge or between the chips
 // puts the caret in the text.
 topicBox.addEventListener('click', (event) => {
-  if (event.target === topicBox || event.target === topicBadges) topicField.focus();
+  if (event.target === topicBox || event.target === chipsRow) topicField.focus();
+});
+
+// Enter or a comma turns what is typed into a topic chip. Backspace in an
+// empty field takes the last chip back. Enter in an empty field is the
+// form's: a new sentence.
+topicField.addEventListener('keydown', (event) => {
+  if (event.isComposing) return;
+  if ((event.key === 'Enter' || event.key === ',') && topicField.value.trim()) {
+    event.preventDefault();
+    addTopic(topicField.value);
+  } else if (event.key === 'Backspace' && !topicField.value && chips.length) {
+    event.preventDefault();
+    removeChip(chips[chips.length - 1]);
+  }
+});
+// Leaving the field with something typed keeps it, as a chip.
+topicField.addEventListener('blur', () => {
+  if (topicField.value.trim()) addTopic(topicField.value);
 });
 
 /** The chunk: a blank field to type the target word into, standing over
@@ -1718,7 +1868,6 @@ function renderLesson(result, { read = false } = {}) {
   naturalLine.textContent = result.native;
   naturalLine.lang = D.native;
   naturalRow.hidden = false;
-  renderBadges(result);
 
   for (const [index, chunk] of result.chunks.entries()) {
     comparator.append(chunkField(chunk, index));
@@ -3005,16 +3154,8 @@ formsFlip.addEventListener('click', () => {
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
-  // Enter in the topic field, with the topic already the one on screen,
-  // is "done typing": the caret goes to the blank, no new sentence.
-  if (document.activeElement === topicField && topicField.value.trim() === askedTopic) {
-    focusNextOpen();
-    return;
-  }
-
   const attempt = ++pending;
   const asked = learning;
-  const topic = topicField.value.trim();
   submitButton.disabled = true;
   submitButton.classList.add('busy');
   setStatus('');
@@ -3035,7 +3176,6 @@ form.addEventListener('submit', async (event) => {
       setStatus(result.error ?? D.failed, true);
       return;
     }
-    askedTopic = topic;
     history.push(result);
     if (history.length > HISTORY_LIMIT) history.splice(0, history.length - HISTORY_LIMIT);
     cursor = history.length - 1;
@@ -3043,6 +3183,8 @@ form.addEventListener('submit', async (event) => {
     renderLesson(result, { read: true });
     updateSteps();
     setStatus(result.chunks.length === 0 ? D.noBreakdown : '', result.chunks.length === 0);
+    // The chips are made over for the sentence after this one, then it is readied.
+    chipsForNext(result);
     schedulePrefetch();
   } catch {
     if (attempt === pending) setStatus(D.offline, true);
@@ -3058,16 +3200,16 @@ form.addEventListener('submit', async (event) => {
 
 /** Asks the server for a new sentence for the current settings. */
 async function requestLesson() {
-  // A few chest words the sentence could bring back. They ride along with
-  // the answer, so the page can show which of them it did.
-  const review = comebacks(loadBank());
+  // The chips say what to ask for. The words ride along with the answer,
+  // so the history keeps what each sentence was asked to bring back.
+  const { topic, review } = steering();
   const response = await fetch('/api/lesson', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       learning,
       level,
-      topic: topicField.value.trim(),
+      topic,
       // The recent sentences, so the next one is not one of them.
       avoid: history.slice(-30).map((entry) => entry.target),
       review: review.map((entry) => entry.target),
@@ -3087,7 +3229,7 @@ let prefetched = null;
 let prefetchTimer = 0;
 
 function prefetchKey() {
-  return JSON.stringify([learning, level, topicField.value.trim(), history.at(-1)?.target ?? '']);
+  return JSON.stringify([learning, level, steering(), history.at(-1)?.target ?? '']);
 }
 
 function prefetch() {
@@ -3108,32 +3250,6 @@ function schedulePrefetch() {
   clearTimeout(prefetchTimer);
   prefetchTimer = setTimeout(prefetch, 1200);
 }
-
-topicField.addEventListener('input', schedulePrefetch);
-
-/* A new topic ------------------------------------------------------
-   Typing a topic and stopping is enough: once the field has been still
-   for a moment, or is left, a sentence on the new topic replaces the one
-   on screen. The prefetch above has usually fetched it already. */
-
-const TOPIC_SETTLE_MS = 1500;
-/** The topic the sentence on screen was asked with; null before the first. */
-let askedTopic = null;
-let topicTimer = 0;
-
-function topicSettled() {
-  clearTimeout(topicTimer);
-  const topic = topicField.value.trim();
-  if (!topic || topic === askedTopic || submitButton.disabled) return;
-  form.requestSubmit();
-}
-
-topicField.addEventListener('input', () => {
-  remember(keyFor('emne'), topicField.value.trim());
-  clearTimeout(topicTimer);
-  topicTimer = setTimeout(topicSettled, TOPIC_SETTLE_MS);
-});
-topicField.addEventListener('change', topicSettled);
 
 /* Level ------------------------------------------------------------ */
 
@@ -3235,9 +3351,13 @@ function applyDirection() {
   renderShowForms();
   topicField.placeholder = D.topicPlaceholder;
   topicField.setAttribute('aria-label', D.topic);
-  // Each side remembers its own topic, an emptied one included. With none
-  // saved the field is empty, and the server picks a situation itself.
-  topicField.value = recall(keyFor('emne')) ?? '';
+  topicField.title = D.chipHelp;
+  // Each side keeps its own chips. The word chips are picked afresh from
+  // this side's chest; with no chips at all the server picks a situation.
+  chips = loadChips();
+  refreshWordChips();
+  saveChips();
+  renderChips();
   // The shortcuts ride in the tooltip: | for the word in focus, || for the sentence.
   speakButton.title = `${D.speak} · | ${D.keyHelp[0]} · || ${D.keyHelp[1]}`;
   speakButton.setAttribute('aria-label', D.speak);
@@ -3382,9 +3502,9 @@ muteButton.addEventListener('click', () => {
    are merged, so nothing is lost whichever device was used last; after
    that every change is pushed a moment later. */
 
-const SYNC_NAMES = ['ordbank', 'historikk', 'slit', 'niva', 'emne'];
+const SYNC_NAMES = ['ordbank', 'historikk', 'slit', 'niva', 'styring', 'avvist'];
 /** The names kept as plain strings rather than JSON. */
-const PLAIN_NAMES = ['niva', 'emne'];
+const PLAIN_NAMES = ['niva'];
 let syncTimer = 0;
 
 function directionKey(direction, name) {
@@ -3451,14 +3571,20 @@ function applyRemote(direction, blob) {
     localStorage.setItem(key('slit'), JSON.stringify(merged));
   }
   if (typeof blob.niva === 'string' && !local.niva) localStorage.setItem(key('niva'), blob.niva);
-  if (typeof blob.emne === 'string' && local.emne === undefined) localStorage.setItem(key('emne'), blob.emne);
+  // The chips and what was sent away: this device's stand when it has any.
+  if (Array.isArray(blob.styring) && local.styring === undefined) {
+    localStorage.setItem(key('styring'), JSON.stringify(blob.styring));
+  }
+  if (blob.avvist && typeof blob.avvist === 'object' && local.avvist === undefined) {
+    localStorage.setItem(key('avvist'), JSON.stringify(blob.avvist));
+  }
 }
 
 /** Re-reads storage for the side on screen after a merge, gently. */
 function refreshFromStorage() {
   renderBank(loadBank());
-  const topic = recall(keyFor('emne'));
-  if (topic !== null && topic !== topicField.value.trim()) topicField.value = topic;
+  chips = loadChips();
+  renderChips();
   const merged = loadHistory();
   if (merged.at(-1)?.target !== history.at(-1)?.target && merged.length) {
     history = merged;

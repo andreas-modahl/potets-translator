@@ -336,52 +336,87 @@
   font-weight: 400;
   color: var(--muted);
 }
-/* The badges: what the sentence on screen is practising. The grammar
-   point in the accent tint, and one tag per word brought back from the
-   chest; a word that needed a hint last time has a dashed edge. */
-.badges {
+/* The steering chips. A typed topic is plain; a chest word coming back
+   is in the panel tint, dashed when it needed a hint last time; the
+   grammar point of the sentence on screen is outlined until it is
+   switched on, when it fills with the accent tint. Each has its ×. */
+.chips {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.25rem;
   flex: 0 1 auto;
   min-width: 0;
 }
-.badges:empty {
+.chips:empty {
   display: none;
 }
-.badge {
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   flex: 0 1 auto;
   min-width: 0;
-  max-width: 9rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 11rem;
   height: 1.45rem;
-  padding: 0 0.45rem;
+  padding: 0 0.2rem 0 0.45rem;
   font-family: var(--hand);
   font-size: 0.8rem;
   font-weight: 700;
   line-height: 1.3rem;
   color: var(--ink);
-  background: var(--panel);
+  background: var(--bg);
   border: 1.5px solid var(--line);
   border-radius: 999px;
   box-shadow: 1px 1px 0 var(--shadow);
-  cursor: pointer;
 }
-.badge.grammar {
-  background: var(--accent-soft);
+.chip .chip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.badge.hinted {
+.chip.word {
+  background: var(--panel);
+}
+.chip.hinted {
   border-style: dashed;
 }
-.badge:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 2px 2px 0 var(--shadow);
+.chip.focus {
+  background: var(--accent-soft);
 }
-.badge:active {
-  transform: translate(1px, 1px);
-  box-shadow: none;
+.chip.focus.off {
+  background: transparent;
+  border-style: dotted;
+  color: var(--muted);
+}
+/* The grammar chip's text is the switch. */
+.chip.focus .chip-text {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.chip .chip-x {
+  flex: 0 0 auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.chip .chip-x:hover,
+.chip .chip-x:focus-visible {
+  color: var(--ink);
+  background: var(--sunk);
 }
 /* The level: a painted tag, slightly askew. */
 .level {
