@@ -30,7 +30,7 @@
 .hint-row button {
   padding: 0.5rem 1rem;
 }
-/* Once the sentence is done, the next button stands where the hint button was. */
+/* Once the sentence is done, the next button's twin stands where the hint button was. */
 .hint-row .step {
   height: 2.6rem;
   padding: 0 0.6rem 0 1rem;
@@ -1030,6 +1030,20 @@ body.muted .chunk .say {
   font-size: 1.2rem;
   font-weight: 700;
   line-height: 1.4;
+}
+/* The finished sentence in the language being learned, beside the one
+   it says, behind a thin rule. */
+.natural .done {
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--line);
+  color: var(--accent, var(--ink));
+  animation: settle 0.3s ease-out;
+}
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateX(-0.25rem);
+  }
 }
 /* The line can be written over: a pencil's worth of hint on hover, a
    quiet underline while writing. */

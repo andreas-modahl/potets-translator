@@ -18,6 +18,7 @@ const classesName = document.querySelector('#classes-name');
 const showFormsButton = document.querySelector('#show-forms');
 const showFormsName = document.querySelector('#show-forms-name');
 const submitButton = document.querySelector('#submit');
+const submitTwin = document.querySelector('#submit-done');
 const steps = document.querySelector('.steps');
 const stepLabel = document.querySelector('#step-label');
 const log = document.querySelector('#log');
@@ -42,6 +43,7 @@ choicesRow.setAttribute('role', 'group');
 choicesRow.hidden = true;
 const naturalRow = document.querySelector('#natural-row');
 const naturalLine = document.querySelector('#natural');
+const doneLine = document.querySelector('#natural-done');
 const streakPill = document.querySelector('#streak');
 const speakButton = document.querySelector('#speak');
 const speakBall = document.querySelector('#speak-ball');
@@ -672,7 +674,7 @@ function checkField(field, chunk) {
     markDone();
     // A word finished with an arrow keeps the caret: the arrows are for
     // looking at the word, and Enter is there when done with it.
-    if (!byArrow) submitButton.focus();
+    if (!byArrow) submitTwin.focus();
   } else {
     explanations.hidden = true;
     setReady(false);
@@ -1049,12 +1051,34 @@ function setReady(ready, filledChest = false) {
   submitButton.classList.toggle('ready', ready);
   stepLabel.textContent = ready ? (filledChest ? D.chestFull : D.done) : D.fresh;
   // Nothing left to hint at or type once every word is in place, so the
-  // next button takes the hint button's place, beside the speaker.
+  // next button's twin takes the hint button's place, beside the speaker.
+  // The one up by the chips stays put.
   hintButton.hidden = ready;
   specialKeys.hidden = ready;
-  if (ready) hintButton.after(submitButton);
-  else steps.prepend(submitButton);
+  submitTwin.hidden = !ready;
+  // The whole sentence, now that it is all there, beside the one it says.
+  if (ready && current.target) {
+    doneLine.textContent = current.target;
+    doneLine.lang = D.target;
+  }
+  doneLine.hidden = !ready || !current.target;
 }
+
+// The twin in the hint row is the next button over again: whatever the
+// one by the chips says or does, this one follows.
+function mirrorSubmit() {
+  submitTwin.disabled = submitButton.disabled;
+  submitTwin.className = submitButton.className;
+  submitTwin.title = submitButton.title;
+  submitTwin.setAttribute('aria-label', submitButton.getAttribute('aria-label') ?? '');
+  submitTwin.querySelector('.step-label').textContent = stepLabel.textContent;
+}
+new MutationObserver(mirrorSubmit).observe(submitButton, {
+  attributes: true,
+  childList: true,
+  characterData: true,
+  subtree: true,
+});
 
 /* Words that needed a hint ------------------------------------------
    They are not in the chest, but they are the ones worth meeting again
@@ -1488,7 +1512,7 @@ function chunkField(chunk, index) {
     if (!next && step < 0) return;
     event.preventDefault();
     if (next) placeCaretAtEnd(next);
-    else submitButton.focus();
+    else (submitTwin.hidden ? submitButton : submitTwin).focus();
   });
   field.addEventListener('focusin', () => {
     select(index);
@@ -1867,6 +1891,7 @@ function renderSkeleton() {
 
   naturalLine.replaceChildren(bone('60%'));
   naturalLine.contentEditable = 'false';
+  doneLine.hidden = true;
   naturalRow.hidden = false;
 
   for (const width of [3, 6, 4, 7, 5]) {
