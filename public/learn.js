@@ -1336,8 +1336,9 @@ function renderChips() {
       x.setAttribute('aria-label', D.chipRemove(chip.text));
       x.addEventListener('click', () => removeChip(chip));
 
-      // A word chip is a word out of the chest, so it carries a tiny one.
-      if (chip.kind === 'word') box.prepend(chipChest());
+      // A word earned into the chest carries a tiny one. A word that
+      // needed a hint is not in the chest yet, so it goes without.
+      if (chip.kind === 'word' && !chip.hinted) box.prepend(chipChest());
       box.append(text, x);
       return box;
     }),
