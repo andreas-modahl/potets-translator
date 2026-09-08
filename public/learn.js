@@ -10,7 +10,8 @@ const levelButton = document.querySelector('#level');
 const levelName = document.querySelector('#level-name');
 const bankEmpty = document.querySelector('#bank-empty');
 const topicField = document.querySelector('#topic');
-const topicIdeas = document.querySelector('#topic-ideas');
+const topicBox = document.querySelector('#topic-box');
+const topicBadges = document.querySelector('#topic-badges');
 const classesButton = document.querySelector('#classes');
 const classesName = document.querySelector('#classes-name');
 const showFormsButton = document.querySelector('#show-forms');
@@ -278,8 +279,6 @@ function renderLog() {
   logMore.hidden = rows.length <= LOG_PEEK;
   logMore.textContent = logOpen ? D.logFewer : D.logAll;
   logMore.setAttribute('aria-expanded', String(logOpen));
-  // The topic field offers the grammar points of these same sentences.
-  renderTopicIdeas();
 }
 
 logMore.addEventListener('click', () => {
@@ -1086,23 +1085,86 @@ function overcame(chunk) {
 /**
  * The words worth meeting again: the least practised, and among those
  * the ones not seen for longest. A few are sent with each request so
- * the next sentence can bring one back.
+ * the next sentence can bring one back. Each says why it was picked, so
+ * the badge over the sentence can say the same.
  */
 function comebacks(words) {
   // Words that needed a hint come first: they are not earned yet.
   const chosen = loadStruggled()
     .slice(-2)
-    .map((word) => word.target);
+    .map((word) => ({ target: word.target, hinted: true }));
   const ranked = [...words]
-    .filter((word) => !chosen.some((target) => fold(target) === fold(word.target)))
+    .filter((word) => !chosen.some((entry) => fold(entry.target) === fold(word.target)))
     .sort((a, b) => (a.count ?? 1) - (b.count ?? 1) || (a.at ?? 0) - (b.at ?? 0));
   // Some choice among the weakest, so the same ones do not come back every time.
   const weakest = ranked.slice(0, 6);
   while (chosen.length < 3 && weakest.length) {
-    chosen.push(weakest.splice(Math.floor(Math.random() * weakest.length), 1)[0].target);
+    const word = weakest.splice(Math.floor(Math.random() * weakest.length), 1)[0];
+    chosen.push({ target: word.target, hinted: false });
   }
   return chosen;
 }
+
+/** A word the way the pool looks for it in a sentence: folded, and short
+    of its last letter when long enough that an ending may have changed it. */
+function stemOf(word) {
+  const folded = fold(word);
+  return folded.length > 4 ? folded.slice(0, -1) : folded;
+}
+
+/** The blank holding a word brought back, or -1 when the sentence has not got it. */
+function chunkWith(lesson, word) {
+  const piece = stemOf(word);
+  if (!piece) return -1;
+  return lesson.chunks.findIndex((chunk) => fold(chunk.target).includes(piece));
+}
+
+/**
+ * The badges in the topic box: what the sentence on screen is practising.
+ * The grammar point it teaches, and the chest words it brought back. The
+ * grammar point asks for more of the same; a word jumps to its blank.
+ */
+function renderBadges(lesson) {
+  const badges = [];
+  const focus = typeof lesson.focus === 'string' ? lesson.focus.trim() : '';
+  if (focus) {
+    const badge = document.createElement('button');
+    badge.type = 'button';
+    badge.className = 'badge grammar';
+    badge.textContent = focus;
+    badge.title = D.focusBadge(focus);
+    badge.addEventListener('click', () => {
+      topicField.value = focus;
+      remember(keyFor('emne'), focus);
+      topicSettled();
+    });
+    badges.push(badge);
+  }
+  for (const entry of Array.isArray(lesson.review) ? lesson.review : []) {
+    const index = chunkWith(lesson, entry.target);
+    if (index < 0) continue;
+    const badge = document.createElement('button');
+    badge.type = 'button';
+    badge.className = entry.hinted ? 'badge hinted' : 'badge';
+    badge.lang = D.target;
+    badge.textContent = entry.target;
+    badge.title = entry.hinted ? D.backFromHint(entry.target) : D.backFromChest(entry.target);
+    badge.addEventListener('click', () => {
+      const field = comparator.children[index]?.querySelector('.tr');
+      if (!field) return;
+      select(index);
+      placeCaretAtEnd(field);
+    });
+    badges.push(badge);
+  }
+  topicBadges.replaceChildren(...badges);
+}
+
+// The box is the field: a click on its painted edge or between the badges
+// puts the caret in the text.
+topicBox.addEventListener('click', (event) => {
+  if (event.target === topicBox || event.target === topicBadges) topicField.focus();
+});
 
 /** The chunk: a blank field to type the target word into, standing over
     the native words it should carry. The native text is a button that
@@ -1656,6 +1718,7 @@ function renderLesson(result, { read = false } = {}) {
   naturalLine.textContent = result.native;
   naturalLine.lang = D.native;
   naturalRow.hidden = false;
+  renderBadges(result);
 
   for (const [index, chunk] of result.chunks.entries()) {
     comparator.append(chunkField(chunk, index));
@@ -2995,6 +3058,9 @@ form.addEventListener('submit', async (event) => {
 
 /** Asks the server for a new sentence for the current settings. */
 async function requestLesson() {
+  // A few chest words the sentence could bring back. They ride along with
+  // the answer, so the page can show which of them it did.
+  const review = comebacks(loadBank());
   const response = await fetch('/api/lesson', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -3004,11 +3070,11 @@ async function requestLesson() {
       topic: topicField.value.trim(),
       // The recent sentences, so the next one is not one of them.
       avoid: history.slice(-30).map((entry) => entry.target),
-      // A few chest words the sentence could bring back.
-      review: comebacks(loadBank()),
+      review: review.map((entry) => entry.target),
     }),
   });
   const result = await response.json().catch(() => ({}));
+  if (response.ok && review.length) result.review = review;
   return { ok: response.ok, result };
 }
 
@@ -3172,7 +3238,6 @@ function applyDirection() {
   // Each side remembers its own topic, an emptied one included. With none
   // saved the field is empty, and the server picks a situation itself.
   topicField.value = recall(keyFor('emne')) ?? '';
-  renderTopicIdeas();
   // The shortcuts ride in the tooltip: | for the word in focus, || for the sentence.
   speakButton.title = `${D.speak} · | ${D.keyHelp[0]} · || ${D.keyHelp[1]}`;
   speakButton.setAttribute('aria-label', D.speak);
@@ -3180,26 +3245,6 @@ function applyDirection() {
   renderSpecialKeys();
   steps.setAttribute('aria-label', D.browse);
   document.querySelector('#bank .sr-only').textContent = D.bank;
-}
-
-/**
- * What the topic field offers when opened: the grammar points of the
- * sentences had so far, newest first, then a few situations and points
- * to ask for. Any of them can be typed over.
- */
-function renderTopicIdeas() {
-  const recent = history
-    .map((entry) => (typeof entry.focus === 'string' ? entry.focus.trim() : ''))
-    .filter(Boolean)
-    .reverse();
-  const ideas = [...new Set([...recent, ...D.topics])].slice(0, 24);
-  topicIdeas.replaceChildren(
-    ...ideas.map((idea) => {
-      const option = document.createElement('option');
-      option.value = idea;
-      return option;
-    }),
-  );
 }
 
 function kbd(text) {

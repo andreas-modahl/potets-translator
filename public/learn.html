@@ -137,9 +137,13 @@
           <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
             <span id="level-name">Nybegynner</span>
           </button>
-          <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" list="topic-ideas" autocomplete="off" />
-          <!-- Themes to pick from: the grammar points of recent sentences, then a few situations. -->
-          <datalist id="topic-ideas"></datalist>
+          <!-- The topic, written on, with badges in front for what the sentence
+               on screen is practising: its grammar point, and the chest words
+               it brought back. -->
+          <div class="topic-box" id="topic-box">
+            <span class="badges" id="topic-badges"></span>
+            <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" autocomplete="off" />
+          </div>
         </div>
       </form>
 

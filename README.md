@@ -102,6 +102,9 @@ puts it back together.
 
 Ask for a sentence at a level (start, nybegynner, viderekommen, avansert) and optionally
 on a topic, or paste in your own sentence — Norwegian or Turkish, either way.
+Badges in the topic box say what the sentence on screen practises: the
+grammar point it teaches, which asks for more of the same when clicked, and
+the chest words it brought back, dashed when the word needed a hint last time.
 
 Generated lessons are pooled in an SQLite file (`LESSON_DB`). A request for a
 direction, level and topic that already has lessons on its shelf is answered
