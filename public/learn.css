@@ -970,15 +970,50 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 0.75rem;
-  margin: 1.1rem 0 0.2rem;
+  margin: 1.1rem 0 0;
+  padding-bottom: 0.5rem;
+  /* The line the sentence sits on. */
+  border-bottom: 1.5px dashed color-mix(in srgb, var(--line) 45%, transparent);
 }
 /* The chips, the next button and the sentence they got, on one sunken
    tray: no line around it, just a step down from the page. */
 .ask {
-  padding: 0.7rem 0.9rem 0.8rem;
+  position: relative;
+  padding: 0.7rem 0.9rem 0.8rem 1.1rem;
   margin-bottom: 1.25rem;
   background: var(--sunk);
   border-radius: var(--wobble);
+  /* A book: the pages stacked a hair to the right and below. */
+  box-shadow:
+    2px 2px 0 color-mix(in srgb, var(--line) 22%, var(--sunk)),
+    4px 4px 0 color-mix(in srgb, var(--line) 12%, var(--sunk));
+}
+/* The gutter, a soft fold down the left edge where the page meets the spine. */
+.ask::before {
+  content: '';
+  position: absolute;
+  inset: 0.35rem auto 0.35rem 0.4rem;
+  width: 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--line) 18%, transparent);
+  pointer-events: none;
+}
+/* A notebook: faint rules to write on, and a margin line down the left. */
+#lesson.card {
+  padding-left: 1.6rem;
+  background-color: var(--panel);
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--accent) 45%, transparent) 1px, transparent 1px),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(1.75rem - 1px),
+      color-mix(in srgb, var(--line) 9%, transparent) calc(1.75rem - 1px),
+      color-mix(in srgb, var(--line) 9%, transparent) 1.75rem
+    );
+  background-repeat: no-repeat, repeat;
+  background-position: 1rem 0, 0 0.6rem;
+  background-size: 1px 100%, 100% 1.75rem;
 }
 /* The speaker: the target ball with a couple of sound waves beside it. */
 .speak {
