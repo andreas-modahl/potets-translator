@@ -1770,14 +1770,40 @@ function bankEarned(chunk) {
 
 const SPARKS = ['✨', '🎉', '⭐', '💎', '🪙', '🔥', '🎊', '💫'];
 
-/** A burst of emoji and little balls out of the chest; more pieces for
-    a longer word. Every third piece is the ball of the language learned. */
+/**
+ * The pictures in the chest, to fly out with the sparks: the word just
+ * earned first, if it has one, then a handful of others, shuffled.
+ */
+function chestPictures(chunk) {
+  if (!pictureVersion) return [];
+  const own = pictureWord(chunk);
+  const others = loadBank()
+    .filter((word) => word.pic && word.pic !== own)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 6);
+  return [...(own ? [{ pic: own, emoji: pictureEmoji(chunk), english: chunk.english ?? '' }] : []), ...others];
+}
+
+/** A burst of emoji, little balls and pictures out of the chest; more
+    pieces for a longer word. Every third piece is the ball of the
+    language learned; every other one after that is a picture from the
+    chest, while there are pictures to show. */
 function fireworks(chunk, scale = 1, box = fireworksBox) {
   const count = (10 + Math.min(10, (chunk.morphemes?.length ?? 0) * 3)) * scale;
+  const pictures = chestPictures(chunk);
+  let shown = 0;
   for (let at = 0; at < count; at += 1) {
     const spark = document.createElement('span');
+    const picture = at % 3 === 1 && shown < pictures.length ? pictures[shown] : null;
     if (at % 3 === 0) spark.append(flag(D.flagTo));
-    else spark.textContent = SPARKS[Math.floor(Math.random() * SPARKS.length)];
+    else if (picture) {
+      const image = pictureNode(picture.pic, picture.emoji ?? '', picture.english ?? '');
+      // Straight away, not when scrolled to: the burst is over in a second.
+      image.loading = 'eager';
+      spark.append(image);
+      spark.classList.add('picture');
+      shown += 1;
+    } else spark.textContent = SPARKS[Math.floor(Math.random() * SPARKS.length)];
     // Mostly upward, like a fountain, with some spread to the sides.
     const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.9;
     const distance = 60 + Math.random() * 110;

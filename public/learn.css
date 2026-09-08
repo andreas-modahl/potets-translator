@@ -2104,6 +2104,13 @@ body.muted .chunk .say {
   height: 1em;
   display: block;
 }
+/* A picture out of the chest flies with the sparks, a little bigger than them. */
+.fireworks span.picture .pic {
+  display: block;
+  width: 1.6em;
+  height: 1.6em;
+  object-fit: contain;
+}
 .chest.hop {
   animation: chest-hop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1);
 }
