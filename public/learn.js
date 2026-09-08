@@ -12,6 +12,7 @@ const bankEmpty = document.querySelector('#bank-empty');
 const topicField = document.querySelector('#topic');
 const topicBox = document.querySelector('#topic-box');
 const chipsRow = document.querySelector('#chips');
+const addChipButton = document.querySelector('#add-chip');
 const classesButton = document.querySelector('#classes');
 const classesName = document.querySelector('#classes-name');
 const showFormsButton = document.querySelector('#show-forms');
@@ -1292,28 +1293,52 @@ function renderChips() {
   );
 }
 
-// The box is the field: a click on its painted edge or between the chips
-// puts the caret in the text.
+/* The field is shown only while a chip is being written: the + opens it,
+   and it closes again once the chip is made or the field is left. */
+function openAdd() {
+  addChipButton.hidden = true;
+  topicField.hidden = false;
+  topicField.focus();
+}
+
+function closeAdd() {
+  topicField.value = '';
+  topicField.hidden = true;
+  addChipButton.hidden = false;
+}
+
+addChipButton.addEventListener('click', openAdd);
+// A click on the box's painted edge or between the chips opens it too.
 topicBox.addEventListener('click', (event) => {
-  if (event.target === topicBox || event.target === chipsRow) topicField.focus();
+  if (event.target === topicBox || event.target === chipsRow) {
+    if (topicField.hidden) openAdd();
+    else topicField.focus();
+  }
 });
 
-// Enter or a comma turns what is typed into a topic chip. Backspace in an
-// empty field takes the last chip back. Enter in an empty field is the
-// form's: a new sentence.
+// Enter or a comma turns what is typed into a topic chip and closes the
+// field; Escape, or Enter with nothing typed, just closes it. Backspace in
+// the empty field takes the last chip back.
 topicField.addEventListener('keydown', (event) => {
   if (event.isComposing) return;
-  if ((event.key === 'Enter' || event.key === ',') && topicField.value.trim()) {
+  if (event.key === 'Enter' || event.key === ',') {
     event.preventDefault();
-    addTopic(topicField.value);
+    const text = topicField.value;
+    closeAdd();
+    addTopic(text);
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    closeAdd();
   } else if (event.key === 'Backspace' && !topicField.value && chips.length) {
     event.preventDefault();
     removeChip(chips[chips.length - 1]);
   }
 });
-// Leaving the field with something typed keeps it, as a chip.
+// Leaving the field keeps what was typed, as a chip, and closes it.
 topicField.addEventListener('blur', () => {
-  if (topicField.value.trim()) addTopic(topicField.value);
+  const text = topicField.value;
+  closeAdd();
+  addTopic(text);
 });
 
 /** The chunk: a blank field to type the target word into, standing over
@@ -3352,6 +3377,8 @@ function applyDirection() {
   topicField.placeholder = D.topicPlaceholder;
   topicField.setAttribute('aria-label', D.topic);
   topicField.title = D.chipHelp;
+  addChipButton.title = D.chipAdd;
+  addChipButton.setAttribute('aria-label', D.chipAdd);
   // Each side keeps its own chips. The word chips are picked afresh from
   // this side's chest; with no chips at all the server picks a situation.
   chips = loadChips();

@@ -312,14 +312,39 @@
   border-radius: var(--wobble-small);
   box-shadow: 2px 2px 0 var(--shadow);
   transform: rotate(1deg);
-  cursor: text;
 }
 .topic-box:focus-within {
   transform: rotate(0deg);
 }
+/* The +: one more chip. */
+.chip-add {
+  flex: 0 0 auto;
+  width: 1.45rem;
+  height: 1.45rem;
+  padding: 0;
+  font-family: var(--hand);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  box-shadow: 1px 1px 0 var(--shadow);
+  cursor: pointer;
+}
+.chip-add:hover,
+.chip-add:focus-visible {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 var(--shadow);
+}
+.chip-add:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
 .topic-box input {
   flex: 1 1 auto;
-  width: 7.4rem;
+  width: 8.5rem;
   min-width: 3.5rem;
   height: 100%;
   padding: 0;
@@ -372,6 +397,8 @@
 }
 .chip .chip-text {
   min-width: 0;
+  /* Room for the hand font's overhang, so the last letter is not clipped. */
+  padding: 0 0.15rem 0 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -392,7 +419,6 @@
 }
 /* The grammar chip's text is the switch. */
 .chip.focus .chip-text {
-  padding: 0;
   font: inherit;
   color: inherit;
   background: none;

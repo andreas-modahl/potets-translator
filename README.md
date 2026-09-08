@@ -103,7 +103,7 @@ puts it back together.
 Ask for a sentence at a level (start, nybegynner, viderekommen, avansert) and optionally
 on a topic, or paste in your own sentence — Norwegian or Turkish, either way.
 The chips in the topic box are the one thing that decides the next sentence.
-A topic typed in and entered becomes a chip. The page adds up to three chest
+The + opens a field; a topic typed there becomes a chip. The page adds up to three chest
 words to bring back, picked afresh for each sentence, dashed when the word
 needed a hint last time. The grammar point of the sentence on screen is
 offered as an outlined chip; clicking it switches it on, so the next sentence

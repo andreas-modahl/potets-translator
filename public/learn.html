@@ -142,7 +142,10 @@
                into another chip. Each chip goes with its ×. -->
           <div class="topic-box" id="topic-box">
             <span class="chips" id="chips" role="list"></span>
-            <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" autocomplete="off" />
+            <!-- The + opens the field for one more chip; it closes again once
+                 the chip is made or the field is left. -->
+            <button type="button" id="add-chip" class="chip-add" aria-label="Legg til tema" title="Legg til tema">+</button>
+            <input id="topic" aria-label="Tema" placeholder="Tema: på kafé, familie, å reise…" autocomplete="off" hidden />
           </div>
         </div>
       </form>
