@@ -26,26 +26,21 @@ export interface TranslationResult {
   translations: Translation[];
 }
 
-const SYSTEM_PROMPT = `You translate messages posted in a Discord chat channel.
+const SYSTEM_PROMPT = `You translate text that a language learner has typed into a translator page.
 
-You will be given one message and a list of target languages. Detect the language
-the message is written in, then translate it into each target language.
+You will be given one text and a list of target languages. Detect the language
+the text is written in, then translate it into each target language.
 
 Rules:
-- Omit a target language from your output when the message is already written in
-  that language. Never "translate" a message into its own language.
-- Translate the meaning, not the words. Chat messages are informal: keep slang,
-  humour, insults, and register intact rather than making them prim.
-- Reproduce these verbatim, never translated and never reformatted:
-  user mentions (<@123>), role mentions (<@&123>), channel links (<#123>),
-  custom emoji (<:name:123> and <a:name:123>), timestamps (<t:123:R>), URLs, and
-  the contents of code blocks and inline code.
-- Keep markdown formatting (**bold**, *italic*, __underline__, ||spoilers||,
-  > quotes, - lists) in the same places.
-- Leave proper nouns, usernames, game names, and product names untranslated.
+- Omit a target language from your output when the text is already written in
+  that language. Never "translate" a text into its own language.
+- Translate the meaning, not the words. Keep the register: an informal sentence
+  stays informal, with its slang and humour intact, and a formal one stays formal.
+- Reproduce URLs, numbers and emoji verbatim.
+- Leave proper nouns and product names untranslated.
 - Output only the translation. No notes, no explanations, no quotation marks
   wrapped around the result, no "Translation:" prefix.
-- If the message is not translatable text at all (only emoji, only a URL, only
+- If the text is not translatable at all (only emoji, only a URL, only
   punctuation), return no translations.`;
 
 const BEGINNER_PROMPT = `
@@ -66,8 +61,8 @@ worth learning first, paired with what they mean in the original.
   or modal constructions. A beginner cannot reuse those as vocabulary yet.
 - Give the word exactly as it appears in your translation, so it can be found in
   the text. Do not give a dictionary or root form that does not appear.
-- Skip names, numbers, URLs, emoji and mentions. There is nothing to learn.
-- If nothing in the message is worth a beginner's attention, give no pairs.`;
+- Skip names, numbers, URLs and emoji. There is nothing to learn.
+- If nothing in the text is worth a beginner's attention, give no pairs.`;
 
 const GLOSS_PROMPT = `
 You have also been asked to explain the translation, for someone learning the
@@ -83,8 +78,8 @@ with the part of the original it came from.
   to. Likewise each part of the original belongs to at most one pair: once
   "farklı olduğu" is paired with "er annerledes", the pair for "siden" gets only
   "için", not "farklı olduğu için" again.
-- Skip pairs where both sides are the same text anyway: names, numbers, URLs,
-  emoji, and mentions teach the reader nothing.
+- Skip pairs where both sides are the same text anyway: names, numbers, URLs
+  and emoji teach the reader nothing.
 - Keep each chunk short. Prefer more small pairs over a few long ones, but never
   split a chunk so small that the pairing becomes wrong.
 - Each "target" must be an exact, contiguous substring of your translation,
@@ -99,7 +94,7 @@ with the part of the original it came from.
 - Keep a modifier in the same pair as the word it modifies, or right next to
   it. An adverb like "noen ganger" / "bazen" belongs with its verb, not with
   whichever noun happens to stand beside it in the translation.
-- At most 12 pairs. If the message is long enough that it would need more, give
+- At most 12 pairs. If the text is long enough that it would need more, give
   no gloss at all rather than a truncated one.`;
 
 const GLOSS_SCHEMA = {
@@ -121,7 +116,7 @@ function buildTool(explain: ExplainMode): Anthropic.Tool {
         source_language: {
           type: 'string',
           description:
-            'English name of the language the original message is written in, e.g. "Norwegian". Use "unknown" if it cannot be determined.',
+            'English name of the language the original text is written in, e.g. "Norwegian". Use "unknown" if it cannot be determined.',
         },
         translations: {
           type: 'array',
@@ -134,7 +129,7 @@ function buildTool(explain: ExplainMode): Anthropic.Tool {
                 type: 'string',
                 description: 'The target language, spelled exactly as it was requested.',
               },
-              text: { type: 'string', description: 'The message translated into that language.' },
+              text: { type: 'string', description: 'The text translated into that language.' },
               ...(explain === 'off'
                 ? {}
                 : {
@@ -142,8 +137,8 @@ function buildTool(explain: ExplainMode): Anthropic.Tool {
                       type: 'array',
                       description:
                         explain === 'beginner'
-                          ? 'The few words in your translation worth learning first, each paired with what it means in the original. At most 3, and fewer for short messages.'
-                          : 'Chunk-by-chunk pairing of your translation back to the original wording, in order. Omit entirely if the message is too long to gloss in 12 pairs.',
+                          ? 'The few words in your translation worth learning first, each paired with what it means in the original. At most 3, and fewer for short texts.'
+                          : 'Chunk-by-chunk pairing of your translation back to the original wording, in order. Omit entirely if the text is too long to gloss in 12 pairs.',
                       items: GLOSS_SCHEMA,
                     },
                   }),
@@ -229,9 +224,9 @@ function parseGloss(value: unknown, translated: string): GlossPair[] {
 }
 
 /**
- * Translates one message into every target language it is not already in.
+ * Translates one text into every target language it is not already in.
  *
- * Returns an empty `translations` array when the message is already in all of
+ * Returns an empty `translations` array when the text is already in all of
  * the target languages, or when there is nothing translatable in it.
  */
 export async function translate(
@@ -245,7 +240,7 @@ export async function translate(
 
   const response = await client().messages.create({
     model: config.model,
-    // A full gloss roughly doubles the output, and long messages gloss long.
+    // A full gloss roughly doubles the output, and long texts gloss long.
     max_tokens: explain === 'full' ? 4096 : 2048,
     system: extra ? `${SYSTEM_PROMPT}\n${extra}` : SYSTEM_PROMPT,
     tools: [tool],
@@ -253,7 +248,7 @@ export async function translate(
     messages: [
       {
         role: 'user',
-        content: `Target languages: ${targets.join(', ')}\n\nMessage:\n<message>\n${text}\n</message>`,
+        content: `Target languages: ${targets.join(', ')}\n\nText:\n<text>\n${text}\n</text>`,
       },
     ],
   });
