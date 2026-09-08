@@ -959,7 +959,14 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 0.75rem;
-  margin: 2.25rem 0 1rem;
+  margin: 1.1rem 0 0.2rem;
+}
+/* The chips, the next button and the sentence they got, boxed together. */
+.ask {
+  padding: 0.6rem 0.85rem 0.7rem;
+  margin-bottom: 1.25rem;
+  border: 1px dotted var(--line);
+  border-radius: var(--wobble-small);
 }
 /* The speaker: the target ball with a couple of sound waves beside it. */
 .speak {
