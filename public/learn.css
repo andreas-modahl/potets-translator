@@ -975,25 +975,10 @@
 /* The chips, the next button and the sentence they got, on one sunken
    tray: no line around it, just a step down from the page. */
 .ask {
-  position: relative;
-  padding: 0.7rem 0.9rem 0.8rem 1.1rem;
+  padding: 0.7rem 0.9rem 0.8rem;
   margin-bottom: 1.25rem;
   background: var(--sunk);
   border-radius: var(--wobble);
-  /* A book: the pages stacked a hair to the right and below. */
-  box-shadow:
-    2px 2px 0 color-mix(in srgb, var(--line) 22%, var(--sunk)),
-    4px 4px 0 color-mix(in srgb, var(--line) 12%, var(--sunk));
-}
-/* The gutter, a soft fold down the left edge where the page meets the spine. */
-.ask::before {
-  content: '';
-  position: absolute;
-  inset: 0.35rem auto 0.35rem 0.4rem;
-  width: 2px;
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--line) 18%, transparent);
-  pointer-events: none;
 }
 /* A notebook: faint rules to write on, and a margin line down the left. */
 #lesson.card {
