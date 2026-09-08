@@ -1828,23 +1828,21 @@ body.muted .chunk .say {
   opacity: 1;
   transform: translateY(-3px) rotate(2deg);
 }
+/* Every chest is in the row; the more there are, the smaller each is
+   drawn. The scale is set on the row by the script. */
+.chests {
+  --chest-scale: 1;
+}
 .chest-pick .chest {
+  width: calc(38px * var(--chest-scale));
+  height: calc(32px * var(--chest-scale));
   filter: drop-shadow(2px 2px 0 var(--shadow));
 }
 .chest-pick .bank-count {
-  font-size: 0.5rem;
+  font-size: calc(0.5rem * var(--chest-scale));
 }
 .chest-pick .chest-stars {
-  font-size: 0.45rem;
-}
-/* The chests folded away, as a count that unfolds them. */
-.chest-more {
-  align-self: center;
-  padding: 0.2rem 0.5rem;
-  font-family: var(--hand);
-  font-size: 0.85rem;
-  border-radius: 999px;
-  box-shadow: 2px 2px 0 var(--shadow);
+  font-size: calc(0.45rem * var(--chest-scale));
 }
 @media (max-width: 40rem) {
   #bank header {

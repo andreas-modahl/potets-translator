@@ -2193,36 +2193,27 @@ function smallChest(count, full) {
   return [svg, stars, tally];
 }
 
-/** How many small chests stand in the row before the rest fold into a count. */
-const CHESTS_SHOWN = 5;
-/** Whether the folded chests have been unfolded. */
-let chestsAll = false;
+/** Up to this many, the small chests are full size; past it they shrink. */
+const CHESTS_FULL_SIZE = 5;
+
+/** How big the small chests are drawn, 1 down to a bit under half: the
+    more there are, the smaller each, so the row keeps its width. */
+function chestScale(groups) {
+  return Math.max(0.45, Math.min(1, Math.sqrt(CHESTS_FULL_SIZE / groups)));
+}
 
 /** The chest row: one small chest per 25 words, the newest last, there
-    whenever there is more than one. Past five, the oldest fold into a
-    "+n" that unfolds them. A small chest opens the bank on that chest;
-    the one open is raised. */
+    whenever there is more than one, every one of them, drawn smaller
+    the more there are. A small chest opens the bank on that chest; the
+    one open is raised. */
 function renderGroups(total) {
   const groups = Math.max(1, Math.ceil(total / CHEST_SIZE));
   if (viewGroup < 0 || viewGroup >= groups) viewGroup = groups - 1;
   chestRow.hidden = groups < 2;
   chestRow.setAttribute('aria-label', D.chest);
+  chestRow.style.setProperty('--chest-scale', chestScale(groups).toFixed(3));
   chestRow.replaceChildren();
-  const folded = chestsAll ? 0 : Math.max(0, groups - CHESTS_SHOWN);
-  if (folded > 0) {
-    const more = document.createElement('button');
-    more.type = 'button';
-    more.className = 'chest-more ghost';
-    more.textContent = `+${folded}`;
-    more.title = D.moreChests(folded);
-    more.setAttribute('aria-label', more.title);
-    more.addEventListener('click', () => {
-      chestsAll = true;
-      renderBank(loadBank());
-    });
-    chestRow.append(more);
-  }
-  for (let at = folded; at < groups; at += 1) {
+  for (let at = 0; at < groups; at += 1) {
     const from = at * CHEST_SIZE + 1;
     const to = Math.min(total, (at + 1) * CHEST_SIZE);
     const pick = document.createElement('button');
