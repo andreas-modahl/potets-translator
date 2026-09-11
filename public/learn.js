@@ -13,7 +13,6 @@ const topicField = document.querySelector('#topic');
 const topicBox = document.querySelector('#topic-box');
 const chipsRow = document.querySelector('#chips');
 const steeringLabel = document.querySelector('#steering-label');
-const collectionFeedback = document.querySelector('#collection-feedback');
 const addChipButton = document.querySelector('#add-chip');
 const classesButton = document.querySelector('#classes');
 const classesName = document.querySelector('#classes-name');
@@ -1074,29 +1073,6 @@ function setReady(ready, filledChest = false) {
   if (ready) steps.insertBefore(speakButton, submitButton);
   else hintRow.insertBefore(speakButton, hintButton);
   hintRow.hidden = ready;
-  renderCollectionFeedback(ready);
-}
-
-/** Explain the reward after a hint without revealing any unfinished answers. */
-function renderCollectionFeedback(ready) {
-  collectionFeedback.replaceChildren();
-  const helped = ready ? current.chunks.filter((chunk, index) => {
-    const box = comparator.children[index];
-    return box?.classList.contains('helped') && !box.classList.contains('earned');
-  }) : [];
-  collectionFeedback.hidden = helped.length === 0;
-  if (!helped.length) return;
-  const bank = new Set(loadBank().map(word => fold(word.target)));
-  for (const known of [false, true]) {
-    const words = helped.filter(chunk => bank.has(fold(chunk.target)) === known);
-    if (!words.length) continue;
-    const line = document.createElement('p');
-    const names = document.createElement('strong');
-    names.lang = D.target;
-    names.textContent = words.map(chunk => chunk.target).join(', ');
-    line.append(`${D.withHint} `, names, `. ${known ? D.hintPractice : D.hintCollect}`);
-    collectionFeedback.append(line);
-  }
 }
 
 /* Words that needed a hint ------------------------------------------
