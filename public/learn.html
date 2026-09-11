@@ -153,11 +153,12 @@
       <div class="ask">
       <form id="form">
         <div class="topic-wrap">
+          <span id="steering-label" class="steering-label" hidden></span>
           <!-- The steering: chips for what the next sentence is asked to be
                about and to bring back, and a field that turns what is typed
                into another chip. Each chip goes with its ×. -->
           <div class="topic-box" id="topic-box">
-            <span class="chips" id="chips" role="list"></span>
+            <span class="chips" id="chips" role="list" aria-labelledby="steering-label"></span>
             <!-- The + opens the field for one more chip; it closes again once
                  the chip is made or the field is left. -->
             <button type="button" id="add-chip" class="chip-add" aria-label="Legg til tema" title="Legg til tema">+</button>
@@ -192,6 +193,7 @@
         </div>
         <div id="detail"></div>
         <div id="explanations" hidden></div>
+        <div id="collection-feedback" class="collection-feedback" role="status" aria-live="polite" hidden></div>
       </article>
 
       <!-- The next sentence, asked for with what the chips say, under the
