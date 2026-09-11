@@ -26,6 +26,9 @@
   flex-wrap: wrap;
   gap: 0.35rem;
 }
+.special-keys[hidden] {
+  display: none;
+}
 .hint-row .special {
   min-width: 2.4rem;
   padding: 0.35rem 0.5rem;
