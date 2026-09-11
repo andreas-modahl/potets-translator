@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import type { Learning, Lesson, LessonRequest, Level } from './lesson.js';
+import { sentenceKey } from './lesson.js';
 
 /**
  * The lesson pool: every generated lesson, kept so the next learner who asks
@@ -14,7 +15,7 @@ import type { Learning, Lesson, LessonRequest, Level } from './lesson.js';
  * may be thrown away.
  */
 
-/** How many lessons a direction/level/topic should hold before the pool stops topping it up. */
+/** How many unseen lessons to keep ready ahead of a learner. */
 export const POOL_TARGET = 12;
 
 interface Row {
@@ -130,27 +131,53 @@ export class LessonPool {
    * and that sentence joins the shelf for the next learner with the word.
    */
   pick(request: LessonRequest): Lesson | undefined {
-    const seen = new Set((request.avoid ?? []).map((sentence) => sentence.trim()));
+    const fresh = this.fresh(request);
+    if (fresh.length === 0) return undefined;
+    // Prefer a different sentence shape and main verb, while keeping a little
+    // choice among equally fresh candidates. Review matching still applies.
+    const recentTargets = new Set((request.avoid ?? []).slice(-6).map(text => sentenceKey(text, request.learning)));
+    const recent = this.shelf(request.learning, request.level, topicKey(request.topic))
+      .filter(row => recentTargets.has(sentenceKey(row.target, request.learning)))
+      .map(row => JSON.parse(row.lesson) as Lesson);
+    const shape = (lesson: Lesson) => lesson.chunks.map(chunk => chunk.pos).join(' ');
+    const verbs = (lesson: Lesson) => lesson.chunks.filter(chunk => chunk.pos === 'verb')
+      .map(chunk => sentenceKey(chunk.morphemes?.[0]?.form ?? chunk.target, request.learning));
+    const score = (lesson: Lesson) => recent.reduce((total, previous) => total +
+      (shape(previous) === shape(lesson) ? 2 : 0) +
+      (verbs(previous).some(verb => verbs(lesson).includes(verb)) ? 3 : 0), 0);
+    const ranked = fresh.map(lesson => ({ lesson, score: score(lesson) }));
+    const best = Math.min(...ranked.map(entry => entry.score));
+    const choices = ranked.filter(entry => entry.score === best);
+    return choices[Math.floor(Math.random() * choices.length)]!.lesson;
+  }
+
+  /** Unseen, usable lessons left for this learner, rather than total shelf size. */
+  available(request: LessonRequest): number {
+    return this.fresh(request).length;
+  }
+
+  private fresh(request: LessonRequest): Lesson[] {
+    const seen = new Set((request.avoid ?? []).map(sentence => sentenceKey(sentence, request.learning)));
     let fresh = this.shelf(request.learning, request.level, topicKey(request.topic)).filter(
-      (row) => !seen.has(row.target),
+      (row) => !seen.has(sentenceKey(row.target, request.learning)),
     );
     if (request.review?.length) {
       const stems = request.review.map(stem).filter(Boolean);
       fresh = fresh.filter((row) => {
         const sentence = fold(row.target);
-        return stems.some((piece) => sentence.includes(piece));
+        return stems.some((piece) => sentence.split(/[^\p{L}\p{N}]+/u).some(word => word.startsWith(piece)));
       });
     }
-    if (fresh.length === 0) return undefined;
-    const row = fresh[Math.floor(Math.random() * fresh.length)]!;
-    const lesson = JSON.parse(row.lesson) as Lesson;
-    // A lesson shelved before word classes were asked for is short of what
-    // the page shows now; it leaves the shelf, and the caller asks afresh.
-    if (lesson.chunks.some((chunk) => !chunk.pos)) {
-      this.db.prepare('DELETE FROM lessons WHERE target = ? AND learning = ?').run(row.target, request.learning);
-      return undefined;
-    }
-    return lesson;
+    return fresh.flatMap(row => {
+      const lesson = JSON.parse(row.lesson) as Lesson;
+      // Old entries without word classes cannot support the current game.
+      if (!lesson.chunks.length || lesson.chunks.some((chunk) => !chunk.pos)) {
+        this.db.prepare('DELETE FROM lessons WHERE target = ? AND learning = ? AND level = ? AND topic = ?')
+          .run(row.target, request.learning, request.level, topicKey(request.topic));
+        return [];
+      }
+      return [lesson];
+    });
   }
 
   /**

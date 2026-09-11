@@ -180,7 +180,24 @@ function loadHistory() {
 }
 
 function saveHistory() {
+  const seen = seenTargets();
+  for (const entry of history) seen.add(entry.target);
+  remember(keyFor('sett'), JSON.stringify([...seen]));
   remember(keyFor('historikk'), JSON.stringify(history));
+}
+
+/** Sentence text survives the 100-card log, level changes, and reloads. */
+const seenByDirection = new Map();
+function seenTargets() {
+  if (!seenByDirection.has(learning)) {
+    let saved = [];
+    try { saved = JSON.parse(recall(keyFor('sett')) ?? '[]'); } catch { /* Start from the log. */ }
+    seenByDirection.set(learning, new Set([
+      ...(Array.isArray(saved) ? saved.filter(text => typeof text === 'string') : []),
+      ...loadHistory().map(entry => entry.target),
+    ]));
+  }
+  return seenByDirection.get(learning);
 }
 
 /* The sentences so far ------------------------------------------------
@@ -1102,13 +1119,19 @@ function comebacks(words) {
     .filter((word) => !dismissed(word.target))
     .slice(-2)
     .map((word) => ({ target: word.target, hinted: true }));
+  // Every fourth sentence leaves room for discovery. Hinted words still get
+  // attention, and the user's topic chips always remain in charge.
+  if (seenTargets().size % 4 === 3) return chosen;
+  const recent = new Set(history.slice(-2).flatMap(entry => entry.chunks.map(chunk => fold(chunk.target))));
   const ranked = [...words]
+    .filter(word => !word.pos || ['noun', 'verb', 'adjective', 'adverb'].includes(word.pos))
+    .filter(word => !recent.has(fold(word.target)))
     .filter((word) => !dismissed(word.target))
     .filter((word) => !chosen.some((entry) => fold(entry.target) === fold(word.target)))
     .sort((a, b) => (a.count ?? 1) - (b.count ?? 1) || (a.at ?? 0) - (b.at ?? 0));
   // Some choice among the weakest, so the same ones do not come back every time.
   const weakest = ranked.slice(0, 6);
-  while (chosen.length < 3 && weakest.length) {
+  while (chosen.length < 2 && weakest.length) {
     const word = weakest.splice(Math.floor(Math.random() * weakest.length), 1)[0];
     chosen.push({ target: word.target, hinted: false });
   }
@@ -3320,8 +3343,8 @@ async function requestLesson() {
       learning,
       level,
       topic,
-      // The recent sentences, so the next one is not one of them.
-      avoid: history.slice(-30).map((entry) => entry.target),
+      // Full exclusions for selection/validation; the model sees a short tail.
+      avoid: [...seenTargets()],
       review: review.map((entry) => entry.target),
     }),
   });
@@ -3339,7 +3362,7 @@ let prefetched = null;
 let prefetchTimer = 0;
 
 function prefetchKey() {
-  return JSON.stringify([learning, level, steering(), history.at(-1)?.target ?? '']);
+  return JSON.stringify([learning, level, steering(), history.at(-1)?.target ?? '', seenTargets().size]);
 }
 
 function prefetch() {
@@ -3617,7 +3640,7 @@ muteButton.addEventListener('click', () => {
    are merged, so nothing is lost whichever device was used last; after
    that every change is pushed a moment later. */
 
-const SYNC_NAMES = ['ordbank', 'historikk', 'slit', 'niva', 'styring', 'avvist'];
+const SYNC_NAMES = ['ordbank', 'historikk', 'sett', 'slit', 'niva', 'styring', 'avvist'];
 /** The names kept as plain strings rather than JSON. */
 const PLAIN_NAMES = ['niva'];
 let syncTimer = 0;
@@ -3661,6 +3684,17 @@ function applyRemote(direction, blob) {
   if (!blob || typeof blob !== 'object') return;
   const key = (name) => directionKey(direction, name);
   const local = snapshot(direction);
+
+  const texts = value => Array.isArray(value) ? value.filter(text => typeof text === 'string') : [];
+  const seen = new Set([
+    ...texts(blob.sett),
+    ...(Array.isArray(blob.historikk) ? blob.historikk.filter(entry => typeof entry?.target === 'string').map(entry => entry.target) : []),
+    ...texts(local.sett),
+    ...(Array.isArray(local.historikk) ? local.historikk.map(entry => entry.target) : []),
+    ...(seenByDirection.get(direction) ?? []),
+  ]);
+  seenByDirection.set(direction, seen);
+  localStorage.setItem(key('sett'), JSON.stringify([...seen]));
 
   if (Array.isArray(blob.ordbank)) {
     const merged = unionByTarget(local.ordbank ?? [], blob.ordbank.filter((w) => w?.target), (a, b) => ({

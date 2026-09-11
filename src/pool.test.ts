@@ -39,6 +39,56 @@ describe('stem', () => {
 });
 
 describe('LessonPool', () => {
+  it('keeps 120 turns fresh even after both the old exclusion window and visible log would expire', () => {
+    const pool = new LessonPool(':memory:');
+    const avoid: string[] = [];
+    for (let i = 0; i < 31; i++) pool.store(ask, sample(`Sentence ${i}.`));
+    let generated = 0;
+    for (let turn = 0; turn < 120; turn++) {
+      const request = { ...ask, avoid };
+      let next = pool.pick(request);
+      if (!next) {
+        next = sample(`Fresh ${generated++}.`);
+        pool.store(request, next);
+      }
+      assert(!avoid.includes(next.target));
+      avoid.push(next.target);
+    }
+    assert.equal(new Set(avoid).size, 120);
+    assert.equal(generated, 89, 'exhaustion requests fresh material instead of recycling');
+    assert.equal(pool.available({ ...ask, avoid }), 0);
+    pool.close();
+  });
+
+  it('excludes punctuation/case variants and counts unseen supply on a large shelf', () => {
+    const pool = new LessonPool(':memory:');
+    pool.store(ask, sample('Kedi uyuyor.'));
+    assert.equal(pool.pick({ ...ask, avoid: ['  KEDİ   UYUYOR! '] }), undefined);
+    for (let i = 0; i < 40; i++) pool.store(ask, sample(`Sentence ${i}`));
+    assert.equal(pool.available({ ...ask, avoid: pool.targets(ask).slice(0, -2) }), 2);
+    pool.close();
+  });
+
+  it('prefers a different structure and verb when alternatives are available', () => {
+    const pool = new LessonPool(':memory:');
+    const make = (target: string, verb: string, question = false): Lesson => ({
+      learning: 'tr', target, native: target,
+      chunks: [{ target: verb, native: verb, pos: 'verb' },
+        { target: 'x', native: 'x', pos: question ? 'particle' : 'noun' }],
+    });
+    pool.store(ask, make('Old', 'sev'));
+    pool.store(ask, make('Same pattern', 'sev'));
+    pool.store(ask, make('New question', 'gel', true));
+    assert.equal(pool.pick({ ...ask, avoid: ['Old'] })?.target, 'New question');
+    pool.close();
+  });
+
+  it('does not match a short review word inside an unrelated word', () => {
+    const pool = new LessonPool(':memory:');
+    pool.store(ask, sample('Seviyorum.'));
+    assert.equal(pool.pick({ ...ask, review: ['ev'] }), undefined);
+    pool.close();
+  });
   it('files extras by kind, direction and key, and lets a later one replace an earlier', () => {
     const pool = new LessonPool(':memory:');
     assert.equal(pool.extra('forms', 'tr', 'sevmek'), undefined);

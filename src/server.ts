@@ -249,8 +249,6 @@ async function handleAsset(response: ServerResponse, asset: Asset): Promise<void
  * Reads the learn page's form: either a sentence the learner typed, or the
  * topic and level to build one from.
  */
-/** How many earlier sentences the prompt is told to steer clear of. */
-const MAX_AVOID = 30;
 const MAX_REVIEW = 5;
 
 function parseLesson(raw: string): {
@@ -277,8 +275,7 @@ function parseLesson(raw: string): {
   const seen = Array.isArray(avoid)
     ? avoid
         .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
-        .map((entry) => entry.trim().slice(0, 300))
-        .slice(-MAX_AVOID)
+        .map((entry) => entry.trim())
     : [];
   const comeback = Array.isArray(review)
     ? review
@@ -317,8 +314,9 @@ function topUp(asked: LessonRequest): void {
   toppingUp.add(key);
   // The shelf is for everyone, so the top-up is not steered by one learner's words.
   const { review: _review, ...shared } = asked;
-  const request: LessonRequest = { ...shared, avoid: pool.targets(asked).slice(-MAX_AVOID) };
-  const wanted = Math.max(1, Math.min(TOP_UP_BATCH, POOL_TARGET - pool.count(asked)));
+  const request: LessonRequest = { ...shared, avoid: [...new Set([...pool.targets(asked), ...(asked.avoid ?? [])])] };
+  const wanted = Math.min(TOP_UP_BATCH, POOL_TARGET - pool.available(shared));
+  if (wanted <= 0) { toppingUp.delete(key); return; }
   limiter
     .run(() => lessons(request, wanted))
     .then((made) => {
@@ -333,15 +331,20 @@ function topUp(asked: LessonRequest): void {
 }
 
 async function handleLesson(request: IncomingMessage, response: ServerResponse): Promise<void> {
-  const asked = parseLesson(await readBody(request));
+  // Sentence-only history is much smaller than lesson breakdowns, but grows
+  // beyond the ordinary form limit during extended play.
+  const asked = parseLesson(await readBody(request, MAX_STATE_BODY_BYTES));
 
   // A sentence of the learner's own is theirs; only generated ones are shared.
   let result: Lesson | undefined = asked.text ? undefined : pool?.pick(asked);
   if (result) {
-    if (pool && pool.count(asked) < POOL_TARGET) topUp(asked);
+    topUp({ ...asked, avoid: [...(asked.avoid ?? []), result.target] });
   } else {
     result = await limiter.run(() => lesson(asked));
-    if (!asked.text) pool?.store(asked, result);
+    if (!asked.text) {
+      pool?.store(asked, result);
+      topUp({ ...asked, avoid: [...(asked.avoid ?? []), result.target] });
+    }
   }
   send(response, 200, result);
 }

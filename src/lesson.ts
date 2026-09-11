@@ -347,6 +347,17 @@ export interface LessonRequest {
   review?: string[];
 }
 
+/** Spelling-only differences must not make an old sentence eligible again. */
+export function sentenceKey(text: string, learning: Learning): string {
+  return text.normalize('NFC').toLocaleLowerCase(learning)
+    .replace(/[\p{P}\p{S}]/gu, '').replace(/\s+/gu, ' ').trim();
+}
+
+export function alreadySeen(target: string, request: LessonRequest): boolean {
+  const key = sentenceKey(target, request.learning);
+  return (request.avoid ?? []).some(text => sentenceKey(text, request.learning) === key);
+}
+
 /**
  * With no topic given, the model reaches for the same first-year sentence
  * every time. One of these is drawn at random instead, so consecutive lessons
@@ -406,7 +417,7 @@ function randomSituations(count: number): string[] {
   return [...picked];
 }
 
-function brief({ learning, text, topic, level, avoid, review }: LessonRequest, count = 1): string {
+export function brief({ learning, text, topic, level, avoid, review }: LessonRequest, count = 1): string {
   const d = DIRECTIONS[learning];
   if (text) {
     return (
@@ -427,7 +438,7 @@ function brief({ learning, text, topic, level, avoid, review }: LessonRequest, c
   }
   const seen = avoid?.length
     ? `\n\nThe student has already had these sentences. Do not repeat or lightly reword any of them; use different vocabulary and a different structure:\n` +
-      avoid.map((sentence) => `- ${sentence}`).join('\n')
+      avoid.slice(-30).map((sentence) => `- ${sentence}`).join('\n')
     : '';
   // Words come back: the sentence is a chance to meet them again, as long as
   // they belong in it. One or two, never a list crammed in.
@@ -435,14 +446,34 @@ function brief({ learning, text, topic, level, avoid, review }: LessonRequest, c
     ? `\n\nThe student has met these ${d.target} words before and should meet them again. Work one or two of them into the sentence where they fit naturally, in whatever form the grammar needs. Leave out any that would make the sentence contrived:\n` +
       review.map((word) => `- ${word}`).join('\n')
     : '';
+  const purposes = [
+    'ask a real question someone could answer',
+    'make a small request or invitation',
+    'notice an unexpected but believable detail',
+    'say what is missing or what is not happening',
+    'describe a concrete action happening now',
+    'give a useful reply in a small everyday conversation',
+  ];
+  // Rotate the communicative purpose: random topics alone still converged on
+  // "I like X", and random purposes can pick questions several times in a row.
+  const purpose = Array.from({ length: count }, (_, index) =>
+    `${count > 1 ? `Sentence ${index + 1}: ` : ''}${purposes[((avoid?.length ?? 0) + index) % purposes.length]}`,
+  ).join('; ');
+  const variety = `\n\nMake this useful or memorable: ${purpose}. Stay within the selected difficulty; ` +
+    `the example words in the level description are examples, not a vocabulary whitelist. ` +
+    `Use concrete, natural language. Avoid merely swapping the noun in "I like X", "I see X", ` +
+    `or "This X is big/good". Choose a different main verb and sentence shape from the last few examples. ` +
+    `Bring one fresh everyday word or expression into familiar language, without adding harder grammar. ` +
+    `A question, request or short reply is welcome; vary who is speaking and who is doing the action. ` +
+    `Do not force a joke or an odd situation just to be different.`;
   if (count > 1) {
     return (
       `Write ${count} different ${d.target} sentences for the student and break each one down. ` +
       `Vary the vocabulary and the structure from one sentence to the next; no two should share their main verb.\n\n` +
-      `Each sentence: ${d.level[level]}${about}${seen}${comeback}`
+      `Each sentence: ${d.level[level]}${about}${seen}${comeback}${variety}`
     );
   }
-  return `Write one ${d.target} sentence for the student and break it down.\n\n${d.level[level]}${about}${seen}${comeback}`;
+  return `Write one ${d.target} sentence for the student and break it down.\n\n${d.level[level]}${about}${seen}${comeback}${variety}`;
 }
 
 function parseMorphemes(value: unknown, word: string): Morpheme[] | undefined {
@@ -611,6 +642,7 @@ function alignChunks(chunks: RawChunk[], sentence: string): LessonChunk[] {
 export async function lesson(request: LessonRequest, attempts = 2): Promise<Lesson> {
   let last: Lesson | undefined;
   const postLesson = tool(request.learning);
+  const rejected: string[] = [];
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const response = await client().messages.create({
@@ -621,7 +653,9 @@ export async function lesson(request: LessonRequest, attempts = 2): Promise<Less
       system: systemPrompt(request.learning),
       tools: [postLesson],
       tool_choice: { type: 'tool', name: postLesson.name },
-      messages: [{ role: 'user', content: brief(request) }],
+      messages: [{ role: 'user', content: brief(request) + (rejected.length
+        ? `\n\nAn earlier attempt repeated an old sentence. These are not acceptable; write something different:\n${rejected.join('\n')}`
+        : '') }],
     });
 
     // A cut-off answer arrives as half-written JSON, which parses into a lesson
@@ -642,11 +676,16 @@ export async function lesson(request: LessonRequest, attempts = 2): Promise<Less
       console.warn('Claude returned a lesson with neither a sentence nor pieces; asking again.');
       continue;
     }
+    if (!request.text && alreadySeen(made.target, request)) {
+      rejected.push(made.target);
+      console.warn('Lesson repeated a seen sentence; asking again.');
+      continue;
+    }
     last = made;
     if (last.chunks.length > 0) return last;
   }
 
-  if (!last) throw new Error('Claude returned no usable lesson after two attempts.');
+  if (!last) throw new Error(`Claude returned no fresh usable lesson after ${attempts} attempts.`);
   return last;
 }
 
@@ -682,7 +721,9 @@ export async function lessons(request: LessonRequest, count: number): Promise<Le
   const made: Lesson[] = [];
   for (const entry of entries) {
     const built = buildLesson(entry, request.learning);
-    if (built && built.chunks.length > 0) made.push(built);
+    if (built && built.chunks.length > 0 && !alreadySeen(built.target, {
+      ...request, avoid: [...(request.avoid ?? []), ...made.map(one => one.target)],
+    })) made.push(built);
   }
   if (made.length < entries.length) {
     console.warn(`Batch of ${count}: ${made.length} of ${entries.length} lessons usable.`);
