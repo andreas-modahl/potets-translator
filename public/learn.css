@@ -16,6 +16,9 @@
   gap: 0.5rem;
   margin-top: 1rem;
 }
+.hint-row[hidden] {
+  display: none;
+}
 .hint-row button {
   padding: 0.5rem 1rem;
 }
@@ -994,7 +997,8 @@
 }
 /* In the hint row the ball is a button like the hint beside it: same
    paper cut-out, same press. */
-.hint-row .speak {
+.hint-row .speak,
+.steps .speak {
   height: auto;
   gap: 0.25rem;
   padding: 0.3rem 0.65rem 0.3rem 0.4rem;
@@ -1004,20 +1008,30 @@
   border-radius: var(--wobble-small);
   box-shadow: 3px 3px 0 var(--shadow);
 }
-.hint-row .speak:hover {
+.hint-row .speak:hover,
+.steps .speak:hover {
   background: var(--sunk);
   transform: translate(-1px, -1px);
   box-shadow: 4px 4px 0 var(--shadow);
 }
-.hint-row .speak:active {
+.hint-row .speak:active,
+.steps .speak:active {
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0 var(--shadow);
 }
 .hint-row .speak .key {
   margin-left: 0.2rem;
 }
+.steps .speak {
+  min-height: 2.9rem;
+  flex-shrink: 0;
+}
+.steps .speak .key {
+  display: none;
+}
 /* Muted, the speakers fade: still there, saying nothing. */
 body.muted .hint-row .speak,
+body.muted .steps .speak,
 body.muted .chunk .say {
   opacity: 0.4;
 }

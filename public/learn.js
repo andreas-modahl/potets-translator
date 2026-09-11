@@ -35,6 +35,7 @@ const statusLine = document.querySelector('#status');
 const lessonCard = document.querySelector('#lesson');
 const comparator = document.querySelector('#comparator');
 const hintButton = document.querySelector('#hint');
+const hintRow = document.querySelector('.hint-row');
 const specialKeys = document.querySelector('#special-keys');
 // The endings on offer for the segment in focus: one row, moved into
 // the box of whichever blank is being built.
@@ -1070,6 +1071,9 @@ function setReady(ready, filledChest = false) {
   // Nothing left to hint at or type once every word is in place.
   hintButton.hidden = ready;
   specialKeys.hidden = ready;
+  if (ready) steps.insertBefore(speakButton, submitButton);
+  else hintRow.insertBefore(speakButton, hintButton);
+  hintRow.hidden = ready;
   renderCollectionFeedback(ready);
 }
 
@@ -1758,8 +1762,7 @@ function renderDetail(chunk) {
   }
 }
 
-/** Every word with a note, in sentence order. The pieces are already
-    painted in the blanks, so only the word and its note are shown. */
+/** One grammar tip after completion. Other notes remain on individual words. */
 function renderExplanations() {
   explanations.replaceChildren();
   for (const chunk of current.chunks) {
@@ -1768,6 +1771,7 @@ function renderExplanations() {
     block.className = 'explanation';
     block.append(wordBlock(chunk, true, { pieces: false }));
     explanations.append(block);
+    break;
   }
   explanations.hidden = explanations.childElementCount === 0;
 }
