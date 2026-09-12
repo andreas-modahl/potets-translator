@@ -43,7 +43,7 @@ video { width: 100%; max-height: 500px; background: #111; border-radius: 8px; }
 video.audio-only { display: block; height: 54px; background: transparent; }
 .audio-caption { min-height: 3em; padding: 12px; background: var(--sunk); text-align: center; font-size: 1.25rem; white-space: pre-line; }
 .turkish-caption { min-height: 2em; padding: 12px; text-align: center; font-size: 1.2rem; line-height: 1.8; }
-.turkish-caption { display: flex; justify-content: center; align-items: start; align-content: start; flex-wrap: wrap; gap: 2px 12px; box-sizing: border-box; }
+.turkish-caption { display: flex; justify-content: center; align-items: start; align-content: start; flex-wrap: wrap; gap: 0 12px; box-sizing: border-box; }
 .word-translation { display: inline-flex; flex-direction: column; align-items: center; max-width: 100%; }
 .source-words { overflow-wrap: anywhere; }
 .word-meaning { color: var(--ink); font-size: 1.4rem; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
@@ -61,7 +61,7 @@ video.audio-only { display: block; height: 54px; background: transparent; }
 .spoken-word.speaking { background: var(--mark); color: var(--ink); box-shadow: 0 2px 0 var(--accent); }
 #turkish-caption .spoken-word.speaking { background: transparent; box-shadow: none; color: inherit; }
 #turkish-caption .source-words .spoken-word { position: relative; }
-#turkish-caption .word-translation { padding-top: 26px; }
+#turkish-caption .word-translation { padding-top: 22px; }
 #turkish-caption .source-words .speaking::before { content: ''; position: absolute; width: 24px; height: 24px; bottom: 100%; left: 50%; transform: translateX(-50%); background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='18' fill='%23e30a17' stroke='%23111' stroke-width='2.2'/%3E%3Ccircle cx='15' cy='27' r='7' fill='white'/%3E%3Ccircle cx='17' cy='27' r='5.6' fill='%23e30a17'/%3E%3Cpath d='M24.5 27l4.6-1.5-2.9 3.9v-4.8l2.9 3.9z' fill='white'/%3E%3Cellipse cx='13' cy='15' rx='5' ry='6' fill='white' stroke='%23111' stroke-width='2'/%3E%3Cellipse cx='27' cy='15' rx='5' ry='6' fill='white' stroke='%23111' stroke-width='2'/%3E%3C/svg%3E"); }
 .result-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; flex-wrap: wrap; }
 .cue { border-top: 1px solid var(--muted); padding: 18px 0; }
