@@ -48,7 +48,7 @@ video { width: 100%; max-height: 500px; background: #111; border-radius: 8px; }
 .reading-focus > div { overflow: auto; overflow-wrap: anywhere; line-height: 1.4; }
 #focus-turkish { font-size: 1.6rem; font-weight: 700; }
 #focus-norwegian { font-size: 1.4rem; color: var(--teal); }
-#reading-focus { grid-template-rows: 40px minmax(0, 1fr) 6px; row-gap: 4px; }
+#reading-focus { grid-template-rows: 36px minmax(0, 1fr) 6px; row-gap: 0; }
 #sentence-progress { display: block; height: 6px; border: 0; border-radius: 3px; overflow: hidden; background: var(--sunk); accent-color: var(--teal); }
 #sentence-progress::-webkit-progress-bar { background: var(--sunk); }
 #sentence-progress::-webkit-progress-value { background: var(--teal); }
