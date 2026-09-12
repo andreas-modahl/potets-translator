@@ -34,7 +34,7 @@ test('reject empty, missing, invalid, overlapping and overlong transcription res
 });
 test('Norwegian follows Turkish order, preserving the real start and end', () => {
   assert.deepEqual(phraseCues(phrase, lesson), [{ start: 500, end: 2500,
-    text: 'I morgen sammen med deg skal jeg komme.', turkish: phrase.text }]);
+    text: 'I morgen sammen med deg skal jeg komme.', turkish: phrase.text, words: phrase.words }]);
 });
 test('word timestamps must cover the full provider transcript despite punctuation or case differences', () => {
   const data = response();
@@ -56,6 +56,7 @@ test('long pauses split cues without fabricating times', () => {
   assert.equal(result.length, 2);
   assert.equal(result[0]!.end, 1600);
   assert.equal(result[1]!.start, 3000);
+  assert.deepEqual(result.flatMap(cue => cue.words), paused.words);
 });
 test('a grouped Turkish expression keeps its words and timing together', () => {
   const grouped = { ...lesson, chunks: [{ target: 'Yarın seninle', native: 'I morgen sammen med deg' }, lesson.chunks[2]!] };
@@ -67,6 +68,7 @@ test('long meaning chunks are not dropped or split into invented timestamps', ()
   assert.equal(result.length, 3);
   assert.equal(result[1]!.start, 1000);
   assert.equal(result[1]!.end, 1600);
+  assert.deepEqual(result[1]!.words, [phrase.words[1]]);
 });
 
 // This module is also loaded directly by the browser, without a build step.

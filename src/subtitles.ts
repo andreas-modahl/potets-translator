@@ -5,7 +5,7 @@ export const MAX_SUBTITLE_BYTES = 100 * 1024 * 1024;
 export const MAX_SUBTITLE_MS = 10 * 60 * 1000;
 export interface TimedWord { text: string; start: number; end: number }
 export interface SubtitlePhrase { text: string; words: TimedWord[] }
-export interface SubtitleCue { start: number; end: number; text: string; turkish: string }
+export interface SubtitleCue { start: number; end: number; text: string; turkish: string; words: TimedWord[] }
 
 export class SubtitleError extends Error {
   constructor(message: string, public status = 422) { super(message); }
@@ -67,7 +67,8 @@ export function phraseCues(phrase: SubtitlePhrase, lesson: Lesson): SubtitleCue[
     }
     const text = lesson.chunks[index]!.native.replace(/\s+/gu, ' ').trim();
     if (!text) throw new SubtitleError('En norsk betydning mangler. Prøv igjen.');
-    return { start: first.start, end: last.end, text, turkish: covered.map(word => word.text).join(' ') };
+    return { start: first.start, end: last.end, text, turkish: covered.map(word => word.text).join(' '),
+      words: covered.map(({ text, start, end }) => ({ text, start, end })) };
   });
   const cues: SubtitleCue[] = [];
   for (const piece of pieces) {
@@ -79,6 +80,7 @@ export function phraseCues(phrase: SubtitlePhrase, lesson: Lesson): SubtitleCue[
       current.end = piece.end;
       current.text += ' ' + piece.text;
       current.turkish += ' ' + piece.turkish;
+      current.words.push(...piece.words);
     } else cues.push({ ...piece });
   }
   return cues;

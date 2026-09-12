@@ -7,6 +7,11 @@ const player = $('player');
 const status = $('status');
 const track = player.addTextTrack('subtitles', 'Norsk i tyrkisk ordstilling', 'nb');
 track.mode = 'showing';
+// Hidden metadata cues give us word-boundary events even for very short words.
+const wordTrack = player.addTextTrack('metadata', 'Tyrkiske ord', 'tr');
+wordTrack.mode = 'hidden';
+let shownTurkish;
+let highlightedWords = [];
 let configured = false;
 let busy = false;
 let mediaUrl;
@@ -24,8 +29,40 @@ async function json(url, options) {
 }
 function clearTrack() {
   for (const cue of Array.from(track.cues || [])) track.removeCue(cue);
+  for (const cue of Array.from(wordTrack.cues || [])) wordTrack.removeCue(cue);
+  shownTurkish = undefined;
+  for (const word of highlightedWords) word.classList.remove('speaking');
+  highlightedWords = [];
+  $('turkish-caption').replaceChildren(); $('turkish-caption').hidden = true;
   $('audio-caption').textContent = ''; $('audio-caption').hidden = true;
 }
+function updateTurkish() {
+  const time = player.currentTime * 1000;
+  // Source word times stay tied to the speech when Norwegian cue times are edited.
+  const index = cues.findIndex(cue => cue.words?.length && time >= cue.words[0].start && time < cue.words.at(-1).end);
+  const active = cues[index];
+  const caption = $('turkish-caption');
+  caption.hidden = !cues.some(cue => cue.words?.length);
+  if (shownTurkish !== active) {
+    shownTurkish = active;
+    caption.replaceChildren();
+    for (const word of active?.words || []) {
+      const span = document.createElement('span'); span.className = 'spoken-word'; span.textContent = word.text;
+      caption.append(span, ' ');
+    }
+  }
+  for (const word of highlightedWords) word.classList.remove('speaking');
+  highlightedWords = [];
+  const wordIndex = active?.words.findIndex(word => time >= word.start && time < word.end) ?? -1;
+  if (wordIndex >= 0) {
+    const previewWord = caption.children[wordIndex];
+    const editorWord = $('cues').children[index]?.querySelectorAll('.spoken-word')[wordIndex];
+    highlightedWords = [previewWord, editorWord].filter(Boolean);
+    for (const word of highlightedWords) word.classList.add('speaking');
+  }
+}
+wordTrack.addEventListener('cuechange', updateTurkish);
+player.addEventListener('seeked', updateTurkish);
 function updateActiveCue() {
   const active = cues.find(cue => player.currentTime * 1000 >= cue.start && player.currentTime * 1000 < cue.end);
   // Browsers often render audio-only files without a native subtitle surface.
@@ -35,6 +72,10 @@ function updateActiveCue() {
 track.addEventListener('cuechange', updateActiveCue);
 function updateTrack() {
   clearTrack();
+  for (const cue of cues) for (const word of cue.words || []) {
+    wordTrack.addCue(new VTTCue(word.start / 1000, word.end / 1000, word.text));
+  }
+  updateTurkish();
   try {
     validateCues(cues);
     for (const cue of cues) track.addCue(new VTTCue(cue.start / 1000, cue.end / 1000,
@@ -66,7 +107,11 @@ function renderCues() {
       input.oninput = () => { cue[field] = input.valueAsNumber * 1000; updateTrack(); };
       label.append(input); top.append(label);
     }
-    const original = document.createElement('p'); original.lang = 'tr'; original.textContent = cue.turkish;
+    const original = document.createElement('p'); original.lang = 'tr';
+    if (cue.words?.length) for (const word of cue.words) {
+      const span = document.createElement('span'); span.className = 'spoken-word'; span.textContent = word.text;
+      original.append(span, ' ');
+    } else original.textContent = cue.turkish;
     const text = document.createElement('textarea'); text.value = cue.text; text.setAttribute('aria-label', `Norsk undertekst ${index + 1}`);
     text.oninput = () => { cue.text = text.value; updateTrack(); };
     row.append(top, original, text); $('cues').append(row);
@@ -91,6 +136,7 @@ player.addEventListener('loadedmetadata', () => {
   updateActiveCue();
 });
 player.addEventListener('timeupdate', () => {
+  updateTurkish();
   updateActiveCue();
   Array.from($('cues').children).forEach((row, index) => row.classList.toggle('active',
     player.currentTime * 1000 >= cues[index].start && player.currentTime * 1000 < cues[index].end));
