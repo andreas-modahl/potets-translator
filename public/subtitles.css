@@ -13,7 +13,12 @@ input[type=file] { width: 100%; padding: 18px; border: 2px dashed var(--muted); 
 #library { display: grid; gap: 10px; margin: 16px 0 24px; }
 #library button { text-align: left; overflow-wrap: anywhere; }
 .workspace > h2 { margin-bottom: 8px; }
-.close-card { float: right; margin: -8px -8px 8px 12px; font-size: 1.4rem; }
+.close-card { float: right; margin: -8px -8px 8px 12px; }
+button.icon-button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 10px; border: 1px solid transparent; border-radius: 10px; box-shadow: none; transform: none; }
+button.icon-button:hover { background: var(--sunk); border-color: var(--line); transform: none; box-shadow: none; }
+button.icon-button[aria-expanded=true] { background: var(--mark); border-color: var(--accent); }
+.icon-button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.icon-button svg text { fill: currentColor; stroke: none; font: bold 6px sans-serif; text-anchor: middle; }
 #library { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
 .import-row { margin-top: 24px; }
 #subtitle-actions { margin-top: 18px; }

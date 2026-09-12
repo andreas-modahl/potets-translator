@@ -24,7 +24,7 @@
         <button id="toggle-upload" type="button" aria-expanded="false" aria-controls="add-recording">Last opp nytt opptak</button>
       </section>
         <section id="add-recording" class="card" aria-labelledby="upload-heading" hidden>
-          <button class="ghost close-card" type="button" aria-label="Lukk opplasting">×</button>
+          <button class="ghost close-card icon-button" type="button" aria-label="Lukk opplasting" title="Lukk opplasting"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
           <h2 id="upload-heading" tabindex="-1">Legg til lyd, video eller undertekster</h2>
         <form id="upload-form">
           <label for="media-file">Velg lyd eller video</label>
@@ -41,7 +41,7 @@
         <p id="status" role="status" aria-live="polite">Kontrollerer tilgjengelighet …</p>
         <progress id="progress" aria-label="Fremdrift" hidden></progress>
       <section id="preview" class="card" hidden aria-labelledby="playback-heading">
-        <button class="ghost close-card" type="button" aria-label="Lukk avspilling">×</button>
+        <button class="ghost close-card icon-button" type="button" aria-label="Lukk avspilling" title="Lukk avspilling"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
         <h2 id="playback-heading" tabindex="-1">Spill av undertekster</h2>
         <p id="playback-selection"></p>
         <p id="selected-media" role="status" hidden></p>
@@ -56,9 +56,9 @@
         <p id="audio-caption" class="audio-caption" aria-label="Norsk undertekst" hidden></p>
         <p class="muted" id="preview-help">Undertekstene vises i avspilleren når de er klare.</p>
         <div id="subtitle-actions" class="actions" hidden>
-          <button id="toggle-editor" type="button" class="ghost" aria-expanded="false" aria-controls="result">Rediger undertekster</button>
-          <button id="download-srt" type="button">Last ned SRT</button>
-          <button id="download-vtt" type="button" class="ghost">Last ned VTT</button>
+          <button id="toggle-editor" type="button" class="ghost icon-button" aria-expanded="false" aria-controls="result" aria-label="Rediger undertekster" title="Rediger undertekster"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l5-1L20 8a2.8 2.8 0 0 0-4-4L5 15z" /></svg></button>
+          <button id="download-srt" type="button" class="ghost icon-button" aria-label="Last ned SRT" title="Last ned SRT"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v10m-4-4 4 4 4-4M4 12v9h16v-9" /><text x="12" y="18.5">SRT</text></svg></button>
+          <button id="download-vtt" type="button" class="ghost icon-button" aria-label="Last ned VTT" title="Last ned VTT"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v10m-4-4 4 4 4-4M4 12v9h16v-9" /><text x="12" y="18.5">VTT</text></svg></button>
         </div>
       </section>
       <section id="result" class="card" hidden aria-label="Rediger undertekster">

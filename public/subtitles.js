@@ -83,7 +83,9 @@ function message(text, error = false) { status.textContent = text; status.classL
 function showEditor(open) {
   $('result').hidden = !open;
   $('toggle-editor').setAttribute('aria-expanded', String(open));
-  $('toggle-editor').textContent = open ? 'Skjul redigering' : 'Rediger undertekster';
+  const label = open ? 'Skjul redigering' : 'Rediger undertekster';
+  $('toggle-editor').setAttribute('aria-label', label);
+  $('toggle-editor').title = label;
 }
 function showUpload(open) {
   $('add-recording').hidden = !open;
