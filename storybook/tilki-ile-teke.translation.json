@@ -1,0 +1,2046 @@
+{
+  "title": "Tilki ile Teke",
+  "source": "tilki-ile-teke.mp3",
+  "cues": [
+    {
+      "start": 1070,
+      "end": 5110,
+      "text": "Reven og bukken en dag reven sin (om reven) en (av dem) en i en brønn",
+      "turkish": "Tilki ile Teke Bir gün tilkinin biri bir kuyuya",
+      "words": [
+        {
+          "text": "Tilki",
+          "start": 1070,
+          "end": 1510
+        },
+        {
+          "text": "ile",
+          "start": 1510,
+          "end": 1710
+        },
+        {
+          "text": "Teke",
+          "start": 1710,
+          "end": 2190
+        },
+        {
+          "text": "Bir",
+          "start": 2670,
+          "end": 2990
+        },
+        {
+          "text": "gün",
+          "start": 2990,
+          "end": 3310
+        },
+        {
+          "text": "tilkinin",
+          "start": 3550,
+          "end": 4030
+        },
+        {
+          "text": "biri",
+          "start": 4070,
+          "end": 4430
+        },
+        {
+          "text": "bir",
+          "start": 4510,
+          "end": 4750
+        },
+        {
+          "text": "kuyuya",
+          "start": 4750,
+          "end": 5110
+        }
+      ],
+      "chunks": [
+        {
+          "text": "Reven",
+          "start": 1070,
+          "end": 1510
+        },
+        {
+          "text": "og",
+          "start": 1510,
+          "end": 1710
+        },
+        {
+          "text": "bukken",
+          "start": 1710,
+          "end": 2190
+        },
+        {
+          "text": "en dag",
+          "start": 2670,
+          "end": 3310
+        },
+        {
+          "text": "reven sin (om reven)",
+          "start": 3550,
+          "end": 4030
+        },
+        {
+          "text": "en (av dem)",
+          "start": 4070,
+          "end": 4430
+        },
+        {
+          "text": "en",
+          "start": 4510,
+          "end": 4750
+        },
+        {
+          "text": "i en brønn",
+          "start": 4750,
+          "end": 5110
+        }
+      ]
+    },
+    {
+      "start": 5150,
+      "end": 5590,
+      "text": "hadde falt (sies man har hørt)",
+      "turkish": "düşmüş.",
+      "words": [
+        {
+          "text": "düşmüş.",
+          "start": 5150,
+          "end": 5590
+        }
+      ],
+      "chunks": [
+        {
+          "text": "hadde falt (sies man har hørt)",
+          "start": 5150,
+          "end": 5590
+        }
+      ]
+    },
+    {
+      "start": 6270,
+      "end": 8510,
+      "text": "mye hadde visstnok anstrengt seg men på noen som helst måte fra brønnen",
+      "turkish": "Çok uğraşmış ama bir türlü kuyudan",
+      "words": [
+        {
+          "text": "Çok",
+          "start": 6270,
+          "end": 6590
+        },
+        {
+          "text": "uğraşmış",
+          "start": 6590,
+          "end": 7110
+        },
+        {
+          "text": "ama",
+          "start": 7150,
+          "end": 7390
+        },
+        {
+          "text": "bir",
+          "start": 7550,
+          "end": 7790
+        },
+        {
+          "text": "türlü",
+          "start": 7790,
+          "end": 8030
+        },
+        {
+          "text": "kuyudan",
+          "start": 8030,
+          "end": 8510
+        }
+      ],
+      "chunks": [
+        {
+          "text": "mye",
+          "start": 6270,
+          "end": 6590
+        },
+        {
+          "text": "hadde visstnok anstrengt seg",
+          "start": 6590,
+          "end": 7110
+        },
+        {
+          "text": "men",
+          "start": 7150,
+          "end": 7390
+        },
+        {
+          "text": "på noen som helst måte",
+          "start": 7550,
+          "end": 8030
+        },
+        {
+          "text": "fra brønnen",
+          "start": 8030,
+          "end": 8510
+        }
+      ]
+    },
+    {
+      "start": 8510,
+      "end": 9230,
+      "text": "klarte ikke å komme ut",
+      "turkish": "çıkamamış.",
+      "words": [
+        {
+          "text": "çıkamamış.",
+          "start": 8510,
+          "end": 9230
+        }
+      ],
+      "chunks": [
+        {
+          "text": "klarte ikke å komme ut",
+          "start": 8510,
+          "end": 9230
+        }
+      ]
+    },
+    {
+      "start": 9870,
+      "end": 12310,
+      "text": "den i øyeblikket derfra en geitebukk skal ha gått forbi",
+      "turkish": "O sırada oradan bir teke geçiyormuş.",
+      "words": [
+        {
+          "text": "O",
+          "start": 9870,
+          "end": 10030
+        },
+        {
+          "text": "sırada",
+          "start": 10030,
+          "end": 10510
+        },
+        {
+          "text": "oradan",
+          "start": 10510,
+          "end": 10990
+        },
+        {
+          "text": "bir",
+          "start": 11070,
+          "end": 11230
+        },
+        {
+          "text": "teke",
+          "start": 11310,
+          "end": 11550
+        },
+        {
+          "text": "geçiyormuş.",
+          "start": 11550,
+          "end": 12310
+        }
+      ],
+      "chunks": [
+        {
+          "text": "den",
+          "start": 9870,
+          "end": 10030
+        },
+        {
+          "text": "i øyeblikket",
+          "start": 10030,
+          "end": 10510
+        },
+        {
+          "text": "derfra",
+          "start": 10510,
+          "end": 10990
+        },
+        {
+          "text": "en",
+          "start": 11070,
+          "end": 11230
+        },
+        {
+          "text": "geitebukk",
+          "start": 11310,
+          "end": 11550
+        },
+        {
+          "text": "skal ha gått forbi",
+          "start": 11550,
+          "end": 12310
+        }
+      ]
+    },
+    {
+      "start": 13150,
+      "end": 15230,
+      "text": "bukken han var tørst fordi på brønnen så (visstnok)",
+      "turkish": "Teke susadığı için kuyuya bakmış.",
+      "words": [
+        {
+          "text": "Teke",
+          "start": 13150,
+          "end": 13550
+        },
+        {
+          "text": "susadığı",
+          "start": 13670,
+          "end": 14070
+        },
+        {
+          "text": "için",
+          "start": 14110,
+          "end": 14390
+        },
+        {
+          "text": "kuyuya",
+          "start": 14470,
+          "end": 14830
+        },
+        {
+          "text": "bakmış.",
+          "start": 14830,
+          "end": 15230
+        }
+      ],
+      "chunks": [
+        {
+          "text": "bukken",
+          "start": 13150,
+          "end": 13550
+        },
+        {
+          "text": "han var tørst",
+          "start": 13670,
+          "end": 14070
+        },
+        {
+          "text": "fordi",
+          "start": 14110,
+          "end": 14390
+        },
+        {
+          "text": "på brønnen",
+          "start": 14470,
+          "end": 14830
+        },
+        {
+          "text": "så (visstnok)",
+          "start": 14830,
+          "end": 15230
+        }
+      ]
+    },
+    {
+      "start": 15790,
+      "end": 16830,
+      "text": "og se her/og for noe hva ser han/hun",
+      "turkish": "Bir de ne görsün?",
+      "words": [
+        {
+          "text": "Bir",
+          "start": 15790,
+          "end": 15990
+        },
+        {
+          "text": "de",
+          "start": 15990,
+          "end": 16110
+        },
+        {
+          "text": "ne",
+          "start": 16110,
+          "end": 16270
+        },
+        {
+          "text": "görsün?",
+          "start": 16270,
+          "end": 16830
+        }
+      ],
+      "chunks": [
+        {
+          "text": "og se her/og for noe",
+          "start": 15790,
+          "end": 16110
+        },
+        {
+          "text": "hva",
+          "start": 16110,
+          "end": 16270
+        },
+        {
+          "text": "ser han/hun",
+          "start": 16270,
+          "end": 16830
+        }
+      ]
+    },
+    {
+      "start": 17150,
+      "end": 18430,
+      "text": "Brønnen også en rev",
+      "turkish": "Kuyu da bir tilki.",
+      "words": [
+        {
+          "text": "Kuyu",
+          "start": 17150,
+          "end": 17390
+        },
+        {
+          "text": "da",
+          "start": 17390,
+          "end": 17550
+        },
+        {
+          "text": "bir",
+          "start": 17550,
+          "end": 17710
+        },
+        {
+          "text": "tilki.",
+          "start": 17710,
+          "end": 18430
+        }
+      ],
+      "chunks": [
+        {
+          "text": "Brønnen",
+          "start": 17150,
+          "end": 17390
+        },
+        {
+          "text": "også",
+          "start": 17390,
+          "end": 17550
+        },
+        {
+          "text": "en",
+          "start": 17550,
+          "end": 17710
+        },
+        {
+          "text": "rev",
+          "start": 17710,
+          "end": 18430
+        }
+      ]
+    },
+    {
+      "start": 18830,
+      "end": 21030,
+      "text": "med en gang spurte (visstnok/ifølge fortellingen) han dette vannet godt",
+      "turkish": "Hemen sormuş: “Bu su iyi",
+      "words": [
+        {
+          "text": "Hemen",
+          "start": 18830,
+          "end": 19230
+        },
+        {
+          "text": "sormuş:",
+          "start": 19310,
+          "end": 19990
+        },
+        {
+          "text": "“Bu",
+          "start": 20430,
+          "end": 20590
+        },
+        {
+          "text": "su",
+          "start": 20590,
+          "end": 20830
+        },
+        {
+          "text": "iyi",
+          "start": 20910,
+          "end": 21030
+        }
+      ],
+      "chunks": [
+        {
+          "text": "med en gang",
+          "start": 18830,
+          "end": 19230
+        },
+        {
+          "text": "spurte (visstnok/ifølge fortellingen) han",
+          "start": 19310,
+          "end": 19990
+        },
+        {
+          "text": "dette",
+          "start": 20430,
+          "end": 20590
+        },
+        {
+          "text": "vannet",
+          "start": 20590,
+          "end": 20830
+        },
+        {
+          "text": "godt",
+          "start": 20910,
+          "end": 21030
+        }
+      ]
+    },
+    {
+      "start": 21070,
+      "end": 21390,
+      "text": "(spørrepartikkel)",
+      "turkish": "mi?",
+      "words": [
+        {
+          "text": "mi?",
+          "start": 21070,
+          "end": 21390
+        }
+      ],
+      "chunks": [
+        {
+          "text": "(spørrepartikkel)",
+          "start": 21070,
+          "end": 21390
+        }
+      ]
+    },
+    {
+      "start": 21630,
+      "end": 23950,
+      "text": "drikkes / kan man drikke spørrepartikkel reven hånlig / spottende",
+      "turkish": "İçilir mi?” Tilki pınazca",
+      "words": [
+        {
+          "text": "İçilir",
+          "start": 21630,
+          "end": 22030
+        },
+        {
+          "text": "mi?”",
+          "start": 22030,
+          "end": 22430
+        },
+        {
+          "text": "Tilki",
+          "start": 22990,
+          "end": 23390
+        },
+        {
+          "text": "pınazca",
+          "start": 23390,
+          "end": 23950
+        }
+      ],
+      "chunks": [
+        {
+          "text": "drikkes / kan man drikke",
+          "start": 21630,
+          "end": 22030
+        },
+        {
+          "text": "spørrepartikkel",
+          "start": 22030,
+          "end": 22430
+        },
+        {
+          "text": "reven",
+          "start": 22990,
+          "end": 23390
+        },
+        {
+          "text": "hånlig / spottende",
+          "start": 23390,
+          "end": 23950
+        }
+      ]
+    },
+    {
+      "start": 24030,
+      "end": 24350,
+      "text": "lo (visstnok/det viste seg)",
+      "turkish": "gülmüş.",
+      "words": [
+        {
+          "text": "gülmüş.",
+          "start": 24030,
+          "end": 24350
+        }
+      ],
+      "chunks": [
+        {
+          "text": "lo (visstnok/det viste seg)",
+          "start": 24030,
+          "end": 24350
+        }
+      ]
+    },
+    {
+      "start": 24750,
+      "end": 26470,
+      "text": "så, deretter også/i tillegg vannet en gang roste (fortalt) en gang til",
+      "turkish": "Sonra da suyu bir övmüş, bir",
+      "words": [
+        {
+          "text": "Sonra",
+          "start": 24750,
+          "end": 25110
+        },
+        {
+          "text": "da",
+          "start": 25110,
+          "end": 25230
+        },
+        {
+          "text": "suyu",
+          "start": 25230,
+          "end": 25550
+        },
+        {
+          "text": "bir",
+          "start": 25550,
+          "end": 25790
+        },
+        {
+          "text": "övmüş,",
+          "start": 25790,
+          "end": 26150
+        },
+        {
+          "text": "bir",
+          "start": 26190,
+          "end": 26470
+        }
+      ],
+      "chunks": [
+        {
+          "text": "så, deretter",
+          "start": 24750,
+          "end": 25110
+        },
+        {
+          "text": "også/i tillegg",
+          "start": 25110,
+          "end": 25230
+        },
+        {
+          "text": "vannet",
+          "start": 25230,
+          "end": 25550
+        },
+        {
+          "text": "en gang",
+          "start": 25550,
+          "end": 25790
+        },
+        {
+          "text": "roste (fortalt)",
+          "start": 25790,
+          "end": 26150
+        },
+        {
+          "text": "en gang til",
+          "start": 26190,
+          "end": 26470
+        }
+      ]
+    },
+    {
+      "start": 26470,
+      "end": 29030,
+      "text": "roste (fortalt) slik at bukkens munnens vannet rant (fortalt)",
+      "turkish": "övmüş ki tekenin ağzının suyu akmış.",
+      "words": [
+        {
+          "text": "övmüş",
+          "start": 26470,
+          "end": 26710
+        },
+        {
+          "text": "ki",
+          "start": 26750,
+          "end": 27070
+        },
+        {
+          "text": "tekenin",
+          "start": 27230,
+          "end": 27750
+        },
+        {
+          "text": "ağzının",
+          "start": 27790,
+          "end": 28310
+        },
+        {
+          "text": "suyu",
+          "start": 28350,
+          "end": 28710
+        },
+        {
+          "text": "akmış.",
+          "start": 28710,
+          "end": 29030
+        }
+      ],
+      "chunks": [
+        {
+          "text": "roste (fortalt)",
+          "start": 26470,
+          "end": 26710
+        },
+        {
+          "text": "slik at",
+          "start": 26750,
+          "end": 27070
+        },
+        {
+          "text": "bukkens",
+          "start": 27230,
+          "end": 27750
+        },
+        {
+          "text": "munnens",
+          "start": 27790,
+          "end": 28310
+        },
+        {
+          "text": "vannet",
+          "start": 28350,
+          "end": 28710
+        },
+        {
+          "text": "rant (fortalt)",
+          "start": 28710,
+          "end": 29030
+        }
+      ]
+    },
+    {
+      "start": 30830,
+      "end": 33990,
+      "text": "kom igjen ikke nøl gå ned nedover da han/den sa bukken i brønnen",
+      "turkish": "“Hadi durma, in aşağı!” diyince teke kuyuya",
+      "words": [
+        {
+          "text": "“Hadi",
+          "start": 30830,
+          "end": 31150
+        },
+        {
+          "text": "durma,",
+          "start": 31150,
+          "end": 31470
+        },
+        {
+          "text": "in",
+          "start": 31470,
+          "end": 31630
+        },
+        {
+          "text": "aşağı!”",
+          "start": 31630,
+          "end": 32030
+        },
+        {
+          "text": "diyince",
+          "start": 32430,
+          "end": 33150
+        },
+        {
+          "text": "teke",
+          "start": 33310,
+          "end": 33590
+        },
+        {
+          "text": "kuyuya",
+          "start": 33630,
+          "end": 33990
+        }
+      ],
+      "chunks": [
+        {
+          "text": "kom igjen",
+          "start": 30830,
+          "end": 31150
+        },
+        {
+          "text": "ikke nøl",
+          "start": 31150,
+          "end": 31470
+        },
+        {
+          "text": "gå ned",
+          "start": 31470,
+          "end": 31630
+        },
+        {
+          "text": "nedover",
+          "start": 31630,
+          "end": 32030
+        },
+        {
+          "text": "da han/den sa",
+          "start": 32430,
+          "end": 33150
+        },
+        {
+          "text": "bukken",
+          "start": 33310,
+          "end": 33590
+        },
+        {
+          "text": "i brønnen",
+          "start": 33630,
+          "end": 33990
+        }
+      ]
+    },
+    {
+      "start": 34310,
+      "end": 34510,
+      "text": "gikk visstnok ned",
+      "turkish": "inmiş.",
+      "words": [
+        {
+          "text": "inmiş.",
+          "start": 34310,
+          "end": 34510
+        }
+      ],
+      "chunks": [
+        {
+          "text": "gikk visstnok ned",
+          "start": 34310,
+          "end": 34510
+        }
+      ]
+    },
+    {
+      "start": 34830,
+      "end": 36750,
+      "text": "til man er utpreget mett/full (av å drikke) vann etter å ha drukket etter",
+      "turkish": "Kana kana su içtikten sonra",
+      "words": [
+        {
+          "text": "Kana",
+          "start": 34830,
+          "end": 35150
+        },
+        {
+          "text": "kana",
+          "start": 35150,
+          "end": 35430
+        },
+        {
+          "text": "su",
+          "start": 35430,
+          "end": 35630
+        },
+        {
+          "text": "içtikten",
+          "start": 35630,
+          "end": 36270
+        },
+        {
+          "text": "sonra",
+          "start": 36310,
+          "end": 36750
+        }
+      ],
+      "chunks": [
+        {
+          "text": "til man er utpreget mett/full (av å drikke)",
+          "start": 34830,
+          "end": 35430
+        },
+        {
+          "text": "vann",
+          "start": 35430,
+          "end": 35630
+        },
+        {
+          "text": "etter å ha drukket",
+          "start": 35630,
+          "end": 36270
+        },
+        {
+          "text": "etter",
+          "start": 36310,
+          "end": 36750
+        }
+      ]
+    },
+    {
+      "start": 36910,
+      "end": 38070,
+      "text": "forstanden hans til hodet hans kom (visstnok/tydeligvis)",
+      "turkish": "aklı başına gelmiş.",
+      "words": [
+        {
+          "text": "aklı",
+          "start": 36910,
+          "end": 37270
+        },
+        {
+          "text": "başına",
+          "start": 37270,
+          "end": 37630
+        },
+        {
+          "text": "gelmiş.",
+          "start": 37630,
+          "end": 38070
+        }
+      ],
+      "chunks": [
+        {
+          "text": "forstanden hans",
+          "start": 36910,
+          "end": 37270
+        },
+        {
+          "text": "til hodet hans",
+          "start": 37270,
+          "end": 37630
+        },
+        {
+          "text": "kom (visstnok/tydeligvis)",
+          "start": 37630,
+          "end": 38070
+        }
+      ]
+    },
+    {
+      "start": 38670,
+      "end": 42550,
+      "text": "reven æsj / æh hvordan skal vi komme ut herfra og sa skal ha spurt",
+      "turkish": "Tilki, “Ee, nasıl çıkacağız buradan?” diye sormuş.",
+      "words": [
+        {
+          "text": "Tilki,",
+          "start": 38670,
+          "end": 39310
+        },
+        {
+          "text": "“Ee,",
+          "start": 39950,
+          "end": 40030
+        },
+        {
+          "text": "nasıl",
+          "start": 40110,
+          "end": 40510
+        },
+        {
+          "text": "çıkacağız",
+          "start": 40510,
+          "end": 40990
+        },
+        {
+          "text": "buradan?”",
+          "start": 41030,
+          "end": 41430
+        },
+        {
+          "text": "diye",
+          "start": 41790,
+          "end": 41990
+        },
+        {
+          "text": "sormuş.",
+          "start": 42030,
+          "end": 42550
+        }
+      ],
+      "chunks": [
+        {
+          "text": "reven",
+          "start": 38670,
+          "end": 39310
+        },
+        {
+          "text": "æsj / æh",
+          "start": 39950,
+          "end": 40030
+        },
+        {
+          "text": "hvordan",
+          "start": 40110,
+          "end": 40510
+        },
+        {
+          "text": "skal vi komme ut",
+          "start": 40510,
+          "end": 40990
+        },
+        {
+          "text": "herfra",
+          "start": 41030,
+          "end": 41430
+        },
+        {
+          "text": "og sa",
+          "start": 41790,
+          "end": 41990
+        },
+        {
+          "text": "skal ha spurt",
+          "start": 42030,
+          "end": 42550
+        }
+      ]
+    },
+    {
+      "start": 43310,
+      "end": 43830,
+      "text": "du i det hele tatt",
+      "turkish": "“Sen hiç",
+      "words": [
+        {
+          "text": "“Sen",
+          "start": 43310,
+          "end": 43430
+        },
+        {
+          "text": "hiç",
+          "start": 43470,
+          "end": 43830
+        }
+      ],
+      "chunks": [
+        {
+          "text": "du",
+          "start": 43310,
+          "end": 43430
+        },
+        {
+          "text": "i det hele tatt",
+          "start": 43470,
+          "end": 43830
+        }
+      ]
+    },
+    {
+      "start": 44830,
+      "end": 48430,
+      "text": "ikke bekymre deg jeg herfra oss begge også/begge å redde veien/måten jeg vet",
+      "turkish": "merak etme, ben buradan ikimizi de kurtarmanın yolunu biliyorum.",
+      "words": [
+        {
+          "text": "merak",
+          "start": 44830,
+          "end": 45230
+        },
+        {
+          "text": "etme,",
+          "start": 45230,
+          "end": 45630
+        },
+        {
+          "text": "ben",
+          "start": 45790,
+          "end": 46030
+        },
+        {
+          "text": "buradan",
+          "start": 46030,
+          "end": 46390
+        },
+        {
+          "text": "ikimizi",
+          "start": 46390,
+          "end": 46790
+        },
+        {
+          "text": "de",
+          "start": 46790,
+          "end": 46910
+        },
+        {
+          "text": "kurtarmanın",
+          "start": 46910,
+          "end": 47550
+        },
+        {
+          "text": "yolunu",
+          "start": 47550,
+          "end": 47910
+        },
+        {
+          "text": "biliyorum.",
+          "start": 47910,
+          "end": 48430
+        }
+      ],
+      "chunks": [
+        {
+          "text": "ikke bekymre deg",
+          "start": 44830,
+          "end": 45630
+        },
+        {
+          "text": "jeg",
+          "start": 45790,
+          "end": 46030
+        },
+        {
+          "text": "herfra",
+          "start": 46030,
+          "end": 46390
+        },
+        {
+          "text": "oss begge",
+          "start": 46390,
+          "end": 46790
+        },
+        {
+          "text": "også/begge",
+          "start": 46790,
+          "end": 46910
+        },
+        {
+          "text": "å redde",
+          "start": 46910,
+          "end": 47550
+        },
+        {
+          "text": "veien/måten",
+          "start": 47550,
+          "end": 47910
+        },
+        {
+          "text": "jeg vet",
+          "start": 47910,
+          "end": 48430
+        }
+      ]
+    },
+    {
+      "start": 48670,
+      "end": 52150,
+      "text": "du nå reiser deg opp (og) fram- forbeina sine mot veggen lener skuldrene sine og",
+      "turkish": "Sen şimdi doğrulup ön ayaklarını duvara dayar, omuzlarını da",
+      "words": [
+        {
+          "text": "Sen",
+          "start": 48670,
+          "end": 48910
+        },
+        {
+          "text": "şimdi",
+          "start": 49030,
+          "end": 49230
+        },
+        {
+          "text": "doğrulup",
+          "start": 49230,
+          "end": 49710
+        },
+        {
+          "text": "ön",
+          "start": 49710,
+          "end": 49950
+        },
+        {
+          "text": "ayaklarını",
+          "start": 49950,
+          "end": 50470
+        },
+        {
+          "text": "duvara",
+          "start": 50470,
+          "end": 50790
+        },
+        {
+          "text": "dayar,",
+          "start": 50830,
+          "end": 51230
+        },
+        {
+          "text": "omuzlarını",
+          "start": 51470,
+          "end": 52070
+        },
+        {
+          "text": "da",
+          "start": 52070,
+          "end": 52150
+        }
+      ],
+      "chunks": [
+        {
+          "text": "du",
+          "start": 48670,
+          "end": 48910
+        },
+        {
+          "text": "nå",
+          "start": 49030,
+          "end": 49230
+        },
+        {
+          "text": "reiser deg opp (og)",
+          "start": 49230,
+          "end": 49710
+        },
+        {
+          "text": "fram-",
+          "start": 49710,
+          "end": 49950
+        },
+        {
+          "text": "forbeina sine",
+          "start": 49950,
+          "end": 50470
+        },
+        {
+          "text": "mot veggen",
+          "start": 50470,
+          "end": 50790
+        },
+        {
+          "text": "lener",
+          "start": 50830,
+          "end": 51230
+        },
+        {
+          "text": "skuldrene sine",
+          "start": 51470,
+          "end": 52070
+        },
+        {
+          "text": "og",
+          "start": 52070,
+          "end": 52150
+        }
+      ]
+    },
+    {
+      "start": 52150,
+      "end": 52990,
+      "text": "opp i luften stikker du opp",
+      "turkish": "havaya dikersin.",
+      "words": [
+        {
+          "text": "havaya",
+          "start": 52150,
+          "end": 52430
+        },
+        {
+          "text": "dikersin.",
+          "start": 52470,
+          "end": 52990
+        }
+      ],
+      "chunks": [
+        {
+          "text": "opp i luften",
+          "start": 52150,
+          "end": 52430
+        },
+        {
+          "text": "stikker du opp",
+          "start": 52470,
+          "end": 52990
+        }
+      ]
+    },
+    {
+      "start": 53390,
+      "end": 55830,
+      "text": "jeg også klatrer (og) kommer opp så, deretter deg jeg drar/trekker",
+      "turkish": "Ben de tırmanıp çıkar, sonra seni çekerim.”",
+      "words": [
+        {
+          "text": "Ben",
+          "start": 53390,
+          "end": 53630
+        },
+        {
+          "text": "de",
+          "start": 53630,
+          "end": 53710
+        },
+        {
+          "text": "tırmanıp",
+          "start": 53710,
+          "end": 54190
+        },
+        {
+          "text": "çıkar,",
+          "start": 54230,
+          "end": 54670
+        },
+        {
+          "text": "sonra",
+          "start": 54790,
+          "end": 55150
+        },
+        {
+          "text": "seni",
+          "start": 55150,
+          "end": 55390
+        },
+        {
+          "text": "çekerim.”",
+          "start": 55390,
+          "end": 55830
+        }
+      ],
+      "chunks": [
+        {
+          "text": "jeg",
+          "start": 53390,
+          "end": 53630
+        },
+        {
+          "text": "også",
+          "start": 53630,
+          "end": 53710
+        },
+        {
+          "text": "klatrer (og)",
+          "start": 53710,
+          "end": 54190
+        },
+        {
+          "text": "kommer opp",
+          "start": 54230,
+          "end": 54670
+        },
+        {
+          "text": "så, deretter",
+          "start": 54790,
+          "end": 55150
+        },
+        {
+          "text": "deg",
+          "start": 55150,
+          "end": 55390
+        },
+        {
+          "text": "jeg drar/trekker",
+          "start": 55390,
+          "end": 55830
+        }
+      ]
+    },
+    {
+      "start": 56550,
+      "end": 56910,
+      "text": "sier man / det sies",
+      "turkish": "denir.",
+      "words": [
+        {
+          "text": "denir.",
+          "start": 56550,
+          "end": 56910
+        }
+      ],
+      "chunks": [
+        {
+          "text": "sier man / det sies",
+          "start": 56550,
+          "end": 56910
+        }
+      ]
+    },
+    {
+      "start": 57870,
+      "end": 59390,
+      "text": "bukken denne ideen/forstanden veldig likte (visstnok)",
+      "turkish": "Teke bu aklı çok beğenmiş.",
+      "words": [
+        {
+          "text": "Teke",
+          "start": 57870,
+          "end": 58230
+        },
+        {
+          "text": "bu",
+          "start": 58230,
+          "end": 58310
+        },
+        {
+          "text": "aklı",
+          "start": 58350,
+          "end": 58670
+        },
+        {
+          "text": "çok",
+          "start": 58670,
+          "end": 58910
+        },
+        {
+          "text": "beğenmiş.",
+          "start": 58950,
+          "end": 59390
+        }
+      ],
+      "chunks": [
+        {
+          "text": "bukken",
+          "start": 57870,
+          "end": 58230
+        },
+        {
+          "text": "denne",
+          "start": 58230,
+          "end": 58310
+        },
+        {
+          "text": "ideen/forstanden",
+          "start": 58350,
+          "end": 58670
+        },
+        {
+          "text": "veldig",
+          "start": 58670,
+          "end": 58910
+        },
+        {
+          "text": "likte (visstnok)",
+          "start": 58950,
+          "end": 59390
+        }
+      ]
+    },
+    {
+      "start": 59790,
+      "end": 60790,
+      "text": "straks enig/samtykkende ble (visstnok)",
+      "turkish": "hemen razı olmuş.",
+      "words": [
+        {
+          "text": "hemen",
+          "start": 59790,
+          "end": 60070
+        },
+        {
+          "text": "razı",
+          "start": 60070,
+          "end": 60390
+        },
+        {
+          "text": "olmuş.",
+          "start": 60390,
+          "end": 60790
+        }
+      ],
+      "chunks": [
+        {
+          "text": "straks",
+          "start": 59790,
+          "end": 60070
+        },
+        {
+          "text": "enig/samtykkende",
+          "start": 60070,
+          "end": 60390
+        },
+        {
+          "text": "ble (visstnok)",
+          "start": 60390,
+          "end": 60790
+        }
+      ]
+    },
+    {
+      "start": 61350,
+      "end": 65150,
+      "text": "Reven bukkens fra bena (hans) til skuldrene (hans) og så til hodet (hans)",
+      "turkish": "Tilki, Teke’nin bacaklarından omuzlarına, sonra da başına",
+      "words": [
+        {
+          "text": "Tilki,",
+          "start": 61350,
+          "end": 61830
+        },
+        {
+          "text": "Teke’nin",
+          "start": 62070,
+          "end": 62510
+        },
+        {
+          "text": "bacaklarından",
+          "start": 62590,
+          "end": 63350
+        },
+        {
+          "text": "omuzlarına,",
+          "start": 63510,
+          "end": 64150
+        },
+        {
+          "text": "sonra",
+          "start": 64470,
+          "end": 64710
+        },
+        {
+          "text": "da",
+          "start": 64710,
+          "end": 64830
+        },
+        {
+          "text": "başına",
+          "start": 64830,
+          "end": 65150
+        }
+      ],
+      "chunks": [
+        {
+          "text": "Reven",
+          "start": 61350,
+          "end": 61830
+        },
+        {
+          "text": "bukkens",
+          "start": 62070,
+          "end": 62510
+        },
+        {
+          "text": "fra bena (hans)",
+          "start": 62590,
+          "end": 63350
+        },
+        {
+          "text": "til skuldrene (hans)",
+          "start": 63510,
+          "end": 64150
+        },
+        {
+          "text": "og så",
+          "start": 64470,
+          "end": 64830
+        },
+        {
+          "text": "til hodet (hans)",
+          "start": 64830,
+          "end": 65150
+        }
+      ]
+    },
+    {
+      "start": 65230,
+      "end": 66710,
+      "text": "og hoppet fra brønnen skal ha kommet ut/kom ut (ifølge fortellingen)",
+      "turkish": "atlayıp kuyudan çıkmış.",
+      "words": [
+        {
+          "text": "atlayıp",
+          "start": 65230,
+          "end": 65550
+        },
+        {
+          "text": "kuyudan",
+          "start": 65870,
+          "end": 66390
+        },
+        {
+          "text": "çıkmış.",
+          "start": 66390,
+          "end": 66710
+        }
+      ],
+      "chunks": [
+        {
+          "text": "og hoppet",
+          "start": 65230,
+          "end": 65550
+        },
+        {
+          "text": "fra brønnen",
+          "start": 65870,
+          "end": 66390
+        },
+        {
+          "text": "skal ha kommet ut/kom ut (ifølge fortellingen)",
+          "start": 66390,
+          "end": 66710
+        }
+      ]
+    },
+    {
+      "start": 67430,
+      "end": 68870,
+      "text": "med det samme derfra fjernet seg (visstnok/ifølge andre)",
+      "turkish": "Hemen oradan uzaklaşmış.",
+      "words": [
+        {
+          "text": "Hemen",
+          "start": 67430,
+          "end": 67750
+        },
+        {
+          "text": "oradan",
+          "start": 67750,
+          "end": 68070
+        },
+        {
+          "text": "uzaklaşmış.",
+          "start": 68070,
+          "end": 68870
+        }
+      ],
+      "chunks": [
+        {
+          "text": "med det samme",
+          "start": 67430,
+          "end": 67750
+        },
+        {
+          "text": "derfra",
+          "start": 67750,
+          "end": 68070
+        },
+        {
+          "text": "fjernet seg (visstnok/ifølge andre)",
+          "start": 68070,
+          "end": 68870
+        }
+      ]
+    },
+    {
+      "start": 70710,
+      "end": 73350,
+      "text": "Stopp! hvor (til) går du sa han/hun (visstnok)",
+      "turkish": "“Dur! Nereye gidiyorsun?” demiş.",
+      "words": [
+        {
+          "text": "“Dur!",
+          "start": 70710,
+          "end": 71190
+        },
+        {
+          "text": "Nereye",
+          "start": 71270,
+          "end": 71670
+        },
+        {
+          "text": "gidiyorsun?”",
+          "start": 71670,
+          "end": 72550
+        },
+        {
+          "text": "demiş.",
+          "start": 73030,
+          "end": 73350
+        }
+      ],
+      "chunks": [
+        {
+          "text": "Stopp!",
+          "start": 70710,
+          "end": 71190
+        },
+        {
+          "text": "hvor (til)",
+          "start": 71270,
+          "end": 71670
+        },
+        {
+          "text": "går du",
+          "start": 71670,
+          "end": 72550
+        },
+        {
+          "text": "sa han/hun (visstnok)",
+          "start": 73030,
+          "end": 73350
+        }
+      ]
+    },
+    {
+      "start": 73990,
+      "end": 77950,
+      "text": "dette (akkusativ) som hørte reven tilbake snudde (visstnok) og: å geitebukk! din",
+      "turkish": "Bunu duyan tilki geri dönmüş ve: “Ey Teke! Senin",
+      "words": [
+        {
+          "text": "Bunu",
+          "start": 73990,
+          "end": 74310
+        },
+        {
+          "text": "duyan",
+          "start": 74310,
+          "end": 74630
+        },
+        {
+          "text": "tilki",
+          "start": 74630,
+          "end": 74950
+        },
+        {
+          "text": "geri",
+          "start": 75030,
+          "end": 75270
+        },
+        {
+          "text": "dönmüş",
+          "start": 75270,
+          "end": 75750
+        },
+        {
+          "text": "ve:",
+          "start": 75750,
+          "end": 76070
+        },
+        {
+          "text": "“Ey",
+          "start": 76710,
+          "end": 77030
+        },
+        {
+          "text": "Teke!",
+          "start": 77030,
+          "end": 77510
+        },
+        {
+          "text": "Senin",
+          "start": 77670,
+          "end": 77950
+        }
+      ],
+      "chunks": [
+        {
+          "text": "dette (akkusativ)",
+          "start": 73990,
+          "end": 74310
+        },
+        {
+          "text": "som hørte",
+          "start": 74310,
+          "end": 74630
+        },
+        {
+          "text": "reven",
+          "start": 74630,
+          "end": 74950
+        },
+        {
+          "text": "tilbake",
+          "start": 75030,
+          "end": 75270
+        },
+        {
+          "text": "snudde (visstnok)",
+          "start": 75270,
+          "end": 75750
+        },
+        {
+          "text": "og:",
+          "start": 75750,
+          "end": 76070
+        },
+        {
+          "text": "å",
+          "start": 76710,
+          "end": 77030
+        },
+        {
+          "text": "geitebukk!",
+          "start": 77030,
+          "end": 77510
+        },
+        {
+          "text": "din",
+          "start": 77670,
+          "end": 77950
+        }
+      ]
+    },
+    {
+      "start": 78110,
+      "end": 80390,
+      "text": "som er på haken din hår like mye som i hodet ditt også forstand",
+      "turkish": "çenendeki kıllar kadar kafanda da akıl",
+      "words": [
+        {
+          "text": "çenendeki",
+          "start": 78110,
+          "end": 78630
+        },
+        {
+          "text": "kıllar",
+          "start": 78630,
+          "end": 79030
+        },
+        {
+          "text": "kadar",
+          "start": 79030,
+          "end": 79350
+        },
+        {
+          "text": "kafanda",
+          "start": 79510,
+          "end": 79990
+        },
+        {
+          "text": "da",
+          "start": 79990,
+          "end": 80110
+        },
+        {
+          "text": "akıl",
+          "start": 80110,
+          "end": 80390
+        }
+      ],
+      "chunks": [
+        {
+          "text": "som er på haken din",
+          "start": 78110,
+          "end": 78630
+        },
+        {
+          "text": "hår",
+          "start": 78630,
+          "end": 79030
+        },
+        {
+          "text": "like mye som",
+          "start": 79030,
+          "end": 79350
+        },
+        {
+          "text": "i hodet ditt",
+          "start": 79510,
+          "end": 79990
+        },
+        {
+          "text": "også",
+          "start": 79990,
+          "end": 80110
+        },
+        {
+          "text": "forstand",
+          "start": 80110,
+          "end": 80390
+        }
+      ]
+    },
+    {
+      "start": 80430,
+      "end": 82870,
+      "text": "hvis det hadde vært hvordan at (jeg) skulle komme ut uten å tenke denne",
+      "turkish": "olsaydı nasıl çıkacağını düşünmeden bu",
+      "words": [
+        {
+          "text": "olsaydı",
+          "start": 80430,
+          "end": 80950
+        },
+        {
+          "text": "nasıl",
+          "start": 81110,
+          "end": 81430
+        },
+        {
+          "text": "çıkacağını",
+          "start": 81430,
+          "end": 81950
+        },
+        {
+          "text": "düşünmeden",
+          "start": 81950,
+          "end": 82630
+        },
+        {
+          "text": "bu",
+          "start": 82710,
+          "end": 82870
+        }
+      ],
+      "chunks": [
+        {
+          "text": "hvis det hadde vært",
+          "start": 80430,
+          "end": 80950
+        },
+        {
+          "text": "hvordan",
+          "start": 81110,
+          "end": 81430
+        },
+        {
+          "text": "at (jeg) skulle komme ut",
+          "start": 81430,
+          "end": 81950
+        },
+        {
+          "text": "uten å tenke",
+          "start": 81950,
+          "end": 82630
+        },
+        {
+          "text": "denne",
+          "start": 82710,
+          "end": 82870
+        }
+      ]
+    },
+    {
+      "start": 82870,
+      "end": 84790,
+      "text": "ned i brønnen ville jeg ikke ha steget ned. sa (hun/han), visstnok.",
+      "turkish": "kuyuya inmezdim.” demiş.",
+      "words": [
+        {
+          "text": "kuyuya",
+          "start": 82870,
+          "end": 83190
+        },
+        {
+          "text": "inmezdim.”",
+          "start": 83310,
+          "end": 83990
+        },
+        {
+          "text": "demiş.",
+          "start": 84310,
+          "end": 84790
+        }
+      ],
+      "chunks": [
+        {
+          "text": "ned i brønnen",
+          "start": 82870,
+          "end": 83190
+        },
+        {
+          "text": "ville jeg ikke ha steget ned.",
+          "start": 83310,
+          "end": 83990
+        },
+        {
+          "text": "sa (hun/han), visstnok.",
+          "start": 84310,
+          "end": 84790
+        }
+      ]
+    },
+    {
+      "start": 84870,
+      "end": 88590,
+      "text": "vær bare dere selv / ta det med ro den greia sin hva at det skal bli",
+      "turkish": "Siz siz olun, sununun ne olacağını",
+      "words": [
+        {
+          "text": "Siz",
+          "start": 84870,
+          "end": 85190
+        },
+        {
+          "text": "siz",
+          "start": 85910,
+          "end": 86710
+        },
+        {
+          "text": "olun,",
+          "start": 86710,
+          "end": 87110
+        },
+        {
+          "text": "sununun",
+          "start": 87350,
+          "end": 87870
+        },
+        {
+          "text": "ne",
+          "start": 87870,
+          "end": 87990
+        },
+        {
+          "text": "olacağını",
+          "start": 88150,
+          "end": 88590
+        }
+      ],
+      "chunks": [
+        {
+          "text": "vær bare dere selv / ta det med ro",
+          "start": 84870,
+          "end": 87110
+        },
+        {
+          "text": "den greia sin",
+          "start": 87350,
+          "end": 87870
+        },
+        {
+          "text": "hva",
+          "start": 87870,
+          "end": 87990
+        },
+        {
+          "text": "at det skal bli",
+          "start": 88150,
+          "end": 88590
+        }
+      ]
+    },
+    {
+      "start": 88590,
+      "end": 89350,
+      "text": "uten å tenke",
+      "turkish": "düşünmeden",
+      "words": [
+        {
+          "text": "düşünmeden",
+          "start": 88590,
+          "end": 89350
+        }
+      ],
+      "chunks": [
+        {
+          "text": "uten å tenke",
+          "start": 88590,
+          "end": 89350
+        }
+      ]
+    },
+    {
+      "start": 89550,
+      "end": 90950,
+      "text": "ingen/noe som helst på arbeid ikke begynn",
+      "turkish": "Hiçbir işe girişmeyin.",
+      "words": [
+        {
+          "text": "Hiçbir",
+          "start": 89550,
+          "end": 89910
+        },
+        {
+          "text": "işe",
+          "start": 89910,
+          "end": 90150
+        },
+        {
+          "text": "girişmeyin.",
+          "start": 90230,
+          "end": 90950
+        }
+      ],
+      "chunks": [
+        {
+          "text": "ingen/noe som helst",
+          "start": 89550,
+          "end": 89910
+        },
+        {
+          "text": "på arbeid",
+          "start": 89910,
+          "end": 90150
+        },
+        {
+          "text": "ikke begynn",
+          "start": 90230,
+          "end": 90950
+        }
+      ]
+    }
+  ]
+}

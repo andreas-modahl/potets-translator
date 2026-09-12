@@ -261,3 +261,9 @@ after the model choice.
 | `src/users.ts` | Logged-in learners and their synced chests |
 | `src/languages.ts` | Language name normalisation and flag labels |
 | `src/limiter.ts` | Concurrency cap |
+| `src/storybook.ts` | Shared Turkish stories and validated Norwegian subtitles |
+| `storybook/` | Bundled story audio, translations, exports, and original source links |
+
+The subtitle page includes the shared [storybook](storybook/README.md) for all
+visitors. Its files ship with the repository and Docker image; no production
+transcription is needed. Saving edits to a shared story creates a private copy.

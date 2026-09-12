@@ -21,6 +21,7 @@ let controller;
 let cues = [];
 let pages = [];
 let savedId;
+let sharedStory = false;
 let sourceName = '';
 let dirty = false;
 let revision = 0;
@@ -213,14 +214,14 @@ window.addEventListener('beforeunload', event => { if (dirty) { event.preventDef
 async function loadLibrary() {
   try {
     const data = await json('/api/subtitle-library');
-    storage = true;
+    storage = data.storage !== false;
     $('library-status').textContent = data.scope === 'local' ? '' : data.scope === 'account'
       ? 'Lagret på kontoen din.' : 'Lagret for denne nettleseren. Behold informasjonskapslene for å finne dem igjen.';
     $('library').replaceChildren();
     if (!data.items.length) $('library-status').textContent += ' Ingen undertekster ennå.';
     for (const item of data.items) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'ghost';
-      button.textContent = `${item.title} · ${new Date(item.updated).toLocaleDateString('nb-NO')}`;
+      button.textContent = item.shared ? `${item.title} · Fortelling` : `${item.title} · ${new Date(item.updated).toLocaleDateString('nb-NO')}`;
       button.onclick = () => { if (!busy && !saving) navigate('play', item.id); };
       $('library').append(button);
     }
@@ -237,12 +238,14 @@ function openSaved(saved) {
   if (mediaUrl) URL.revokeObjectURL(mediaUrl);
   mediaUrl = undefined; fileInput.value = ''; $('playback-file').value = '';
   savedId = saved.id; sourceName = saved.source; cues = saved.cues;
+  sharedStory = Boolean(saved.shared);
+  $('save-subtitles').textContent = sharedStory ? 'Lagre egen kopi' : 'Lagre endringer';
   $('subtitle-title').value = saved.title;
   dirty = false; revision += 1;
   renderCues(); $('preview').hidden = false;
   showSelection('playback-selection', 'Valgte undertekster: ', saved.title);
   $('selected-media').hidden = !saved.audioUrl;
-  showSelection('selected-media', 'Valgt media: ', saved.audioUrl ? sourceName : '', saved.audioUrl ? ' (funnet automatisk i example)' : '');
+  showSelection('selected-media', 'Valgt media: ', saved.audioUrl ? sourceName : '', saved.audioUrl ? ' (fra storybook)' : '');
   showUpload(false);
   $('playback-label').textContent = `Velg originalfilen «${sourceName}» for avspilling (ingen ny oversettelse)`;
   if (saved.audioUrl) {
@@ -283,11 +286,19 @@ $('save-subtitles').onclick = async () => {
     validateCues(cues); saving = true;
     const version = revision;
     $('save-status').textContent = 'Lagrer …';
-    const saved = await json('/api/subtitle-library' + (savedId ? `/${encodeURIComponent(savedId)}` : ''), {
-      method: savedId ? 'PUT' : 'POST', headers: { 'content-type': 'application/json' },
+    const updateId = sharedStory ? undefined : savedId;
+    const saved = await json('/api/subtitle-library' + (updateId ? `/${encodeURIComponent(updateId)}` : ''), {
+      method: updateId ? 'PUT' : 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ title: $('subtitle-title').value, source: sourceName, cues }),
     });
     savedId = saved.id;
+    sharedStory = false;
+    $('save-subtitles').textContent = 'Lagre endringer';
+    const url = new URL(location.href);
+    if (url.searchParams.get('view') === 'play') {
+      url.searchParams.set('subtitle', savedId);
+      history.replaceState(history.state, '', url);
+    }
     if (revision === version) { dirty = false; $('save-status').textContent = 'Lagret'; }
     else $('save-status').textContent = 'Ulagrede endringer';
     await loadLibrary();
@@ -481,7 +492,7 @@ function renderCues() {
 
 fileInput.addEventListener('change', () => {
   if (!canReplace()) { fileInput.value = ''; return; }
-  savedId = undefined; dirty = false;
+  savedId = undefined; sharedStory = false; dirty = false;
   cues = []; clearTrack(); showEditor(false); $('subtitle-actions').hidden = true;
   if (mediaUrl) URL.revokeObjectURL(mediaUrl);
   const file = fileInput.files[0];

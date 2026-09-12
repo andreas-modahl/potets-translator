@@ -1,19 +1,13 @@
 import { createHash } from 'node:crypto';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { config } from './config.js';
 import { parseCookies, randomToken, serializeCookie } from './session.js';
 import { SubtitleStore } from './subtitle-store.js';
 import { SubtitleError } from './subtitles.js';
+import { storybook, storyMedia, findStory } from './storybook.js';
 
 export const subtitleStore = config.lessonDb === 'off' ? undefined : new SubtitleStore(config.lessonDb);
-const EXAMPLE_STEMS = ['tavsan-ile-kaplumbaga', 'tembel-tavsan', 'tilki-ile-teke'];
-/** Only known local examples can be served; database filenames are never paths. */
-async function exampleMedia(owner: string, source: string): Promise<URL | undefined> {
-  if (owner !== 'local' || !EXAMPLE_STEMS.some(stem => source === `${stem}.mp3`)) return;
-  const file = new URL(`../example/${source}`, import.meta.url);
-  try { if ((await stat(file)).isFile()) return file; } catch {}
-}
 export function audioRange(header: string | undefined, size: number): { start: number; end: number } | undefined {
   if (!header) return { start: 0, end: size - 1 };
   const match = /^bytes=(\d*)-(\d*)$/.exec(header);
@@ -39,32 +33,21 @@ function send(response: ServerResponse, status: number, body: unknown) {
   response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
   response.end(JSON.stringify(body));
 }
-async function importLocalExamples() {
-  for (const stem of EXAMPLE_STEMS) {
-    const id = `example-${stem}`;
-    if (subtitleStore!.get('local', id)) continue;
-    try {
-      const data = JSON.parse(await readFile(new URL(`../example/${stem}.translation.json`, import.meta.url), 'utf8'));
-      subtitleStore!.save('local', { ...data, title: stem.replaceAll('-', ' ') }, id);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') console.warn(`Could not import subtitle example ${stem}:`, error);
-    }
-  }
-}
 export async function handleSubtitleLibrary(request: IncomingMessage, response: ServerResponse, path: string, owner: string) {
-  if (!subtitleStore) { send(response, 503, { error: 'Lagring er slått av på serveren (LESSON_DB=off).' }); return; }
   try {
+    const stories = await storybook();
     if (request.method !== 'GET' && request.headers.origin && new URL(request.headers.origin).host !== request.headers.host) {
       send(response, 403, { error: 'Lagring må skje fra denne siden.' }); return;
     }
     if (path === '/api/subtitle-library' && request.method === 'GET') {
-      if (owner === 'local') await importLocalExamples();
-      send(response, 200, { items: subtitleStore.list(owner), scope: owner === 'local' ? 'local' : owner.startsWith('user:') ? 'account' : 'browser' }); return;
+      const personal = (subtitleStore?.list(owner) || []).filter(item => !findStory(stories, String(item.id)));
+      send(response, 200, { items: [...stories.map(({ cues, ...item }) => item), ...personal], storage: Boolean(subtitleStore), scope: owner === 'local' ? 'local' : owner.startsWith('user:') ? 'account' : 'browser' }); return;
     }
     const id = path.startsWith('/api/subtitle-library/') ? path.slice('/api/subtitle-library/'.length) : undefined;
     if (id?.endsWith('/audio') && (request.method === 'GET' || request.method === 'HEAD')) {
-      const saved = subtitleStore.get(owner, id.slice(0, -'/audio'.length));
-      const file = saved && await exampleMedia(owner, saved.source);
+      const recordId = id.slice(0, -'/audio'.length);
+      const saved = findStory(stories, recordId) || subtitleStore?.get(owner, recordId);
+      const file = saved && await storyMedia(saved.source);
       if (!file) { send(response, 404, { error: 'Velg originalfilen for å spille av undertekstene.' }); return; }
       const audio = await readFile(file);
       const range = audioRange(request.headers.range, audio.length);
@@ -79,11 +62,13 @@ export async function handleSubtitleLibrary(request: IncomingMessage, response: 
       response.end(request.method === 'HEAD' ? undefined : audio.subarray(range.start, range.end + 1)); return;
     }
     if (id && request.method === 'GET') {
-      const saved = subtitleStore.get(owner, id);
-      const audioUrl = saved && await exampleMedia(owner, saved.source) ? `/api/subtitle-library/${encodeURIComponent(id)}/audio` : undefined;
+      const saved = findStory(stories, id) || subtitleStore?.get(owner, id);
+      const audioUrl = saved && await storyMedia(saved.source) ? `/api/subtitle-library/${encodeURIComponent(id)}/audio` : undefined;
       send(response, saved ? 200 : 404, saved ? { ...saved, audioUrl } : { error: 'Fant ikke undertekstene.' }); return;
     }
     if ((!id && request.method === 'POST') || (id && request.method === 'PUT')) {
+      if (!subtitleStore) throw new SubtitleError('Lagring er slått av på serveren.', 503);
+      if (id && findStory(stories, id)) throw new SubtitleError('Lagre en egen kopi for å redigere en felles fortelling.', 403);
       if (id && !subtitleStore.get(owner, id)) throw new SubtitleError('Fant ikke undertekstene.', 404);
       const buffers: Buffer[] = []; let size = 0;
       for await (const chunk of request) {
