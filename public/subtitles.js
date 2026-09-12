@@ -326,6 +326,7 @@ function updateTurkish() {
   if (shownTurkish !== active) {
     shownTurkish = active;
     caption.replaceChildren();
+    caption.scrollTop = 0;
     const chunks = mappedChunks(active);
     let previousChunk;
     let group;
