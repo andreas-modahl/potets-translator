@@ -30,7 +30,6 @@ let storage = false;
 let maxBytes = 100 * 1024 * 1024;
 let sentencePlayback;
 let lastSentence;
-let lastSentenceSpeed = 1;
 let sentenceTimer;
 let heldSentence;
 // Use complete display sentences, including pauses inside a sentence.
@@ -80,7 +79,6 @@ function stopAtSentenceEnd() {
 async function playSentence(sentence, speed = player.playbackRate) {
   if (!sentence) return;
   lastSentence = sentence;
-  lastSentenceSpeed = speed;
   heldSentence = undefined;
   cancelSentencePlayback(); player.pause();
   player.playbackRate = speed;
@@ -96,9 +94,9 @@ async function playSentence(sentence, speed = player.playbackRate) {
   } catch { message('Kunne ikke spille av setningen. Velg lydfilen på nytt.', true); }
 }
 for (const button of document.querySelectorAll('[data-sentence-speed]')) {
-  button.onclick = () => playSentence(sentenceAt(cues, player.currentTime * 1000), Number(button.dataset.sentenceSpeed));
+  button.onclick = () => playSentence(lastSentence || sentenceAt(cues, player.currentTime * 1000), Number(button.dataset.sentenceSpeed));
 }
-$('replay-sentence').onclick = () => playSentence(lastSentence || sentenceAt(cues, player.currentTime * 1000), lastSentenceSpeed);
+$('play-sentence').onclick = () => playSentence(sentenceAt(cues, player.currentTime * 1000), 1);
 player.addEventListener('pause', cancelSentencePlayback);
 player.addEventListener('emptied', cancelSentencePlayback);
 player.addEventListener('emptied', releaseSentence);
@@ -246,9 +244,9 @@ function openSaved(saved) {
 }
 function updatePlayButtons() {
   $('sentence-actions').hidden = !cues.length;
-  $('replay-sentence').disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error) || !(lastSentence || sentenceAt(cues, player.currentTime * 1000));
+  $('play-sentence').disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error) || !sentenceAt(cues, player.currentTime * 1000);
   for (const button of document.querySelectorAll('[data-sentence-speed]')) {
-    button.disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error) || !sentenceAt(cues, player.currentTime * 1000);
+    button.disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error) || !(lastSentence || sentenceAt(cues, player.currentTime * 1000));
   }
   for (const button of $('cues').querySelectorAll('.cue-top button')) {
     button.disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error);
@@ -492,7 +490,6 @@ player.addEventListener('timeupdate', () => {
   stopAtSentenceEnd();
   if (!player.paused) {
     lastSentence = sentencePlayback || sentenceAt(cues, player.currentTime * 1000) || lastSentence;
-    lastSentenceSpeed = player.playbackRate;
   }
   updatePlayButtons();
   updateTurkish();
