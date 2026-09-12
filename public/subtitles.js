@@ -250,6 +250,8 @@ function clearTrack() {
   for (const word of highlightedWords) word.classList.remove('speaking');
   highlightedWords = [];
   $('turkish-caption').replaceChildren(); $('turkish-caption').hidden = true;
+  $('reading-focus').hidden = true;
+  $('focus-turkish').textContent = $('focus-norwegian').textContent = '';
   $('audio-caption').textContent = ''; $('audio-caption').hidden = true;
 }
 function updateTurkish() {
@@ -258,6 +260,16 @@ function updateTurkish() {
   const active = pages.find(cue => cue.words?.length && time >= cue.words[0].start && time < cue.words.at(-1).end);
   const caption = $('turkish-caption');
   caption.hidden = !cues.some(cue => cue.words?.length);
+  $('reading-focus').hidden = caption.hidden;
+  // Keep the last spoken group through brief pauses and single-sentence stops.
+  const focusWord = active?.words.findLast(word => word.start <= time);
+  const focusChunk = focusWord && mappedChunks(active).find(chunk => focusWord.start >= chunk.start && focusWord.end <= chunk.end);
+  const focusSource = focusChunk
+    ? active.words.filter(word => word.start >= focusChunk.start && word.end <= focusChunk.end).map(word => word.text).join(' ')
+    : focusWord?.text || '';
+  if ($('focus-turkish').textContent !== focusSource) $('focus-turkish').textContent = focusSource;
+  const focusMeaning = focusChunk?.text || '';
+  if ($('focus-norwegian').textContent !== focusMeaning) $('focus-norwegian').textContent = focusMeaning;
   if (shownTurkish !== active) {
     shownTurkish = active;
     caption.replaceChildren();
