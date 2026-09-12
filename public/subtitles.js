@@ -125,6 +125,9 @@ function openSaved(saved) {
   $('subtitle-title').value = saved.title;
   dirty = false; revision += 1;
   renderCues(); $('preview').hidden = false;
+  $('playback-selection').textContent = `Valgte undertekster: ${saved.title}`;
+  $('selected-media').hidden = !saved.audioUrl;
+  $('selected-media').textContent = saved.audioUrl ? `Valgt media: ${sourceName} (funnet automatisk i example)` : '';
   showUpload(false);
   $('playback-label').textContent = `Velg originalfilen «${sourceName}» for avspilling (ingen ny oversettelse)`;
   if (saved.audioUrl) {
@@ -138,6 +141,7 @@ function openSaved(saved) {
     message('Undertekstene er åpnet. Velg original lyd/video under «Se og lytt» for å spille av.');
   }
   $('save-status').textContent = 'Lagret';
+  $('playback-heading').focus();
 }
 function updatePlayButtons() {
   $('sentence-actions').hidden = !cues.length;
@@ -152,6 +156,8 @@ $('playback-file').onchange = () => {
   const file = $('playback-file').files[0]; if (!file) return;
   player.pause(); if (mediaUrl) URL.revokeObjectURL(mediaUrl);
   mediaUrl = URL.createObjectURL(file); player.src = mediaUrl;
+  $('selected-media').hidden = false;
+  $('selected-media').textContent = `Valgt media: ${file.name}`;
 };
 $('subtitle-title').oninput = edited;
 $('save-subtitles').onclick = async () => {
@@ -331,6 +337,10 @@ fileInput.addEventListener('change', () => {
   if (mediaUrl) URL.revokeObjectURL(mediaUrl);
   const file = fileInput.files[0];
   $('preview').hidden = !file;
+  $('playback-selection').textContent = '';
+  $('selected-media').hidden = !file;
+  $('selected-media').textContent = file ? `Valgt media: ${file.name}` : '';
+  $('playback-label').hidden = $('playback-file').hidden = true;
   if (file) { sourceName = file.name; $('subtitle-title').value = file.name; mediaUrl = URL.createObjectURL(file); player.src = mediaUrl; }
   message('Klar til å lage undertekster.');
 });

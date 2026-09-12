@@ -38,8 +38,11 @@
         </section>
         <p id="status" role="status" aria-live="polite">Kontrollerer tilgjengelighet …</p>
         <progress id="progress" aria-label="Fremdrift" hidden></progress>
-      <section id="preview" hidden aria-label="Forhåndsvisning">
-        <h2>Se og lytt</h2>
+      </section>
+      <section id="preview" class="card" hidden aria-labelledby="playback-heading">
+        <h2 id="playback-heading" tabindex="-1">Spill av undertekster</h2>
+        <p id="playback-selection"></p>
+        <p id="selected-media" role="status" hidden></p>
         <label for="playback-file" id="playback-label">Velg original lyd/video for å spille av lagrede undertekster</label>
         <input id="playback-file" type="file" accept="audio/*,video/*,.mkv" />
         <video id="player" controls preload="metadata"></video>
@@ -55,7 +58,6 @@
           <button id="download-srt" type="button">Last ned SRT</button>
           <button id="download-vtt" type="button" class="ghost">Last ned VTT</button>
         </div>
-      </section>
       </section>
       <section id="result" class="card" hidden aria-label="Rediger undertekster">
         <h2>Undertekstene dine</h2>
