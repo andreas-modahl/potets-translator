@@ -3,7 +3,8 @@
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { serializeSubtitles } from '../public/subtitles-format.js';
 const root = new URL('../storybook/', import.meta.url);
-const sources = JSON.parse(await readFile(new URL('sources.json', root), 'utf8'));
+const translations = new URL('../storybook-translations/', import.meta.url);
+const sources = JSON.parse(await readFile(new URL('sources.json', translations), 'utf8'));
 const base = 'http://localhost:3000/api/subtitles';
 async function request(url, options) {
   const response = await fetch(url, options);
@@ -13,7 +14,7 @@ async function request(url, options) {
 }
 for (const filename of (await readdir(root)).filter(name => name.endsWith('.mp3')).sort()) {
   const stem = filename.slice(0, -4);
-  const output = new URL(`${stem}.translation.json`, root);
+  const output = new URL(`${stem}.translation.json`, translations);
   let translation;
   try { translation = JSON.parse(await readFile(output, 'utf8')); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -36,6 +37,6 @@ for (const filename of (await readdir(root)).filter(name => name.endsWith('.mp3'
       }
     } finally { await fetch(`${base}/${id}`, { method: 'DELETE' }); }
   }
-  for (const format of ['srt', 'vtt']) await writeFile(new URL(`${stem}.nb.${format}`, root), serializeSubtitles(translation.cues, format));
+  for (const format of ['srt', 'vtt']) await writeFile(new URL(`${stem}.nb.${format}`, translations), serializeSubtitles(translation.cues, format));
   console.log(`Ready ${stem}: ${translation.cues.length} cues`);
 }

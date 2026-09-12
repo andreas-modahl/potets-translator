@@ -17,6 +17,7 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY public ./public
 COPY storybook ./storybook
+COPY storybook-translations ./storybook-translations
 # Generated speech is cached here; mount a volume to keep it across restarts.
 RUN mkdir -p data
 EXPOSE 3000

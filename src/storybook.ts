@@ -2,7 +2,7 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { validateSaved, type SavedSubtitles } from './subtitle-store.js';
 
 const directory = new URL('../storybook/', import.meta.url);
-export async function storybook(root = directory): Promise<Array<SavedSubtitles & { shared: true }>> {
+export async function storybook(root = new URL('../storybook-translations/', import.meta.url)): Promise<Array<SavedSubtitles & { shared: true }>> {
   const stories: Array<SavedSubtitles & { shared: true }> = [];
   for (const filename of await readdir(root)) {
     if (!/^[a-z0-9-]+\.translation\.json$/.test(filename)) continue;
@@ -10,7 +10,7 @@ export async function storybook(root = directory): Promise<Array<SavedSubtitles 
     const file = new URL(filename, root);
     const data = validateSaved(JSON.parse(await readFile(file, 'utf8')));
     if (data.source !== `${stem}.mp3`) throw new Error(`Story audio does not match ${filename}`);
-    await stat(new URL(data.source, root));
+    await stat(new URL(data.source, directory));
     stories.push({ ...data, id: `storybook-${stem}`, updated: (await stat(file)).mtime.toISOString(), shared: true });
   }
   return stories.sort((a, b) => a.title.localeCompare(b.title, 'tr'));
