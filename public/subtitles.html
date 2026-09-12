@@ -41,10 +41,7 @@
         <p id="status" role="status" aria-live="polite">Kontrollerer tilgjengelighet …</p>
         <progress id="progress" aria-label="Fremdrift" hidden></progress>
       <section id="preview" class="card" hidden aria-labelledby="playback-heading">
-        <button class="ghost close-card icon-button" type="button" aria-label="Lukk avspilling" title="Lukk avspilling"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
-        <h2 id="playback-heading" tabindex="-1">Spill av undertekster</h2>
-        <div class="subtitle-selection-row">
-          <p id="playback-selection"></p>
+        <div class="playback-card-actions">
           <details id="subtitle-actions" hidden>
             <summary aria-label="Undertekstvalg" title="Undertekstvalg"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg></summary>
             <div class="subtitle-menu">
@@ -55,7 +52,10 @@
               <button id="download-zip" type="button" class="ghost" title="Last ned ZIP med SRT og VTT">Last ned ZIP</button>
             </div>
           </details>
+          <button class="ghost close-card icon-button" type="button" aria-label="Lukk avspilling" title="Lukk avspilling"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
         </div>
+        <h2 id="playback-heading" tabindex="-1">Spill av undertekster</h2>
+        <p id="playback-selection"></p>
         <p id="selected-media" role="status" hidden></p>
         <label for="playback-file" id="playback-label">Velg original lyd/video for å spille av lagrede undertekster</label>
         <input id="playback-file" type="file" accept="audio/*,video/*,.mkv" />
