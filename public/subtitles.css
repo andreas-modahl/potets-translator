@@ -57,9 +57,10 @@ video.audio-only { display: block; height: 54px; background: transparent; }
 #turkish-caption .word-meaning { grid-area: words; font-size: 1.6rem; color: var(--teal); opacity: .7; pointer-events: none; transform: translateY(-13px); }
 .reading-focus { position: sticky; top: 12px; z-index: 1; display: grid; grid-template-rows: 1fr 1fr; height: 160px; box-sizing: border-box; margin-top: 20px; padding: 16px; background: var(--panel); border-radius: 12px; text-align: center; }
 .reading-focus > div { overflow: auto; overflow-wrap: anywhere; line-height: 1.4; }
-#focus-turkish { font-size: 1.6rem; font-weight: 700; color: var(--teal); }
-#focus-norwegian { font-size: 1.9rem; font-weight: 700; color: var(--ink); }
-#reading-focus { grid-template-rows: 36px minmax(0, 1fr) 6px; row-gap: 0; }
+#focus-turkish { grid-area: words; position: relative; z-index: 1; font-size: 1.6rem; font-weight: 700; color: var(--ink); -webkit-text-stroke: 3px var(--panel); paint-order: stroke fill; }
+#focus-norwegian { grid-area: words; font-size: 1.9rem; font-weight: 700; color: var(--teal); opacity: .7; transform: translateY(-13px); pointer-events: none; }
+#reading-focus { grid-template-areas: 'words' 'progress'; grid-template-rows: minmax(0, 1fr) 6px; align-items: center; row-gap: 0; }
+#sentence-progress { grid-area: progress; }
 #sentence-progress { display: block; height: 6px; border: 0; border-radius: 3px; overflow: hidden; background: var(--sunk); accent-color: var(--teal); }
 #sentence-progress::-webkit-progress-bar { background: var(--sunk); }
 #sentence-progress::-webkit-progress-value { background: var(--teal); }
