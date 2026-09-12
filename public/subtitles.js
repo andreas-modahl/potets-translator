@@ -26,6 +26,7 @@ let saving = false;
 let storage = false;
 let maxBytes = 100 * 1024 * 1024;
 let sentencePlayback;
+let lastSentence;
 let sentenceTimer;
 function cancelSentencePlayback() {
   sentencePlayback = undefined;
@@ -41,9 +42,9 @@ function stopAtSentenceEnd() {
     updatePlayButtons();
   } else sentenceTimer = setTimeout(stopAtSentenceEnd, Math.max(10, remaining * 1000 / player.playbackRate));
 }
-$('play-sentence').onclick = async () => {
-  const sentence = sentenceAt(cues, player.currentTime * 1000);
+async function playSentence(sentence) {
   if (!sentence) return;
+  lastSentence = sentence;
   cancelSentencePlayback(); player.pause();
   player.currentTime = sentence.start / 1000;
   // Wait for the play event before arming, so the preceding pause can settle.
@@ -52,13 +53,16 @@ $('play-sentence').onclick = async () => {
     sentencePlayback = sentence;
     stopAtSentenceEnd();
   } catch { message('Kunne ikke spille av setningen. Velg lydfilen på nytt.', true); }
-};
+}
+$('play-sentence').onclick = () => playSentence(sentenceAt(cues, player.currentTime * 1000));
+$('replay-sentence').onclick = () => playSentence(lastSentence || sentenceAt(cues, player.currentTime * 1000));
 player.addEventListener('pause', cancelSentencePlayback);
 player.addEventListener('emptied', cancelSentencePlayback);
 player.addEventListener('ended', cancelSentencePlayback);
 player.addEventListener('ratechange', stopAtSentenceEnd);
 player.addEventListener('playing', stopAtSentenceEnd);
 player.addEventListener('seeking', () => {
+  if (lastSentence && (player.currentTime * 1000 < lastSentence.start - 50 || player.currentTime * 1000 > lastSentence.end + 50)) lastSentence = undefined;
   if (sentencePlayback && (player.currentTime * 1000 < sentencePlayback.start || player.currentTime * 1000 >= sentencePlayback.end)) cancelSentencePlayback();
 });
 
@@ -118,6 +122,8 @@ function openSaved(saved) {
   $('save-status').textContent = 'Lagret';
 }
 function updatePlayButtons() {
+  $('sentence-actions').hidden = !cues.length;
+  $('replay-sentence').disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error) || !(lastSentence || sentenceAt(cues, player.currentTime * 1000));
   $('play-sentence').disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error) || !sentenceAt(cues, player.currentTime * 1000);
   for (const button of $('cues').querySelectorAll('.cue-top button')) {
     button.disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error);
@@ -168,6 +174,8 @@ async function json(url, options) {
 }
 function clearTrack() {
   cancelSentencePlayback();
+  lastSentence = undefined;
+  $('sentence-actions').hidden = !cues.length;
   for (const cue of Array.from(track.cues || [])) track.removeCue(cue);
   for (const cue of Array.from(wordTrack.cues || [])) wordTrack.removeCue(cue);
   shownTurkish = undefined;
@@ -315,6 +323,7 @@ player.addEventListener('loadedmetadata', () => {
 player.addEventListener('emptied', updatePlayButtons);
 player.addEventListener('timeupdate', () => {
   stopAtSentenceEnd();
+  if (!player.paused) lastSentence = sentencePlayback || sentenceAt(cues, player.currentTime * 1000) || lastSentence;
   updatePlayButtons();
   updateTurkish();
   updateActiveCue();
