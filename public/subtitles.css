@@ -1,0 +1,30 @@
+main { max-width: 960px; margin: 0 auto; padding: 24px 20px 64px; }
+nav { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 40px; }
+nav a:first-child { margin-right: auto; font-weight: 700; }
+header { max-width: 700px; margin-bottom: 28px; }
+h1 { font-size: clamp(2rem, 5vw, 3.3rem); margin: 8px 0 16px; line-height: 1.15; }
+h2 { margin-top: 0; }
+.eyebrow { color: var(--accent); font-weight: 700; }
+.example { display: flex; gap: 24px; flex-wrap: wrap; padding: 18px 0; }
+.example > span { display: grid; gap: 6px; }
+.example b { font-size: 1.2rem; }
+.example span span { color: var(--teal); }
+.card { background: var(--panel); border: 2px solid var(--line); border-radius: var(--wobble); box-shadow: 4px 4px 0 var(--shadow); padding: 24px; margin: 24px 0; }
+label { display: block; font-weight: 600; margin-bottom: 8px; }
+input[type=file] { width: 100%; padding: 18px; border: 2px dashed var(--muted); box-sizing: border-box; background: var(--sunk); }
+.muted, #file-help { font-size: .9rem; color: var(--muted); }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+progress { width: 100%; accent-color: var(--teal); }
+video { width: 100%; max-height: 500px; background: #111; border-radius: 8px; }
+.audio-caption { min-height: 3em; padding: 12px; background: var(--sunk); text-align: center; font-size: 1.25rem; white-space: pre-line; }
+.result-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; flex-wrap: wrap; }
+.cue { border-top: 1px solid var(--muted); padding: 18px 0; }
+.cue-top { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; }
+.cue-top input { width: 110px; }
+.cue-top label { font-size: .85rem; }
+.cue p { color: var(--muted); margin: 12px 0 8px; }
+.cue textarea { width: 100%; min-height: 76px; box-sizing: border-box; resize: vertical; font: inherit; }
+.cue.active { border-left: 4px solid var(--teal); padding-left: 12px; }
+#status.error, #edit-status { color: var(--bad); }
+[hidden] { display: none !important; }
+@media (max-width: 550px) { .card { padding: 16px; } main { padding: 16px 12px 40px; } nav { gap: 12px; } }

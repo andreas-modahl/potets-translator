@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Undertekster · Languageballs</title>
+    <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="/subtitles.css" />
+    <script src="/dev/reload.js"></script>
+    <script type="module" src="/subtitles.js"></script>
+  </head>
+  <body>
+    <main>
+      <nav aria-label="Sider"><a href="/">Languageballs</a><a href="/translate">Oversetter</a><a href="/subtitles" aria-current="page">Undertekster</a></nav>
+      <header>
+        <p class="eyebrow">Tyrkisk tale → norsk tekst</p>
+        <h1>Følg ordene du hører.</h1>
+        <p>Lag norske undertekster i tyrkisk ordstilling, akkurat som på læresiden. Betydningen følger ordene i opptaket.</p>
+        <div class="example" aria-label="Eksempel">
+          <span><b lang="tr">Yarın</b><span>I morgen</span></span>
+          <span><b lang="tr">seninle</b><span>sammen med deg</span></span>
+          <span><b lang="tr">geleceğim.</b><span>skal jeg komme.</span></span>
+        </div>
+      </header>
+      <section class="card" aria-label="Last opp opptak">
+        <form id="upload-form">
+          <label for="media-file">Velg lyd eller video</label>
+          <input id="media-file" type="file" accept=".mp4,.m4a,.mov,.webm,.mkv,.avi,.mp3,.wav,.flac,.ogg,.aac" required aria-describedby="file-help" />
+          <p id="file-help">Maks 100 MB og 10 minutter. MP4, WebM, MOV, MKV, AVI, M4A, MP3, WAV, FLAC, OGG eller AAC.</p>
+          <p class="muted">Lyden sendes til Azure Speech, og teksten til Claude. Opplastede filer slettes etter behandling. Last ned undertekstene før du lukker siden.</p>
+          <div class="actions"><button id="generate" type="submit" disabled>Lag undertekster</button><button id="cancel" type="button" class="ghost" hidden>Avbryt</button></div>
+        </form>
+        <p id="status" role="status" aria-live="polite">Kontrollerer tilgjengelighet …</p>
+        <progress id="progress" aria-label="Fremdrift" hidden></progress>
+      </section>
+      <section id="preview" class="card" hidden aria-label="Forhåndsvisning">
+        <h2>Se og lytt</h2>
+        <video id="player" controls preload="metadata"></video>
+        <p id="audio-caption" class="audio-caption" aria-label="Norsk undertekst" hidden></p>
+        <p class="muted" id="preview-help">Undertekstene vises i avspilleren når de er klare.</p>
+      </section>
+      <section id="result" class="card" hidden aria-label="Rediger undertekster">
+        <div class="result-heading"><h2>Undertekstene dine</h2><div class="actions"><button id="download-srt" type="button">Last ned SRT</button><button id="download-vtt" type="button" class="ghost">Last ned VTT</button></div></div>
+        <p>Les gjennom og rett teksten før du laster ned. Norsk ordstilling følger tyrkisk med vilje. Tidene er i sekunder.</p>
+        <p id="edit-status" role="status"></p>
+        <div id="cues"></div>
+      </section>
+    </main>
+  </body>
+</html>

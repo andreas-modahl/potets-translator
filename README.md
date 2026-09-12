@@ -27,6 +27,36 @@ the compiled version.
 name handling, the checks that decide whether a breakdown is trustworthy enough
 to show, the lesson pool, the picture lookup, and the session and user stores.
 
+## Subtitles from Turkish speech
+
+Open `/subtitles`, upload an audio or video clip (up to 100 MB and 10 minutes),
+then review the timed Norwegian text and download SRT or WebVTT. The Norwegian
+meaning chunks stay in Turkish order, like the learning page. This deliberately
+produces a learning gloss rather than natural Norwegian sentence order.
+
+The page uses `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION` for
+[Azure fast transcription](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/fast-transcription-create),
+and the existing Claude lesson breakdown for translation. The Azure resource
+must support fast transcription in its region. FFmpeg is installed with npm to
+extract audio from video; `FFMPEG_PATH` can override its location. The Docker
+image uses Alpine's FFmpeg package. Formats accepted: MP4/M4A/MOV, WebM/MKV,
+AVI, MP3, WAV, FLAC, OGG and AAC, provided they contain a decodable audio track.
+
+Jobs run in the background, one at a time, while the page displays progress.
+The server validates word timestamps and checks the meaning chunks against the
+transcribed words before constructing cues. A bad breakdown stops generation;
+it never silently substitutes natural Norwegian or omits a phrase. Subtitle
+text and start/end times can be edited before downloading. Long meaning chunks
+and very short cues are flagged for manual review. Transcription errors still
+need human correction; overlapping speech is not supported in this first version.
+
+Media is temporarily written to the system temp directory and removed after
+completion, failure or cancellation. Audio is sent to Azure; the transcript is
+sent to Anthropic. Results are held only in server memory for up to one hour
+(at most ten jobs), and the page deletes its server job after receiving the
+result. Restarting the server loses in-progress jobs. Downloads and the local
+media preview stay in the browser; no uploaded media is added to the lesson pool.
+
 ## The translator page
 
 Translations can carry an explanation. `EXPLAIN_TRANSLATIONS` sets the mode:

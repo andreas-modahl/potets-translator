@@ -33,6 +33,7 @@ import { UserStore, type User } from './users.js';
 import { picture, pictureFingerprint, picturesConfigured, PictureUnavailable } from './pictures.js';
 import { speak, speechConfigured, speechFingerprint, SpeechUnavailable, voiceChoices } from './speech.js';
 import { translate } from './translate.js';
+import { handleSubtitles } from './subtitle-jobs.js';
 
 interface Asset {
   file: string;
@@ -60,6 +61,10 @@ const ASSETS = new Map<string, Asset>(
       ['/learn', 'learn.html', HTML],
       ['/learn.html', 'learn.html', HTML],
       ['/translate', 'index.html', HTML],
+      ['/subtitles', 'subtitles.html', HTML],
+      ['/subtitles.js', 'subtitles.js', JS],
+      ['/subtitles-format.js', 'subtitles-format.js', JS],
+      ['/subtitles.css', 'subtitles.css', CSS],
       ['/index.html', 'index.html', HTML],
       ['/app.css', 'app.css', CSS],
       ['/learn.css', 'learn.css', CSS],
@@ -597,6 +602,10 @@ const server = createServer((request, response) => {
           model: config.model,
           login: LOGIN_ENABLED,
         });
+        return;
+      }
+      if (path === '/api/subtitles' || path.startsWith('/api/subtitles/')) {
+        await handleSubtitles(request, response, path);
         return;
       }
       if (request.method === 'GET' && path === '/auth/google' && LOGIN_ENABLED) {

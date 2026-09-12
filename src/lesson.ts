@@ -335,6 +335,8 @@ function lessonSchema(d: Direction): Record<string, unknown> {
 }
 
 export interface LessonRequest {
+  /** Optional cancellation for longer workflows such as subtitle generation. */
+  signal?: AbortSignal;
   learning: Learning;
   /** A sentence the learner supplied, in either language. */
   text?: string;
@@ -656,7 +658,7 @@ export async function lesson(request: LessonRequest, attempts = 2): Promise<Less
       messages: [{ role: 'user', content: brief(request) + (rejected.length
         ? `\n\nAn earlier attempt repeated an old sentence. These are not acceptable; write something different:\n${rejected.join('\n')}`
         : '') }],
-    });
+    }, { signal: request.signal });
 
     // A cut-off answer arrives as half-written JSON, which parses into a lesson
     // missing whatever came after the cut. Asking again is the only fix.
