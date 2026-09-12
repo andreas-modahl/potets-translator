@@ -13,6 +13,7 @@ const wordTrack = player.addTextTrack('metadata', 'Tyrkiske ord', 'tr');
 wordTrack.mode = 'hidden';
 let shownTurkish;
 let highlightedWords = [];
+let sentenceVisible = false;
 let configured = false;
 let busy = false;
 let mediaUrl;
@@ -87,7 +88,27 @@ function showEditor(open) {
   const label = open ? 'Skjul redigering' : 'Rediger undertekster';
   $('toggle-editor').setAttribute('aria-label', label);
   $('toggle-editor').title = label;
+  $('edit-label').textContent = label;
 }
+$('toggle-sentence').onclick = () => {
+  sentenceVisible = !sentenceVisible;
+  $('toggle-sentence').setAttribute('aria-expanded', String(sentenceVisible));
+  $('toggle-sentence').textContent = sentenceVisible ? 'Skjul setningen' : 'Vis setningen';
+  updateTurkish();
+};
+const actionMenu = $('subtitle-actions');
+actionMenu.addEventListener('click', event => {
+  if (event.target.closest('button')) actionMenu.open = false;
+});
+document.addEventListener('click', event => {
+  if (!actionMenu.contains(event.target)) actionMenu.open = false;
+});
+actionMenu.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    actionMenu.open = false;
+    actionMenu.querySelector('summary').focus();
+  }
+});
 function showUpload(open) {
   $('add-recording').hidden = !open;
   $('toggle-upload').setAttribute('aria-expanded', String(open));
@@ -260,8 +281,9 @@ function updateTurkish() {
   // Source word times stay tied to the speech when Norwegian cue times are edited.
   const active = pages.find(cue => cue.words?.length && time >= cue.words[0].start && time < cue.words.at(-1).end);
   const caption = $('turkish-caption');
-  caption.hidden = !cues.some(cue => cue.words?.length);
-  $('reading-focus').hidden = caption.hidden;
+  const hasWords = cues.some(cue => cue.words?.length);
+  caption.hidden = !sentenceVisible || !hasWords;
+  $('reading-focus').hidden = !hasWords;
   const progressStart = active?.words[0].start;
   const progressEnd = active?.words.at(-1).end;
   $('sentence-progress').value = active && progressEnd > progressStart

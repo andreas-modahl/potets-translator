@@ -60,10 +60,14 @@
         <p id="turkish-caption" class="turkish-caption" lang="tr" aria-label="Tyrkisk tale, ordet som uttales er markert" hidden></p>
         <p id="audio-caption" class="audio-caption" aria-label="Norsk undertekst" hidden></p>
         <p class="muted" id="preview-help">Undertekstene vises i avspilleren når de er klare.</p>
-        <div id="subtitle-actions" class="actions" hidden>
-          <button id="toggle-editor" type="button" class="ghost icon-button" aria-expanded="false" aria-controls="result" aria-label="Rediger undertekster" title="Rediger undertekster"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l5-1L20 8a2.8 2.8 0 0 0-4-4L5 15z" /></svg></button>
-          <button id="download-zip" type="button" class="ghost icon-button" aria-label="Last ned ZIP med SRT og VTT" title="Last ned ZIP med SRT og VTT"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5" /></svg></button>
-        </div>
+        <details id="subtitle-actions" hidden>
+          <summary>Valg</summary>
+          <div class="subtitle-menu">
+            <button id="toggle-sentence" type="button" class="ghost" aria-expanded="false" aria-controls="turkish-caption">Vis setningen</button>
+            <button id="toggle-editor" type="button" class="ghost" aria-expanded="false" aria-controls="result"><span id="edit-label">Rediger undertekster</span></button>
+            <button id="download-zip" type="button" class="ghost" title="Last ned ZIP med SRT og VTT">Last ned ZIP</button>
+          </div>
+        </details>
       </section>
       <section id="result" class="card" hidden aria-label="Rediger undertekster">
         <h2>Undertekstene dine</h2>
