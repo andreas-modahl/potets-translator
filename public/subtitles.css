@@ -38,6 +38,11 @@ video { width: 100%; max-height: 500px; background: #111; border-radius: 8px; }
 .reading-focus > div { overflow: auto; overflow-wrap: anywhere; line-height: 1.4; }
 #focus-turkish { font-size: 1.6rem; font-weight: 700; }
 #focus-norwegian { font-size: 1.15rem; color: var(--teal); }
+#reading-focus { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) 6px; row-gap: 6px; }
+#sentence-progress { display: block; height: 6px; border: 0; border-radius: 3px; overflow: hidden; background: var(--sunk); accent-color: var(--teal); }
+#sentence-progress::-webkit-progress-bar { background: var(--sunk); }
+#sentence-progress::-webkit-progress-value { background: var(--teal); }
+#sentence-progress::-moz-progress-bar { background: var(--teal); }
 .spoken-word { border-radius: 4px; padding: 2px 3px; }
 .spoken-word.speaking { background: var(--mark); color: var(--ink); box-shadow: 0 2px 0 var(--accent); }
 .result-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; flex-wrap: wrap; }

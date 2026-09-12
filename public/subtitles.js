@@ -252,6 +252,7 @@ function clearTrack() {
   $('turkish-caption').replaceChildren(); $('turkish-caption').hidden = true;
   $('reading-focus').hidden = true;
   $('focus-turkish').textContent = $('focus-norwegian').textContent = '';
+  $('sentence-progress').value = 0;
   $('audio-caption').textContent = ''; $('audio-caption').hidden = true;
 }
 function updateTurkish() {
@@ -261,6 +262,10 @@ function updateTurkish() {
   const caption = $('turkish-caption');
   caption.hidden = !cues.some(cue => cue.words?.length);
   $('reading-focus').hidden = caption.hidden;
+  const progressStart = active?.words[0].start;
+  const progressEnd = active?.words.at(-1).end;
+  $('sentence-progress').value = active && progressEnd > progressStart
+    ? Math.max(0, Math.min(1, ((heldSentence?.end ?? player.currentTime * 1000) - progressStart) / (progressEnd - progressStart))) : 0;
   // Keep the last spoken group through brief pauses and single-sentence stops.
   const focusWord = active?.words.findLast(word => word.start <= time);
   const focusChunk = focusWord && mappedChunks(active).find(chunk => focusWord.start >= chunk.start && focusWord.end <= chunk.end);
