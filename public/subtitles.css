@@ -58,6 +58,6 @@ video { width: 100%; max-height: 500px; background: #111; border-radius: 8px; }
 .cue textarea { width: 100%; min-height: 76px; box-sizing: border-box; resize: vertical; font: inherit; }
 .cue.active { border-left: 4px solid var(--teal); padding-left: 12px; }
 #status.error, #edit-status { color: var(--bad); }
-#library-status:empty, #status:empty { display: none; }
+#library-status:empty, #status:empty, #preview-help:empty { display: none; }
 [hidden] { display: none !important; }
 @media (max-width: 550px) { .card { padding: 16px; } main { padding: 16px 12px 40px; } nav { gap: 12px; } }

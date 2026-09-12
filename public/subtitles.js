@@ -445,7 +445,7 @@ player.addEventListener('error', () => {
 });
 player.addEventListener('loadedmetadata', () => {
   updatePlayButtons();
-  $('preview-help').textContent = 'Spill av opptaket for å følge undertekstene.';
+  $('preview-help').textContent = '';
   updateActiveCue();
 });
 player.addEventListener('emptied', updatePlayButtons);
