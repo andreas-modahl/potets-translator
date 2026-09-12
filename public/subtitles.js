@@ -1,4 +1,5 @@
 import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentenceAt, sentencePages } from './subtitles-format.js';
+import { zipFiles } from './subtitles-zip.js';
 
 const $ = id => document.getElementById(id);
 const fileInput = $('media-file');
@@ -344,10 +345,10 @@ function updateTrack() {
     if (cues.some(cue => cue.chunks?.length && !mappedChunks(cue).length)) {
       $('edit-status').textContent += ' Norsk delmarkering er slått av for endret tekst, siden ordkoblingen ikke lenger er sikker.';
     }
-    $('download-srt').disabled = $('download-vtt').disabled = false;
+    $('download-zip').disabled = false;
   } catch (error) {
     $('edit-status').textContent = error.message;
-    $('download-srt').disabled = $('download-vtt').disabled = true;
+    $('download-zip').disabled = true;
   }
 }
 
@@ -465,12 +466,13 @@ $('upload-form').addEventListener('submit', async event => {
 });
 $('cancel').onclick = () => controller?.abort();
 
-for (const format of ['srt', 'vtt']) $('download-' + format).onclick = () => {
+$('download-zip').onclick = () => {
   try {
-    const content = serializeSubtitles(cues, format);
-    const url = URL.createObjectURL(new Blob([content], { type: format === 'vtt' ? 'text/vtt;charset=utf-8' : 'application/x-subrip;charset=utf-8' }));
+    const name = (sourceName.replace(/\.[^.]+$/, '').replace(/[\\/:*?"<>|]/g, '_') || 'undertekster') + '.nb';
+    const archive = zipFiles(Object.fromEntries(['srt', 'vtt'].map(format => [name + '.' + format, serializeSubtitles(cues, format)])));
+    const url = URL.createObjectURL(archive);
     const link = document.createElement('a'); link.href = url;
-    link.download = (sourceName.replace(/\.[^.]+$/, '') || 'undertekster') + '.nb.' + format;
+    link.download = name + '.zip';
     document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) { $('edit-status').textContent = error.message; }
 };
