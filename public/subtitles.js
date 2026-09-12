@@ -6,7 +6,7 @@ const generate = $('generate');
 const player = $('player');
 const status = $('status');
 const track = player.addTextTrack('subtitles', 'Norsk i tyrkisk ordstilling', 'nb');
-track.mode = 'showing';
+track.mode = 'hidden';
 // Hidden metadata cues give us word-boundary events even for very short words.
 const wordTrack = player.addTextTrack('metadata', 'Tyrkiske ord', 'tr');
 wordTrack.mode = 'hidden';
@@ -253,20 +253,33 @@ function updateTurkish() {
   if (shownTurkish !== active) {
     shownTurkish = active;
     caption.replaceChildren();
+    const chunks = mappedChunks(active);
+    let previousChunk;
+    let group;
     for (const word of active?.words || []) {
+      const chunk = chunks.find(chunk => word.start >= chunk.start && word.end <= chunk.end);
+      if (!group || !chunk || chunk !== previousChunk) {
+        group = document.createElement('span'); group.className = 'word-translation';
+        const source = document.createElement('span'); source.className = 'source-words';
+        const translation = document.createElement('span'); translation.className = 'word-meaning spoken-word';
+        translation.lang = 'nb'; translation.textContent = chunk?.text || '';
+        group.append(source, translation); caption.append(group);
+      }
       const span = document.createElement('span'); span.className = 'spoken-word'; span.textContent = word.text;
-      caption.append(span, ' ');
+      group.firstChild.append(span, ' ');
+      previousChunk = chunk;
     }
   }
   for (const word of highlightedWords) word.classList.remove('speaking');
   highlightedWords = [];
   const wordIndex = heldSentence ? -1 : active?.words.findIndex(word => time >= word.start && time < word.end) ?? -1;
   if (wordIndex >= 0) {
-    const previewWord = caption.children[wordIndex];
+    const previewWord = caption.querySelectorAll('.source-words .spoken-word')[wordIndex];
+    const meaning = previewWord?.closest('.word-translation').querySelector('.word-meaning');
     const word = active.words[wordIndex];
     const index = cues.findIndex(cue => cue.words?.includes(word));
     const editorWord = $('cues').children[index]?.querySelectorAll('.spoken-word')[cues[index]?.words.indexOf(word)];
-    highlightedWords = [previewWord, editorWord].filter(Boolean);
+    highlightedWords = [previewWord, meaning?.textContent ? meaning : undefined, editorWord].filter(Boolean);
     for (const word of highlightedWords) word.classList.add('speaking');
   }
   updateActiveCue();
@@ -277,7 +290,7 @@ function updateActiveCue() {
   const time = heldSentence ? heldSentence.end - 1 : player.currentTime * 1000;
   const active = pages.find(cue => time >= cue.start && time < cue.end);
   const caption = $('audio-caption');
-  caption.hidden = !cues.length;
+  caption.hidden = true;
   caption.replaceChildren();
   const chunks = mappedChunks(active);
   const speaking = !heldSentence && active?.words?.some(word => time >= word.start && time < word.end);
@@ -317,7 +330,7 @@ function updateTrack() {
     validateCues(cues);
     for (const cue of pages) track.addCue(new VTTCue(cue.start / 1000, cue.end / 1000,
       wrapText(cue.text).split('\n').map(cueText).join('\n')));
-    track.mode = 'showing';
+    track.mode = 'hidden';
     updateActiveCue();
     const long = cues.filter(cue => wrapText(cue.text).split('\n').length > 2 || cue.end - cue.start < 800);
     $('edit-status').textContent = long.length ? `${long.length} undertekster er lange eller vises kort. Kontroller lesbarheten i avspilleren.` : '';

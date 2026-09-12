@@ -25,6 +25,10 @@ progress { width: 100%; accent-color: var(--teal); }
 video { width: 100%; max-height: 500px; background: #111; border-radius: 8px; }
 .audio-caption { min-height: 3em; padding: 12px; background: var(--sunk); text-align: center; font-size: 1.25rem; white-space: pre-line; }
 .turkish-caption { min-height: 2em; padding: 12px; text-align: center; font-size: 1.35rem; line-height: 1.8; }
+.turkish-caption { display: flex; justify-content: center; align-items: start; flex-wrap: wrap; gap: 14px 12px; }
+.word-translation { display: inline-flex; flex-direction: column; align-items: center; max-width: 100%; }
+.source-words { overflow-wrap: anywhere; }
+.word-meaning { color: var(--teal); font-size: .95rem; line-height: 1.5; overflow-wrap: anywhere; }
 .spoken-word { border-radius: 4px; padding: 2px 3px; }
 .spoken-word.speaking { background: var(--mark); color: var(--ink); box-shadow: 0 2px 0 var(--accent); }
 .result-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; flex-wrap: wrap; }
