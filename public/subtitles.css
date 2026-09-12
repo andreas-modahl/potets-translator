@@ -21,11 +21,14 @@ button.icon-button[aria-expanded=true] { background: var(--mark); border-color: 
 .icon-button svg text { fill: currentColor; stroke: none; font: bold 6px sans-serif; text-anchor: middle; }
 #library { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
 .import-row { margin-top: 24px; }
-#subtitle-actions { position: relative; margin-top: 18px; width: fit-content; }
+.subtitle-selection-row { display: flex; align-items: center; gap: 12px; clear: both; }
+#playback-selection { min-width: 0; overflow-wrap: anywhere; }
+#subtitle-actions { position: relative; flex-shrink: 0; width: fit-content; }
 #subtitle-actions summary { cursor: pointer; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; font-weight: 600; }
 #subtitle-actions summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .subtitle-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 2; display: grid; min-width: 210px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); box-shadow: 0 4px 12px var(--shadow); }
 .subtitle-menu button { text-align: left; border: 0; border-radius: 6px; box-shadow: none; transform: none; }
+.subtitle-selection-row .subtitle-menu { left: auto; right: 0; }
 #sentence-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 420px; margin: 16px auto 0; }
 #sentence-actions button { min-width: 0; }
 #subtitle-title { max-width: 100%; box-sizing: border-box; margin-bottom: 12px; }
