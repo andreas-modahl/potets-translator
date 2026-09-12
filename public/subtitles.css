@@ -16,6 +16,14 @@ input[type=file] { width: 100%; padding: 18px; border: 2px dashed var(--muted); 
 .actions { display: flex; gap: 10px; flex-wrap: wrap; }
 #library { display: grid; gap: 10px; margin: 16px 0 24px; }
 #library button { text-align: left; overflow-wrap: anywhere; }
+.workspace > h2 { margin-bottom: 8px; }
+#library { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+#add-recording { border-top: 1px solid var(--muted); padding-top: 14px; }
+#add-recording summary { cursor: pointer; font-weight: 600; color: var(--teal); }
+#add-recording[open] summary { margin-bottom: 20px; }
+.import-row { margin-top: 24px; }
+#preview { border-top: 1px solid var(--muted); padding-top: 22px; margin-top: 20px; }
+#subtitle-actions { margin-top: 18px; }
 #subtitle-title { max-width: 100%; box-sizing: border-box; margin-bottom: 12px; }
 #save-status { color: var(--muted); }
 progress { width: 100%; accent-color: var(--teal); }

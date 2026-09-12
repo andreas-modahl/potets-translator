@@ -27,6 +27,12 @@ let storage = false;
 let maxBytes = 100 * 1024 * 1024;
 
 function message(text, error = false) { status.textContent = text; status.classList.toggle('error', error); }
+function showEditor(open) {
+  $('result').hidden = !open;
+  $('toggle-editor').setAttribute('aria-expanded', String(open));
+  $('toggle-editor').textContent = open ? 'Skjul redigering' : 'Rediger undertekster';
+}
+$('toggle-editor').onclick = () => showEditor($('result').hidden);
 function edited() { dirty = true; revision += 1; $('save-status').textContent = 'Ulagrede endringer'; }
 function canReplace() { return !busy && !saving && (!dirty || window.confirm('Du har ulagrede endringer. Fortsette uten å lagre?')); }
 window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
@@ -61,6 +67,7 @@ function openSaved(saved) {
   $('subtitle-title').value = saved.title;
   dirty = false; revision += 1;
   renderCues(); $('preview').hidden = false;
+  $('add-recording').open = false;
   $('playback-label').textContent = `Velg originalfilen «${sourceName}» for avspilling (ingen ny oversettelse)`;
   if (saved.audioUrl) {
     player.src = saved.audioUrl;
@@ -241,7 +248,8 @@ function renderCues() {
     native.setAttribute('aria-label', 'Norsk betydning, delen som uttales er markert');
     row.append(top, original, native, text); $('cues').append(row);
   });
-  $('result').hidden = false;
+  showEditor(false);
+  $('subtitle-actions').hidden = false;
   updateTrack();
   updatePlayButtons();
 }
@@ -249,7 +257,7 @@ function renderCues() {
 fileInput.addEventListener('change', () => {
   if (!canReplace()) { fileInput.value = ''; return; }
   savedId = undefined; dirty = false;
-  cues = []; clearTrack(); $('result').hidden = true;
+  cues = []; clearTrack(); showEditor(false); $('subtitle-actions').hidden = true;
   if (mediaUrl) URL.revokeObjectURL(mediaUrl);
   const file = fileInput.files[0];
   $('preview').hidden = !file;
@@ -284,7 +292,7 @@ $('upload-form').addEventListener('submit', async event => {
   if (file.size > maxBytes) { message('Filen er for stor. Grensen er 100 MB.', true); return; }
   if (Number.isFinite(player.duration) && player.duration > 600) { message('Opptaket må være på høyst 10 minutter.', true); return; }
   busy = true; generate.disabled = true; fileInput.disabled = true;
-  cues = []; clearTrack(); $('result').hidden = true;
+  cues = []; clearTrack(); showEditor(false); $('subtitle-actions').hidden = true;
   $('progress').hidden = false; $('progress').removeAttribute('value');
   controller = new AbortController();
   try {
