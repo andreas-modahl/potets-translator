@@ -233,7 +233,7 @@ function openSaved(saved) {
     player.src = saved.audioUrl;
     $('playback-label').hidden = $('playback-file').hidden = true;
     $('preview-help').textContent = 'Laster lyd …';
-    message('Undertekster og lyd er åpnet. Trykk på spill av.');
+    message('');
   } else {
     $('playback-label').hidden = $('playback-file').hidden = false;
     $('preview-help').textContent = 'Velg originalfilen ovenfor for å aktivere avspilling.';
