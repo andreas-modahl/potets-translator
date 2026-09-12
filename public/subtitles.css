@@ -54,7 +54,7 @@ video.audio-only { display: block; height: 54px; background: transparent; }
 .source-words { overflow-wrap: anywhere; }
 .word-meaning { color: var(--ink); font-size: 1.4rem; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
 #turkish-caption .source-words { grid-area: words; position: relative; z-index: 1; color: var(--ink); -webkit-text-stroke: 3px var(--panel); paint-order: stroke fill; }
-#turkish-caption .word-meaning { grid-area: words; font-size: 1.8rem; color: var(--teal); opacity: .5; pointer-events: none; transform: translateY(-9px); }
+#turkish-caption .word-meaning { grid-area: words; font-size: 1.6rem; color: var(--teal); opacity: .7; pointer-events: none; transform: translateY(-9px); }
 .reading-focus { position: sticky; top: 12px; z-index: 1; display: grid; grid-template-rows: 1fr 1fr; height: 160px; box-sizing: border-box; margin-top: 20px; padding: 16px; background: var(--panel); border-radius: 12px; text-align: center; }
 .reading-focus > div { overflow: auto; overflow-wrap: anywhere; line-height: 1.4; }
 #focus-turkish { font-size: 1.6rem; font-weight: 700; color: var(--teal); }
