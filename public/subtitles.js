@@ -1,4 +1,4 @@
-import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentenceAt, sentencePages } from './subtitles-format.js';
+import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentencePages } from './subtitles-format.js';
 import { zipFiles } from './subtitles-zip.js';
 
 const $ = id => document.getElementById(id);
@@ -32,8 +32,31 @@ let sentencePlayback;
 let lastSentence;
 let sentenceTimer;
 let heldSentence;
+// Use complete display sentences, including pauses inside a sentence.
+function sentenceAt(_cues, time) {
+  return pages.map(page => ({ start: page.words[0]?.start ?? page.start, end: page.words.at(-1)?.end ?? page.end }))
+    .find(sentence => sentence.end > time + 1);
+}
+function setSentenceVisible(visible) {
+  sentenceVisible = visible;
+  $('toggle-sentence').setAttribute('aria-expanded', String(visible));
+  $('toggle-sentence').textContent = visible ? 'Skjul setningen' : 'Vis setningen';
+}
+function armAutoPause() {
+  if ($('auto-pause').checked && !player.paused && !sentencePlayback) {
+    sentencePlayback = sentenceAt(cues, player.currentTime * 1000);
+    lastSentence = sentencePlayback || lastSentence;
+  }
+  stopAtSentenceEnd();
+}
+$('playback-speed').onchange = () => { player.playbackRate = Number($('playback-speed').value); };
+$('auto-pause').onchange = () => {
+  if ($('auto-pause').checked) armAutoPause();
+  else cancelSentencePlayback();
+};
 function releaseSentence() {
   heldSentence = undefined;
+  setSentenceVisible(false);
   updateTurkish();
 }
 function cancelSentencePlayback() {
@@ -47,6 +70,8 @@ function stopAtSentenceEnd() {
   if (remaining <= .012) {
     const end = sentencePlayback.end / 1000;
     heldSentence = sentencePlayback;
+    lastSentence = sentencePlayback;
+    setSentenceVisible(true);
     cancelSentencePlayback(); player.pause(); player.currentTime = end;
     updateTurkish();
     updatePlayButtons();
@@ -71,9 +96,17 @@ player.addEventListener('pause', cancelSentencePlayback);
 player.addEventListener('emptied', cancelSentencePlayback);
 player.addEventListener('emptied', releaseSentence);
 player.addEventListener('play', releaseSentence);
-player.addEventListener('ended', cancelSentencePlayback);
+player.addEventListener('ended', () => {
+  const final = pages.at(-1);
+  if (final) {
+    heldSentence = { start: final.words[0]?.start ?? final.start, end: final.words.at(-1)?.end ?? final.end };
+    setSentenceVisible(true); updateTurkish();
+  }
+  cancelSentencePlayback();
+});
 player.addEventListener('ratechange', stopAtSentenceEnd);
-player.addEventListener('playing', stopAtSentenceEnd);
+player.addEventListener('playing', armAutoPause);
+player.addEventListener('seeked', armAutoPause);
 player.addEventListener('seeking', () => {
   // Keep the hold through our own seek to the exact sentence endpoint.
   if (heldSentence && Math.abs(player.currentTime * 1000 - heldSentence.end) > 1) releaseSentence();
@@ -91,9 +124,7 @@ function showEditor(open) {
   $('edit-label').textContent = label;
 }
 $('toggle-sentence').onclick = () => {
-  sentenceVisible = !sentenceVisible;
-  $('toggle-sentence').setAttribute('aria-expanded', String(sentenceVisible));
-  $('toggle-sentence').textContent = sentenceVisible ? 'Skjul setningen' : 'Vis setningen';
+  setSentenceVisible(!sentenceVisible);
   updateTurkish();
 };
 const actionMenu = $('subtitle-actions');
@@ -260,6 +291,7 @@ async function json(url, options) {
   return data;
 }
 function clearTrack() {
+  setSentenceVisible(false);
   pages = sentencePages(cues);
   cancelSentencePlayback();
   lastSentence = undefined;
