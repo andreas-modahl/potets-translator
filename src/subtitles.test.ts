@@ -78,9 +78,20 @@ test('long meaning chunks are not dropped or split into invented timestamps', ()
 });
 
 // This module is also loaded directly by the browser, without a build step.
-const { serializeSubtitles, validateCues, timestamp, mappedChunks } = await import(
+const { serializeSubtitles, validateCues, timestamp, mappedChunks, sentenceAt } = await import(
   new URL('../public/subtitles-format.js', import.meta.url).href
 );
+test('single sentence playback crosses cue boundaries and advances after its endpoint', () => {
+  const cues = [
+    { words: [{ text: 'Yarın', start: 100, end: 300 }] },
+    { words: [{ text: 'geleceğim.', start: 350, end: 900 }, { text: 'Tamam!', start: 950, end: 1300 }] },
+  ];
+  assert.deepEqual(sentenceAt(cues, 200), { start: 100, end: 900 });
+  assert.deepEqual(sentenceAt(cues, 900), { start: 950, end: 1300 });
+  assert.equal(sentenceAt(cues, 1300), undefined);
+  assert.equal(sentenceAt([], 0), undefined);
+  assert.deepEqual(sentenceAt([{ words: [{ text: 'Başlık', start: 0, end: 500 }, { text: 'Bir', start: 1500, end: 1800 }] }], 1000), { start: 1500, end: 1800 });
+});
 test('Norwegian highlighting is disabled for changed text and restored when the original returns', () => {
   const cue = phraseCues(phrase, lesson)[0]!;
   assert.deepEqual(mappedChunks(cue), cue.chunks);

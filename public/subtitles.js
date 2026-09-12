@@ -1,4 +1,4 @@
-import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks } from './subtitles-format.js';
+import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentenceAt } from './subtitles-format.js';
 
 const $ = id => document.getElementById(id);
 const fileInput = $('media-file');
@@ -25,6 +25,42 @@ let revision = 0;
 let saving = false;
 let storage = false;
 let maxBytes = 100 * 1024 * 1024;
+let sentencePlayback;
+let sentenceTimer;
+function cancelSentencePlayback() {
+  sentencePlayback = undefined;
+  clearTimeout(sentenceTimer);
+}
+function stopAtSentenceEnd() {
+  clearTimeout(sentenceTimer);
+  if (!sentencePlayback || player.paused) return;
+  const remaining = sentencePlayback.end / 1000 - player.currentTime;
+  if (remaining <= .012) {
+    const end = sentencePlayback.end / 1000;
+    cancelSentencePlayback(); player.pause(); player.currentTime = end;
+    updatePlayButtons();
+  } else sentenceTimer = setTimeout(stopAtSentenceEnd, Math.max(10, remaining * 1000 / player.playbackRate));
+}
+$('play-sentence').onclick = async () => {
+  const sentence = sentenceAt(cues, player.currentTime * 1000);
+  if (!sentence) return;
+  cancelSentencePlayback(); player.pause();
+  player.currentTime = sentence.start / 1000;
+  // Wait for the play event before arming, so the preceding pause can settle.
+  try {
+    await player.play();
+    sentencePlayback = sentence;
+    stopAtSentenceEnd();
+  } catch { message('Kunne ikke spille av setningen. Velg lydfilen på nytt.', true); }
+};
+player.addEventListener('pause', cancelSentencePlayback);
+player.addEventListener('emptied', cancelSentencePlayback);
+player.addEventListener('ended', cancelSentencePlayback);
+player.addEventListener('ratechange', stopAtSentenceEnd);
+player.addEventListener('playing', stopAtSentenceEnd);
+player.addEventListener('seeking', () => {
+  if (sentencePlayback && (player.currentTime * 1000 < sentencePlayback.start || player.currentTime * 1000 >= sentencePlayback.end)) cancelSentencePlayback();
+});
 
 function message(text, error = false) { status.textContent = text; status.classList.toggle('error', error); }
 function showEditor(open) {
@@ -82,6 +118,7 @@ function openSaved(saved) {
   $('save-status').textContent = 'Lagret';
 }
 function updatePlayButtons() {
+  $('play-sentence').disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error) || !sentenceAt(cues, player.currentTime * 1000);
   for (const button of $('cues').querySelectorAll('.cue-top button')) {
     button.disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error);
     button.title = button.disabled ? 'Velg original lyd/video for å spille av' : 'Spill av denne underteksten';
@@ -130,6 +167,7 @@ async function json(url, options) {
   return data;
 }
 function clearTrack() {
+  cancelSentencePlayback();
   for (const cue of Array.from(track.cues || [])) track.removeCue(cue);
   for (const cue of Array.from(wordTrack.cues || [])) wordTrack.removeCue(cue);
   shownTurkish = undefined;
@@ -228,7 +266,7 @@ function renderCues() {
     const top = document.createElement('div'); top.className = 'cue-top';
     const seek = document.createElement('button'); seek.type = 'button'; seek.className = 'ghost';
     seek.textContent = `▶ ${index + 1}`; seek.setAttribute('aria-label', `Spill undertekst ${index + 1}`);
-    seek.onclick = () => { player.currentTime = cue.start / 1000; void player.play().catch(() => {}); };
+    seek.onclick = () => { cancelSentencePlayback(); player.currentTime = cue.start / 1000; void player.play().catch(() => {}); };
     top.append(seek);
     for (const [field, title] of [['start', 'Fra (sek.)'], ['end', 'Til (sek.)']]) {
       const label = document.createElement('label'); label.textContent = title;
@@ -276,6 +314,8 @@ player.addEventListener('loadedmetadata', () => {
 });
 player.addEventListener('emptied', updatePlayButtons);
 player.addEventListener('timeupdate', () => {
+  stopAtSentenceEnd();
+  updatePlayButtons();
   updateTurkish();
   updateActiveCue();
   Array.from($('cues').children).forEach((row, index) => {

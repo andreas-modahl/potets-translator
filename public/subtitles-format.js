@@ -5,6 +5,23 @@ export function mappedChunks(cue) {
     ? cue.chunks : [];
 }
 
+/** Sentence punctuation and long pauses define short, repeatable speech units. */
+export function sentenceAt(cues, time) {
+  const words = cues.flatMap(cue => cue.words || []);
+  if (!words.length) return cues.find(cue => cue.end > time + 1);
+  const sentences = [];
+  let sentence;
+  let previous;
+  for (const word of words) {
+    if (!sentence || word.start - previous.end >= 800 || /[.!?…]["'»”’)]*$/u.test(previous.text)) {
+      sentence = { start: word.start, end: word.end };
+      sentences.push(sentence);
+    } else sentence.end = word.end;
+    previous = word;
+  }
+  return sentences.find(sentence => sentence.end > time + 1);
+}
+
 /** Subtitle files are plain text: prevent user text being interpreted as cue markup. */
 export function cueText(text) {
   return text.replace(/\s+/gu, ' ').trim().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
