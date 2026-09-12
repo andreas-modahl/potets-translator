@@ -98,7 +98,7 @@ async function loadLibrary() {
   try {
     const data = await json('/api/subtitle-library');
     storage = true;
-    $('library-status').textContent = data.scope === 'local' ? 'Lagret på denne serveren.' : data.scope === 'account'
+    $('library-status').textContent = data.scope === 'local' ? '' : data.scope === 'account'
       ? 'Lagret på kontoen din.' : 'Lagret for denne nettleseren. Behold informasjonskapslene for å finne dem igjen.';
     $('library').replaceChildren();
     if (!data.items.length) $('library-status').textContent += ' Ingen undertekster ennå.';
@@ -425,5 +425,5 @@ try {
   configured = settings.configured; maxBytes = settings.maxBytes; generate.disabled = !configured;
   storage = Boolean(settings.storage);
   await loadLibrary();
-  message(configured ? 'Velg et opptak for å komme i gang.' : 'Undertekster er ikke konfigurert ennå. Serveren trenger Azure Speech.', !configured);
+  message(configured ? '' : 'Undertekster er ikke konfigurert ennå. Serveren trenger Azure Speech.', !configured);
 } catch { message('Kunne ikke kontakte serveren. Last siden på nytt.', true); }
