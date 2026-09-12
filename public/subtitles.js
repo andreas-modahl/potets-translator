@@ -13,7 +13,6 @@ const wordTrack = player.addTextTrack('metadata', 'Tyrkiske ord', 'tr');
 wordTrack.mode = 'hidden';
 let shownTurkish;
 let highlightedWords = [];
-let sentenceVisible = false;
 let configured = false;
 let busy = false;
 let mediaUrl;
@@ -37,11 +36,6 @@ function sentenceAt(_cues, time) {
   return pages.map(page => ({ start: page.words[0]?.start ?? page.start, end: page.words.at(-1)?.end ?? page.end }))
     .find(sentence => sentence.end > time + 1);
 }
-function setSentenceVisible(visible) {
-  sentenceVisible = visible;
-  $('toggle-sentence').setAttribute('aria-expanded', String(visible));
-  $('toggle-sentence').textContent = visible ? 'Skjul setningen' : 'Vis setningen';
-}
 function armAutoPause() {
   if ($('auto-pause').checked && !player.paused && !sentencePlayback) {
     sentencePlayback = sentenceAt(cues, player.currentTime * 1000);
@@ -55,7 +49,6 @@ $('auto-pause').onchange = () => {
 };
 function releaseSentence() {
   heldSentence = undefined;
-  setSentenceVisible(false);
   updateTurkish();
 }
 function cancelSentencePlayback() {
@@ -70,7 +63,6 @@ function stopAtSentenceEnd() {
     const end = sentencePlayback.end / 1000;
     heldSentence = sentencePlayback;
     lastSentence = sentencePlayback;
-    setSentenceVisible(true);
     cancelSentencePlayback(); player.pause(); player.currentTime = end;
     updateTurkish();
     updatePlayButtons();
@@ -105,7 +97,7 @@ player.addEventListener('ended', () => {
   const final = pages.at(-1);
   if (final) {
     heldSentence = { start: final.words[0]?.start ?? final.start, end: final.words.at(-1)?.end ?? final.end };
-    setSentenceVisible(true); updateTurkish();
+    updateTurkish();
   }
   cancelSentencePlayback();
 });
@@ -128,10 +120,6 @@ function showEditor(open) {
   $('toggle-editor').title = label;
   $('edit-label').textContent = label;
 }
-$('toggle-sentence').onclick = () => {
-  setSentenceVisible(!sentenceVisible);
-  updateTurkish();
-};
 const actionMenu = $('subtitle-actions');
 actionMenu.addEventListener('click', event => {
   if (event.target.closest('button')) actionMenu.open = false;
@@ -298,7 +286,6 @@ async function json(url, options) {
   return data;
 }
 function clearTrack() {
-  setSentenceVisible(false);
   pages = sentencePages(cues);
   cancelSentencePlayback();
   lastSentence = undefined;
@@ -318,10 +305,12 @@ function clearTrack() {
 function updateTurkish() {
   const time = heldSentence ? heldSentence.end - 1 : player.currentTime * 1000;
   // Source word times stay tied to the speech when Norwegian cue times are edited.
-  const active = pages.find(cue => cue.words?.length && time >= cue.words[0].start && time < cue.words.at(-1).end);
+  const active = pages.find(cue => cue.words?.length && time >= cue.words[0].start && time < cue.words.at(-1).end)
+    || pages.findLast(cue => cue.words?.length && cue.words[0].start <= time)
+    || pages.find(cue => cue.words?.length);
   const caption = $('turkish-caption');
   const hasWords = cues.some(cue => cue.words?.length);
-  caption.hidden = !sentenceVisible || !hasWords;
+  caption.hidden = !hasWords;
   $('reading-focus').hidden = !hasWords;
   $('sentence-progress').value = Number.isFinite(player.duration) && player.duration > 0
     ? Math.max(0, Math.min(1, player.currentTime / player.duration)) : 0;
