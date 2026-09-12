@@ -61,6 +61,12 @@ video.audio-only { display: block; height: 54px; background: transparent; }
 #focus-norwegian { grid-area: words; font-size: 1.9rem; font-weight: 700; color: #a65316; opacity: .7; transform: translateY(-13px); pointer-events: none; }
 #reading-focus { grid-template-areas: 'words' 'progress'; grid-template-rows: minmax(0, 1fr) 6px; align-items: center; row-gap: 0; }
 #sentence-progress { grid-area: progress; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) #turkish-caption .source-words, :root:not([data-theme='light']) #focus-turkish { color: #c5dfff; }
+  :root:not([data-theme='light']) #turkish-caption .word-meaning, :root:not([data-theme='light']) #focus-norwegian { color: #ffc078; }
+}
+:root[data-theme='dark'] #turkish-caption .source-words, :root[data-theme='dark'] #focus-turkish { color: #c5dfff; }
+:root[data-theme='dark'] #turkish-caption .word-meaning, :root[data-theme='dark'] #focus-norwegian { color: #ffc078; }
 #sentence-progress { display: block; height: 6px; border: 0; border-radius: 3px; overflow: hidden; background: var(--sunk); accent-color: var(--teal); }
 #sentence-progress::-webkit-progress-bar { background: var(--sunk); }
 #sentence-progress::-webkit-progress-value { background: var(--teal); }
