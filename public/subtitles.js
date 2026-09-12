@@ -480,7 +480,13 @@ player.addEventListener('error', () => {
   updatePlayButtons();
   $('preview-help').textContent = 'Nettleseren kan ikke spille av denne filtypen. Du kan fortsatt lage og laste ned undertekster.';
 });
+function updateMediaLayout() {
+  player.classList.toggle('audio-only', player.readyState >= 1 && player.videoWidth === 0 && player.videoHeight === 0);
+}
+player.addEventListener('resize', updateMediaLayout);
+player.addEventListener('emptied', updateMediaLayout);
 player.addEventListener('loadedmetadata', () => {
+  updateMediaLayout();
   updatePlayButtons();
   $('preview-help').textContent = '';
   updateActiveCue();
