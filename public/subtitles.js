@@ -69,6 +69,8 @@ $('auto-pause').onchange = () => {
   if ($('auto-pause').checked) armAutoPause();
   else cancelSentencePlayback();
 };
+$('show-sentence').onchange = updateTurkish;
+$('show-focus').onchange = updateTurkish;
 function releaseSentence() {
   heldSentence = undefined;
   updateTurkish();
@@ -349,8 +351,8 @@ function updateTurkish() {
     || pages.find(cue => cue.words?.length);
   const caption = $('turkish-caption');
   const hasWords = cues.some(cue => cue.words?.length);
-  caption.hidden = !hasWords;
-  $('reading-focus').hidden = !hasWords;
+  caption.hidden = !hasWords || !$('show-sentence').checked;
+  $('reading-focus').hidden = !hasWords || !$('show-focus').checked;
   $('sentence-progress').value = Number.isFinite(player.duration) && player.duration > 0
     ? Math.max(0, Math.min(1, player.currentTime / player.duration)) : 0;
   // Keep the last spoken group through brief pauses and single-sentence stops.

@@ -48,7 +48,9 @@
           <details id="subtitle-actions" hidden>
             <summary aria-label="Undertekstvalg" title="Undertekstvalg"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg></summary>
             <div class="subtitle-menu">
-              <label><input id="auto-pause" type="checkbox" checked /> Pause etter hver setning</label>
+              <label><input id="auto-pause" type="checkbox" checked /><span>Pause etter hver setning</span></label>
+              <label><input id="show-sentence" type="checkbox" checked aria-controls="turkish-caption" /><span>Vis hele setningen</span></label>
+              <label><input id="show-focus" type="checkbox" aria-controls="reading-focus" /><span>Vis fokuspanel</span></label>
               <button id="toggle-editor" type="button" class="ghost" aria-expanded="false" aria-controls="result"><span id="edit-label">Rediger undertekster</span></button>
               <button id="download-zip" type="button" class="ghost" title="Last ned ZIP med SRT og VTT">Last ned ZIP</button>
             </div>

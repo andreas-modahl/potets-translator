@@ -36,6 +36,10 @@ button.icon-button[aria-expanded=true] { background: var(--mark); border-color: 
 #sentence-actions button { min-width: 0; padding: 10px 4px; }
 #sentence-actions button[aria-pressed=true] { background: var(--mark); color: var(--ink); }
 .subtitle-menu label { display: flex; align-items: center; gap: 8px; padding: 10px; margin: 0; font-size: .95rem; cursor: pointer; }
+.subtitle-menu label { min-height: 44px; box-sizing: border-box; border-radius: 6px; font-weight: 400; }
+.subtitle-menu label:hover { background: var(--sunk); }
+.subtitle-menu input[type=checkbox] { appearance: auto; flex: 0 0 18px; width: 18px; height: 18px; min-height: 0; padding: 0; margin: 0; border-radius: 3px; box-shadow: none; accent-color: var(--teal); cursor: pointer; }
+.subtitle-menu input[type=checkbox]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 #subtitle-title { max-width: 100%; box-sizing: border-box; margin-bottom: 12px; }
 #save-status { color: var(--muted); }
 progress { width: 100%; accent-color: var(--teal); }
