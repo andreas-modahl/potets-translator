@@ -24,7 +24,10 @@ button.icon-button[aria-expanded=true] { background: var(--mark); border-color: 
 .subtitle-selection-row { display: flex; align-items: center; gap: 12px; clear: both; }
 #playback-selection { min-width: 0; overflow-wrap: anywhere; }
 #subtitle-actions { position: relative; flex-shrink: 0; width: fit-content; }
-#subtitle-actions summary { cursor: pointer; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; font-weight: 600; }
+#subtitle-actions summary { display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 44px; height: 44px; cursor: pointer; list-style: none; border: 1px solid transparent; border-radius: 10px; }
+#subtitle-actions summary::-webkit-details-marker { display: none; }
+#subtitle-actions summary svg { width: 24px; height: 24px; fill: currentColor; }
+#subtitle-actions summary:hover, #subtitle-actions[open] summary { background: var(--sunk); border-color: var(--line); }
 #subtitle-actions summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .subtitle-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 2; display: grid; min-width: 210px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); box-shadow: 0 4px 12px var(--shadow); }
 .subtitle-menu button { text-align: left; border: 0; border-radius: 6px; box-shadow: none; transform: none; }
