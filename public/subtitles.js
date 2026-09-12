@@ -31,6 +31,27 @@ let sentencePlayback;
 let lastSentence;
 let sentenceTimer;
 let heldSentence;
+let pendingPosition;
+let previousPlaybackTime;
+function savePosition(milliseconds) {
+  const url = new URL(location.href);
+  if (url.searchParams.get('view') !== 'play' || !savedId || url.searchParams.get('subtitle') !== savedId) return;
+  const value = String(Math.round(milliseconds) / 1000);
+  if (url.searchParams.get('t') === value) return;
+  url.searchParams.set('t', value);
+  history.replaceState(history.state, '', url);
+}
+function restorePosition() {
+  if (pendingPosition === undefined || player.readyState < 1 || !Number.isFinite(player.duration)) return;
+  const time = Math.min(pendingPosition, player.duration);
+  pendingPosition = undefined;
+  player.currentTime = time;
+  const completed = pages.find(page => Math.abs((page.words.at(-1)?.end ?? page.end) - time * 1000) < 2);
+  heldSentence = completed ? { start: completed.words[0]?.start ?? completed.start, end: completed.words.at(-1)?.end ?? completed.end } : undefined;
+  lastSentence = heldSentence;
+  previousPlaybackTime = time * 1000;
+  updateTurkish(); updatePlayButtons();
+}
 // Use complete display sentences, including pauses inside a sentence.
 function sentenceAt(_cues, time) {
   return pages.map(page => ({ start: page.words[0]?.start ?? page.start, end: page.words.at(-1)?.end ?? page.end }))
@@ -63,6 +84,7 @@ function stopAtSentenceEnd() {
     const end = sentencePlayback.end / 1000;
     heldSentence = sentencePlayback;
     lastSentence = sentencePlayback;
+    savePosition(sentencePlayback.end);
     cancelSentencePlayback(); player.pause(); player.currentTime = end;
     updateTurkish();
     updatePlayButtons();
@@ -97,6 +119,7 @@ player.addEventListener('ended', () => {
   const final = pages.at(-1);
   if (final) {
     heldSentence = { start: final.words[0]?.start ?? final.start, end: final.words.at(-1)?.end ?? final.end };
+    savePosition(heldSentence.end);
     updateTurkish();
   }
   cancelSentencePlayback();
@@ -105,6 +128,7 @@ player.addEventListener('ratechange', stopAtSentenceEnd);
 player.addEventListener('playing', armAutoPause);
 player.addEventListener('seeked', armAutoPause);
 player.addEventListener('seeking', () => {
+  previousPlaybackTime = undefined;
   // Keep the hold through our own seek to the exact sentence endpoint.
   if (heldSentence && Math.abs(player.currentTime * 1000 - heldSentence.end) > 1) releaseSentence();
   if (lastSentence && (player.currentTime * 1000 < lastSentence.start - 50 || player.currentTime * 1000 > lastSentence.end + 50)) lastSentence = undefined;
@@ -141,6 +165,7 @@ let routeVersion = 0;
 function navigate(view, id, replace = false) {
   const url = new URL(location.href);
   url.searchParams.delete('view'); url.searchParams.delete('subtitle');
+  url.searchParams.delete('t');
   if (view) url.searchParams.set('view', view);
   if (id) url.searchParams.set('subtitle', id);
   history[replace ? 'replaceState' : 'pushState']({ subtitleCard: Boolean(view) }, '', url);
@@ -151,6 +176,8 @@ async function showRoute() {
   const params = new URLSearchParams(location.search);
   const view = params.get('view');
   const id = params.get('subtitle');
+  const position = Number(params.get('t'));
+  pendingPosition = view === 'play' && params.has('t') && Number.isFinite(position) && position >= 0 ? position : undefined;
   player.pause(); showEditor(false);
   $('recordings').hidden = view === 'upload' || view === 'play';
   showUpload(view === 'upload');
@@ -164,6 +191,7 @@ async function showRoute() {
         openSaved(saved);
       } else if (!cues.length) { navigate('', undefined, true); return; }
       $('preview').hidden = false;
+      restorePosition();
       $('playback-heading').focus();
     } catch (error) {
       if (version !== routeVersion) return;
@@ -477,12 +505,22 @@ player.addEventListener('resize', updateMediaLayout);
 player.addEventListener('emptied', updateMediaLayout);
 player.addEventListener('loadedmetadata', () => {
   updateMediaLayout();
+  restorePosition();
   updatePlayButtons();
   $('preview-help').textContent = '';
   updateActiveCue();
 });
 player.addEventListener('emptied', updatePlayButtons);
 player.addEventListener('timeupdate', () => {
+  const time = player.currentTime * 1000;
+  if (!player.paused && !player.seeking && previousPlaybackTime !== undefined) {
+    const completed = pages.findLast(page => {
+      const end = page.words.at(-1)?.end ?? page.end;
+      return end > previousPlaybackTime && end <= time;
+    });
+    if (completed) savePosition(completed.words.at(-1)?.end ?? completed.end);
+  }
+  previousPlaybackTime = player.seeking ? undefined : time;
   stopAtSentenceEnd();
   if (!player.paused) {
     lastSentence = sentencePlayback || sentenceAt(cues, player.currentTime * 1000) || lastSentence;
