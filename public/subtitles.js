@@ -1,4 +1,4 @@
-import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentenceAt } from './subtitles-format.js';
+import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentenceAt, sentencePages } from './subtitles-format.js';
 
 const $ = id => document.getElementById(id);
 const fileInput = $('media-file');
@@ -18,6 +18,7 @@ let mediaUrl;
 let jobId;
 let controller;
 let cues = [];
+let pages = [];
 let savedId;
 let sourceName = '';
 let dirty = false;
@@ -173,6 +174,7 @@ async function json(url, options) {
   return data;
 }
 function clearTrack() {
+  pages = sentencePages(cues);
   cancelSentencePlayback();
   lastSentence = undefined;
   $('sentence-actions').hidden = !cues.length;
@@ -187,8 +189,7 @@ function clearTrack() {
 function updateTurkish() {
   const time = player.currentTime * 1000;
   // Source word times stay tied to the speech when Norwegian cue times are edited.
-  const index = cues.findIndex(cue => cue.words?.length && time >= cue.words[0].start && time < cue.words.at(-1).end);
-  const active = cues[index];
+  const active = pages.find(cue => cue.words?.length && time >= cue.words[0].start && time < cue.words.at(-1).end);
   const caption = $('turkish-caption');
   caption.hidden = !cues.some(cue => cue.words?.length);
   if (shownTurkish !== active) {
@@ -204,7 +205,9 @@ function updateTurkish() {
   const wordIndex = active?.words.findIndex(word => time >= word.start && time < word.end) ?? -1;
   if (wordIndex >= 0) {
     const previewWord = caption.children[wordIndex];
-    const editorWord = $('cues').children[index]?.querySelectorAll('.spoken-word')[wordIndex];
+    const word = active.words[wordIndex];
+    const index = cues.findIndex(cue => cue.words?.includes(word));
+    const editorWord = $('cues').children[index]?.querySelectorAll('.spoken-word')[cues[index]?.words.indexOf(word)];
     highlightedWords = [previewWord, editorWord].filter(Boolean);
     for (const word of highlightedWords) word.classList.add('speaking');
   }
@@ -214,8 +217,7 @@ wordTrack.addEventListener('cuechange', updateTurkish);
 player.addEventListener('seeked', updateTurkish);
 function updateActiveCue() {
   const time = player.currentTime * 1000;
-  const index = cues.findIndex(cue => time >= cue.start && time < cue.end);
-  const active = cues[index];
+  const active = pages.find(cue => time >= cue.start && time < cue.end);
   const caption = $('audio-caption');
   caption.hidden = !cues.length;
   caption.replaceChildren();
@@ -228,7 +230,11 @@ function updateActiveCue() {
       const span = document.createElement('span'); span.className = 'spoken-word'; span.textContent = chunk.text;
       span.classList.toggle('speaking', i === chunkIndex); caption.append(span, ' ');
     });
-    if (chunkIndex >= 0) $('cues').children[index]?.querySelector('.native-chunks')?.children[chunkIndex]?.classList.add('speaking');
+    if (chunkIndex >= 0) {
+      const chunk = chunks[chunkIndex];
+      const index = cues.findIndex(cue => cue.chunks?.includes(chunk));
+      $('cues').children[index]?.querySelector('.native-chunks')?.children[cues[index]?.chunks.indexOf(chunk)]?.classList.add('speaking');
+    }
   } else caption.textContent = active ? wrapText(active.text) : '';
 }
 track.addEventListener('cuechange', updateActiveCue);
@@ -251,7 +257,7 @@ function updateTrack() {
   updateTurkish();
   try {
     validateCues(cues);
-    for (const cue of cues) track.addCue(new VTTCue(cue.start / 1000, cue.end / 1000,
+    for (const cue of pages) track.addCue(new VTTCue(cue.start / 1000, cue.end / 1000,
       wrapText(cue.text).split('\n').map(cueText).join('\n')));
     track.mode = 'showing';
     updateActiveCue();

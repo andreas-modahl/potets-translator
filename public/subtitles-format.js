@@ -5,6 +5,23 @@ export function mappedChunks(cue) {
     ? cue.chunks : [];
 }
 
+/** Display complete sentences even when subtitle length limits created several cues. */
+export function sentencePages(cues) {
+  const pages = [];
+  for (const cue of cues) {
+    const previous = pages.at(-1);
+    if (previous && !/[.!?…]["'»”’)]*$/u.test(previous.turkish.trim())) {
+      previous.end = cue.end;
+      previous.text += ' ' + cue.text;
+      previous.turkish += ' ' + cue.turkish;
+      previous.words.push(...(cue.words || []));
+      previous.chunks = previous.chunks.length && mappedChunks(cue).length
+        ? [...previous.chunks, ...mappedChunks(cue)] : [];
+    } else pages.push({ ...cue, words: [...(cue.words || [])], chunks: [...mappedChunks(cue)] });
+  }
+  return pages;
+}
+
 /** Sentence punctuation and long pauses define short, repeatable speech units. */
 export function sentenceAt(cues, time) {
   const words = cues.flatMap(cue => cue.words || []);

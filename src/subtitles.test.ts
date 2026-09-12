@@ -78,9 +78,27 @@ test('long meaning chunks are not dropped or split into invented timestamps', ()
 });
 
 // This module is also loaded directly by the browser, without a build step.
-const { serializeSubtitles, validateCues, timestamp, mappedChunks, sentenceAt } = await import(
+const { serializeSubtitles, validateCues, timestamp, mappedChunks, sentenceAt, sentencePages } = await import(
   new URL('../public/subtitles-format.js', import.meta.url).href
 );
+test('sentence pages reunite split cues across pauses and retain word and meaning alignment', () => {
+  const paused = { ...phrase, words: phrase.words.map((word, i) => i === 2 ? { ...word, start: 3000, end: 4000 } : word) };
+  const split = phraseCues(paused, lesson);
+  const original = structuredClone(split);
+  const next = { start: 4200, end: 4500, turkish: 'Tamam!', text: 'Greit!' };
+  const pages = sentencePages([...split, next]);
+  assert.equal(pages.length, 2);
+  assert.equal(pages[0].turkish, phrase.text);
+  assert.equal(pages[0].text, split.map(cue => cue.text).join(' '));
+  assert.equal(pages[0].start, 500);
+  assert.equal(pages[0].end, 4000);
+  assert.deepEqual(pages[0].words, paused.words);
+  assert.deepEqual(pages[0].chunks, split.flatMap(cue => cue.chunks));
+  assert.equal(pages[0].words.at(-1), split[1]!.words[0]);
+  assert.deepEqual(split, original);
+  assert.deepEqual(sentencePages([{ ...split[0], text: 'Edited' }, split[1]])[0].chunks, []);
+  assert.deepEqual(sentencePages([]), []);
+});
 test('single sentence playback crosses cue boundaries and advances after its endpoint', () => {
   const cues = [
     { words: [{ text: 'Yarın', start: 100, end: 300 }] },
