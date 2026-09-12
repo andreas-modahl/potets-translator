@@ -30,6 +30,7 @@ let storage = false;
 let maxBytes = 100 * 1024 * 1024;
 let sentencePlayback;
 let lastSentence;
+let lastSentenceSpeed = 1;
 let sentenceTimer;
 let heldSentence;
 // Use complete display sentences, including pauses inside a sentence.
@@ -49,7 +50,6 @@ function armAutoPause() {
   }
   stopAtSentenceEnd();
 }
-$('playback-speed').onchange = () => { player.playbackRate = Number($('playback-speed').value); };
 $('auto-pause').onchange = () => {
   if ($('auto-pause').checked) armAutoPause();
   else cancelSentencePlayback();
@@ -77,11 +77,16 @@ function stopAtSentenceEnd() {
     updatePlayButtons();
   } else sentenceTimer = setTimeout(stopAtSentenceEnd, Math.max(10, remaining * 1000 / player.playbackRate));
 }
-async function playSentence(sentence) {
+async function playSentence(sentence, speed = player.playbackRate) {
   if (!sentence) return;
   lastSentence = sentence;
+  lastSentenceSpeed = speed;
   heldSentence = undefined;
   cancelSentencePlayback(); player.pause();
+  player.playbackRate = speed;
+  for (const button of document.querySelectorAll('[data-sentence-speed]')) {
+    button.setAttribute('aria-pressed', String(Number(button.dataset.sentenceSpeed) === speed));
+  }
   player.currentTime = sentence.start / 1000;
   // Wait for the play event before arming, so the preceding pause can settle.
   try {
@@ -90,8 +95,10 @@ async function playSentence(sentence) {
     stopAtSentenceEnd();
   } catch { message('Kunne ikke spille av setningen. Velg lydfilen på nytt.', true); }
 }
-$('play-sentence').onclick = () => playSentence(sentenceAt(cues, player.currentTime * 1000));
-$('replay-sentence').onclick = () => playSentence(lastSentence || sentenceAt(cues, player.currentTime * 1000));
+for (const button of document.querySelectorAll('[data-sentence-speed]')) {
+  button.onclick = () => playSentence(sentenceAt(cues, player.currentTime * 1000), Number(button.dataset.sentenceSpeed));
+}
+$('replay-sentence').onclick = () => playSentence(lastSentence || sentenceAt(cues, player.currentTime * 1000), lastSentenceSpeed);
 player.addEventListener('pause', cancelSentencePlayback);
 player.addEventListener('emptied', cancelSentencePlayback);
 player.addEventListener('emptied', releaseSentence);
@@ -240,7 +247,9 @@ function openSaved(saved) {
 function updatePlayButtons() {
   $('sentence-actions').hidden = !cues.length;
   $('replay-sentence').disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error) || !(lastSentence || sentenceAt(cues, player.currentTime * 1000));
-  $('play-sentence').disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error) || !sentenceAt(cues, player.currentTime * 1000);
+  for (const button of document.querySelectorAll('[data-sentence-speed]')) {
+    button.disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error) || !sentenceAt(cues, player.currentTime * 1000);
+  }
   for (const button of $('cues').querySelectorAll('.cue-top button')) {
     button.disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error);
     button.title = button.disabled ? 'Velg original lyd/video for å spille av' : 'Spill av denne underteksten';
@@ -481,7 +490,10 @@ player.addEventListener('loadedmetadata', () => {
 player.addEventListener('emptied', updatePlayButtons);
 player.addEventListener('timeupdate', () => {
   stopAtSentenceEnd();
-  if (!player.paused) lastSentence = sentencePlayback || sentenceAt(cues, player.currentTime * 1000) || lastSentence;
+  if (!player.paused) {
+    lastSentence = sentencePlayback || sentenceAt(cues, player.currentTime * 1000) || lastSentence;
+    lastSentenceSpeed = player.playbackRate;
+  }
   updatePlayButtons();
   updateTurkish();
   updateActiveCue();
