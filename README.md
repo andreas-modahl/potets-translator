@@ -54,6 +54,9 @@ The preview also highlights the Turkish word being spoken, using the original
 word timestamps. Highlighting follows playback and seeking, and appears in both
 the preview and the Turkish transcript in the editor. It stays tied to the audio
 when Norwegian subtitle times are edited. SRT/VTT downloads remain Norwegian text.
+The matching Norwegian meaning chunk is highlighted alongside the Turkish word.
+If the Norwegian text is rewritten, its chunk highlighting is disabled until the
+original wording is restored, because the old alignment no longer applies.
 
 Media is temporarily written to the system temp directory and removed after
 completion, failure or cancellation. Audio is sent to Azure; the transcript is

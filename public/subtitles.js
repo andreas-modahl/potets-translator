@@ -1,4 +1,4 @@
-import { cueText, serializeSubtitles, validateCues, wrapText } from './subtitles-format.js';
+import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks } from './subtitles-format.js';
 
 const $ = id => document.getElementById(id);
 const fileInput = $('media-file');
@@ -60,18 +60,43 @@ function updateTurkish() {
     highlightedWords = [previewWord, editorWord].filter(Boolean);
     for (const word of highlightedWords) word.classList.add('speaking');
   }
+  updateActiveCue();
 }
 wordTrack.addEventListener('cuechange', updateTurkish);
 player.addEventListener('seeked', updateTurkish);
 function updateActiveCue() {
-  const active = cues.find(cue => player.currentTime * 1000 >= cue.start && player.currentTime * 1000 < cue.end);
-  // Browsers often render audio-only files without a native subtitle surface.
-  $('audio-caption').hidden = player.videoWidth > 0 || !cues.length;
-  $('audio-caption').textContent = active ? wrapText(active.text) : '';
+  const time = player.currentTime * 1000;
+  const index = cues.findIndex(cue => time >= cue.start && time < cue.end);
+  const active = cues[index];
+  const caption = $('audio-caption');
+  caption.hidden = !cues.length;
+  caption.replaceChildren();
+  const chunks = mappedChunks(active);
+  const speaking = active?.words?.some(word => time >= word.start && time < word.end);
+  const chunkIndex = speaking ? chunks.findIndex(chunk => time >= chunk.start && time < chunk.end) : -1;
+  for (const element of $('cues').querySelectorAll('.native-chunks .speaking')) element.classList.remove('speaking');
+  if (chunks.length) {
+    chunks.forEach((chunk, i) => {
+      const span = document.createElement('span'); span.className = 'spoken-word'; span.textContent = chunk.text;
+      span.classList.toggle('speaking', i === chunkIndex); caption.append(span, ' ');
+    });
+    if (chunkIndex >= 0) $('cues').children[index]?.querySelector('.native-chunks')?.children[chunkIndex]?.classList.add('speaking');
+  } else caption.textContent = active ? wrapText(active.text) : '';
 }
 track.addEventListener('cuechange', updateActiveCue);
 function updateTrack() {
   clearTrack();
+  cues.forEach((cue, index) => {
+    const preview = $('cues').children[index]?.querySelector('.native-chunks');
+    if (!preview) return;
+    preview.replaceChildren();
+    const chunks = mappedChunks(cue);
+    preview.hidden = !chunks.length;
+    for (const chunk of chunks) {
+      const span = document.createElement('span'); span.className = 'spoken-word'; span.textContent = chunk.text;
+      preview.append(span, ' ');
+    }
+  });
   for (const cue of cues) for (const word of cue.words || []) {
     wordTrack.addCue(new VTTCue(word.start / 1000, word.end / 1000, word.text));
   }
@@ -84,6 +109,9 @@ function updateTrack() {
     updateActiveCue();
     const long = cues.filter(cue => wrapText(cue.text).split('\n').length > 2 || cue.end - cue.start < 800);
     $('edit-status').textContent = long.length ? `${long.length} undertekster er lange eller vises kort. Kontroller lesbarheten i avspilleren.` : '';
+    if (cues.some(cue => cue.chunks?.length && !mappedChunks(cue).length)) {
+      $('edit-status').textContent += ' Norsk delmarkering er slått av for endret tekst, siden ordkoblingen ikke lenger er sikker.';
+    }
     $('download-srt').disabled = $('download-vtt').disabled = false;
   } catch (error) {
     $('edit-status').textContent = error.message;
@@ -114,7 +142,9 @@ function renderCues() {
     } else original.textContent = cue.turkish;
     const text = document.createElement('textarea'); text.value = cue.text; text.setAttribute('aria-label', `Norsk undertekst ${index + 1}`);
     text.oninput = () => { cue.text = text.value; updateTrack(); };
-    row.append(top, original, text); $('cues').append(row);
+    const native = document.createElement('p'); native.className = 'native-chunks'; native.lang = 'nb';
+    native.setAttribute('aria-label', 'Norsk betydning, delen som uttales er markert');
+    row.append(top, original, native, text); $('cues').append(row);
   });
   $('result').hidden = false;
   updateTrack();
@@ -138,8 +168,10 @@ player.addEventListener('loadedmetadata', () => {
 player.addEventListener('timeupdate', () => {
   updateTurkish();
   updateActiveCue();
-  Array.from($('cues').children).forEach((row, index) => row.classList.toggle('active',
-    player.currentTime * 1000 >= cues[index].start && player.currentTime * 1000 < cues[index].end));
+  Array.from($('cues').children).forEach((row, index) => {
+    const cue = cues[index];
+    row.classList.toggle('active', Boolean(cue && player.currentTime * 1000 >= cue.start && player.currentTime * 1000 < cue.end));
+  });
 });
 
 $('upload-form').addEventListener('submit', async event => {

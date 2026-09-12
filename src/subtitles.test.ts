@@ -34,7 +34,8 @@ test('reject empty, missing, invalid, overlapping and overlong transcription res
 });
 test('Norwegian follows Turkish order, preserving the real start and end', () => {
   assert.deepEqual(phraseCues(phrase, lesson), [{ start: 500, end: 2500,
-    text: 'I morgen sammen med deg skal jeg komme.', turkish: phrase.text, words: phrase.words }]);
+    text: 'I morgen sammen med deg skal jeg komme.', turkish: phrase.text, words: phrase.words,
+    chunks: lesson.chunks.map((chunk, i) => ({ text: chunk.native, start: phrase.words[i]!.start, end: phrase.words[i]!.end })) }]);
 });
 test('word timestamps must cover the full provider transcript despite punctuation or case differences', () => {
   const data = response();
@@ -60,7 +61,12 @@ test('long pauses split cues without fabricating times', () => {
 });
 test('a grouped Turkish expression keeps its words and timing together', () => {
   const grouped = { ...lesson, chunks: [{ target: 'Yarın seninle', native: 'I morgen sammen med deg' }, lesson.chunks[2]!] };
-  assert.deepEqual(phraseCues(phrase, grouped), phraseCues(phrase, lesson));
+  const result = phraseCues(phrase, grouped);
+  assert.deepEqual(result[0]!.words, phrase.words);
+  assert.deepEqual(result[0]!.chunks, [
+    { text: 'I morgen sammen med deg', start: 500, end: 1600 },
+    { text: 'skal jeg komme.', start: 1700, end: 2500 },
+  ]);
 });
 test('long meaning chunks are not dropped or split into invented timestamps', () => {
   const long = { ...lesson, chunks: lesson.chunks.map((chunk, i) => i === 1 ? { ...chunk, native: 'ord '.repeat(25).trim() } : chunk) };
@@ -72,9 +78,16 @@ test('long meaning chunks are not dropped or split into invented timestamps', ()
 });
 
 // This module is also loaded directly by the browser, without a build step.
-const { serializeSubtitles, validateCues, timestamp } = await import(
+const { serializeSubtitles, validateCues, timestamp, mappedChunks } = await import(
   new URL('../public/subtitles-format.js', import.meta.url).href
 );
+test('Norwegian highlighting is disabled for changed text and restored when the original returns', () => {
+  const cue = phraseCues(phrase, lesson)[0]!;
+  assert.deepEqual(mappedChunks(cue), cue.chunks);
+  assert.deepEqual(mappedChunks({ ...cue, text: 'En annen oversettelse.' }), []);
+  assert.deepEqual(mappedChunks({ ...cue, text: cue.text.replaceAll(' ', '\n') }), cue.chunks);
+  assert.deepEqual(mappedChunks(undefined), []);
+});
 test('SRT and VTT exports have correct timestamps and retain Norwegian letters', () => {
   const cues = [{ start: 59999.6, end: 62000, text: 'Jeg hører blåbær.' }];
   assert.equal(timestamp(59999.6), '00:01:00,000');

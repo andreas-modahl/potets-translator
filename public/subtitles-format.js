@@ -1,3 +1,10 @@
+/** Only reuse the original meaning alignment while the wording still matches. */
+export function mappedChunks(cue) {
+  const normalize = text => text.replace(/\s+/gu, ' ').trim();
+  return cue?.chunks?.length && normalize(cue.chunks.map(chunk => chunk.text).join(' ')) === normalize(cue.text)
+    ? cue.chunks : [];
+}
+
 /** Subtitle files are plain text: prevent user text being interpreted as cue markup. */
 export function cueText(text) {
   return text.replace(/\s+/gu, ' ').trim().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
