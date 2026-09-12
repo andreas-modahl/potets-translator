@@ -21,8 +21,9 @@
         <h2>Velg et opptak</h2>
         <p id="library-status" role="status">Henter lagrede undertekster …</p>
         <div id="library"></div>
-        <details id="add-recording">
-          <summary>Legg til lyd, video eller undertekster</summary>
+        <button id="toggle-upload" type="button" aria-expanded="false" aria-controls="add-recording">Last opp nytt opptak</button>
+        <section id="add-recording" class="card" aria-labelledby="upload-heading" hidden>
+          <h2 id="upload-heading">Legg til lyd, video eller undertekster</h2>
         <form id="upload-form">
           <label for="media-file">Velg lyd eller video</label>
           <input id="media-file" type="file" accept=".mp4,.m4a,.mov,.webm,.mkv,.avi,.mp3,.wav,.flac,.ogg,.aac" required aria-describedby="file-help" />
@@ -34,7 +35,7 @@
           <label for="import-subtitles">Importer lagret oversettelse (.translation.json)</label>
           <input id="import-subtitles" type="file" accept=".json,application/json" />
         </div>
-        </details>
+        </section>
         <p id="status" role="status" aria-live="polite">Kontrollerer tilgjengelighet …</p>
         <progress id="progress" aria-label="Fremdrift" hidden></progress>
       <section id="preview" hidden aria-label="Forhåndsvisning">

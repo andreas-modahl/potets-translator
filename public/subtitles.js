@@ -85,6 +85,11 @@ function showEditor(open) {
   $('toggle-editor').setAttribute('aria-expanded', String(open));
   $('toggle-editor').textContent = open ? 'Skjul redigering' : 'Rediger undertekster';
 }
+function showUpload(open) {
+  $('add-recording').hidden = !open;
+  $('toggle-upload').setAttribute('aria-expanded', String(open));
+}
+$('toggle-upload').onclick = () => showUpload($('add-recording').hidden);
 $('toggle-editor').onclick = () => showEditor($('result').hidden);
 function edited() { dirty = true; revision += 1; $('save-status').textContent = 'Ulagrede endringer'; }
 function canReplace() { return !busy && !saving && (!dirty || window.confirm('Du har ulagrede endringer. Fortsette uten å lagre?')); }
@@ -120,7 +125,7 @@ function openSaved(saved) {
   $('subtitle-title').value = saved.title;
   dirty = false; revision += 1;
   renderCues(); $('preview').hidden = false;
-  $('add-recording').open = false;
+  showUpload(false);
   $('playback-label').textContent = `Velg originalfilen «${sourceName}» for avspilling (ingen ny oversettelse)`;
   if (saved.audioUrl) {
     player.src = saved.audioUrl;
