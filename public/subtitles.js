@@ -153,6 +153,11 @@ async function loadLibrary() {
   } catch (error) { $('library-status').textContent = error.message; }
   $('save-subtitles').disabled = !storage;
 }
+function showSelection(id, label, name, suffix = '') {
+  const value = document.createElement('strong');
+  value.textContent = name;
+  $(id).replaceChildren(label, value, suffix);
+}
 function openSaved(saved) {
   player.pause(); player.removeAttribute('src'); player.load();
   if (mediaUrl) URL.revokeObjectURL(mediaUrl);
@@ -161,9 +166,9 @@ function openSaved(saved) {
   $('subtitle-title').value = saved.title;
   dirty = false; revision += 1;
   renderCues(); $('preview').hidden = false;
-  $('playback-selection').textContent = `Valgte undertekster: ${saved.title}`;
+  showSelection('playback-selection', 'Valgte undertekster: ', saved.title);
   $('selected-media').hidden = !saved.audioUrl;
-  $('selected-media').textContent = saved.audioUrl ? `Valgt media: ${sourceName} (funnet automatisk i example)` : '';
+  showSelection('selected-media', 'Valgt media: ', saved.audioUrl ? sourceName : '', saved.audioUrl ? ' (funnet automatisk i example)' : '');
   showUpload(false);
   $('playback-label').textContent = `Velg originalfilen «${sourceName}» for avspilling (ingen ny oversettelse)`;
   if (saved.audioUrl) {
@@ -193,7 +198,7 @@ $('playback-file').onchange = () => {
   player.pause(); if (mediaUrl) URL.revokeObjectURL(mediaUrl);
   mediaUrl = URL.createObjectURL(file); player.src = mediaUrl;
   $('selected-media').hidden = false;
-  $('selected-media').textContent = `Valgt media: ${file.name}`;
+  showSelection('selected-media', 'Valgt media: ', file.name);
 };
 $('subtitle-title').oninput = edited;
 $('save-subtitles').onclick = async () => {
@@ -388,7 +393,7 @@ fileInput.addEventListener('change', () => {
   $('preview').hidden = true;
   $('playback-selection').textContent = '';
   $('selected-media').hidden = !file;
-  $('selected-media').textContent = file ? `Valgt media: ${file.name}` : '';
+  showSelection('selected-media', 'Valgt media: ', file?.name || '');
   $('playback-label').hidden = $('playback-file').hidden = true;
   if (file) { sourceName = file.name; $('subtitle-title').value = file.name; mediaUrl = URL.createObjectURL(file); player.src = mediaUrl; }
   message('Klar til å lage undertekster.');
