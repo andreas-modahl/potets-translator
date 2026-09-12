@@ -89,7 +89,47 @@ function showUpload(open) {
   $('add-recording').hidden = !open;
   $('toggle-upload').setAttribute('aria-expanded', String(open));
 }
-$('toggle-upload').onclick = () => showUpload($('add-recording').hidden);
+let routeVersion = 0;
+function navigate(view, id, replace = false) {
+  const url = new URL(location.href);
+  url.searchParams.delete('view'); url.searchParams.delete('subtitle');
+  if (view) url.searchParams.set('view', view);
+  if (id) url.searchParams.set('subtitle', id);
+  history[replace ? 'replaceState' : 'pushState']({ subtitleCard: Boolean(view) }, '', url);
+  void showRoute();
+}
+async function showRoute() {
+  const version = ++routeVersion;
+  const params = new URLSearchParams(location.search);
+  const view = params.get('view');
+  const id = params.get('subtitle');
+  player.pause(); showEditor(false);
+  $('recordings').hidden = view === 'upload' || view === 'play';
+  showUpload(view === 'upload');
+  $('preview').hidden = true;
+  if (view === 'play') {
+    try {
+      if (id && id !== savedId) {
+        const saved = await json(`/api/subtitle-library/${encodeURIComponent(id)}`);
+        if (version !== routeVersion) return;
+        if (!canReplace()) { navigate('', undefined, true); return; }
+        openSaved(saved);
+      } else if (!cues.length) { navigate('', undefined, true); return; }
+      $('preview').hidden = false;
+      $('playback-heading').focus();
+    } catch (error) {
+      if (version !== routeVersion) return;
+      navigate('', undefined, true); message(error.message, true);
+    }
+  } else if (view === 'upload') $('upload-heading').focus();
+  else $('toggle-upload').focus();
+}
+$('toggle-upload').onclick = () => navigate('upload');
+for (const button of document.querySelectorAll('.close-card')) button.onclick = () => {
+  if (history.state?.subtitleCard) history.back();
+  else navigate('', undefined, true);
+};
+window.addEventListener('popstate', () => void showRoute());
 $('toggle-editor').onclick = () => showEditor($('result').hidden);
 function edited() { dirty = true; revision += 1; $('save-status').textContent = 'Ulagrede endringer'; }
 function canReplace() { return !busy && !saving && (!dirty || window.confirm('Du har ulagrede endringer. Fortsette uten å lagre?')); }
@@ -105,13 +145,7 @@ async function loadLibrary() {
     for (const item of data.items) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'ghost';
       button.textContent = `${item.title} · ${new Date(item.updated).toLocaleDateString('nb-NO')}`;
-      button.onclick = async () => {
-        if (!canReplace()) return;
-        busy = true;
-        try { openSaved(await json(`/api/subtitle-library/${encodeURIComponent(item.id)}`)); }
-        catch (error) { $('library-status').textContent = error.message; }
-        finally { busy = false; }
-      };
+      button.onclick = () => { if (!busy && !saving) navigate('play', item.id); };
       $('library').append(button);
     }
   } catch (error) { $('library-status').textContent = error.message; }
@@ -186,7 +220,7 @@ $('import-subtitles').onchange = async () => {
     const data = JSON.parse(await file.text());
     const saved = await json('/api/subtitle-library', { method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ title: data.title || data.source || file.name, source: data.source || '', cues: data.cues }) });
-    openSaved(saved); await loadLibrary();
+    openSaved(saved); navigate('play', saved.id, true); await loadLibrary();
   } catch (error) { $('library-status').textContent = error.message; }
   finally { busy = false; $('import-subtitles').value = ''; }
 };
@@ -336,7 +370,7 @@ fileInput.addEventListener('change', () => {
   cues = []; clearTrack(); showEditor(false); $('subtitle-actions').hidden = true;
   if (mediaUrl) URL.revokeObjectURL(mediaUrl);
   const file = fileInput.files[0];
-  $('preview').hidden = !file;
+  $('preview').hidden = true;
   $('playback-selection').textContent = '';
   $('selected-media').hidden = !file;
   $('selected-media').textContent = file ? `Valgt media: ${file.name}` : '';
@@ -390,6 +424,7 @@ $('upload-form').addEventListener('submit', async event => {
       if (job.state === 'done') {
         cues = job.cues; renderCues();
         savedId = job.savedId;
+        navigate('play', savedId, true);
         dirty = !savedId;
         $('save-status').textContent = job.saveError || (savedId ? 'Lagret automatisk' : 'Ikke lagret. Last ned filen eller bruk Lagre.');
         await loadLibrary();
@@ -427,3 +462,4 @@ try {
   await loadLibrary();
   message(configured ? '' : 'Undertekster er ikke konfigurert ennå. Serveren trenger Azure Speech.', !configured);
 } catch { message('Kunne ikke kontakte serveren. Last siden på nytt.', true); }
+await showRoute();

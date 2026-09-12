@@ -13,6 +13,7 @@ input[type=file] { width: 100%; padding: 18px; border: 2px dashed var(--muted); 
 #library { display: grid; gap: 10px; margin: 16px 0 24px; }
 #library button { text-align: left; overflow-wrap: anywhere; }
 .workspace > h2 { margin-bottom: 8px; }
+.close-card { float: right; margin: -8px -8px 8px 12px; font-size: 1.4rem; }
 #library { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
 .import-row { margin-top: 24px; }
 #subtitle-actions { margin-top: 18px; }

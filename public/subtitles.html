@@ -17,13 +17,15 @@
         <h1>Følg ordene du hører.</h1>
         <p>Lag norske undertekster i tyrkisk ordstilling, akkurat som på læresiden. Betydningen følger ordene i opptaket.</p>
       </header>
-      <section class="card workspace" aria-label="Opptak og undertekster">
+      <section id="recordings" class="card workspace" aria-label="Opptak og undertekster">
         <h2>Velg et opptak</h2>
         <p id="library-status" role="status">Henter lagrede undertekster …</p>
         <div id="library"></div>
         <button id="toggle-upload" type="button" aria-expanded="false" aria-controls="add-recording">Last opp nytt opptak</button>
+      </section>
         <section id="add-recording" class="card" aria-labelledby="upload-heading" hidden>
-          <h2 id="upload-heading">Legg til lyd, video eller undertekster</h2>
+          <button class="ghost close-card" type="button" aria-label="Lukk opplasting">×</button>
+          <h2 id="upload-heading" tabindex="-1">Legg til lyd, video eller undertekster</h2>
         <form id="upload-form">
           <label for="media-file">Velg lyd eller video</label>
           <input id="media-file" type="file" accept=".mp4,.m4a,.mov,.webm,.mkv,.avi,.mp3,.wav,.flac,.ogg,.aac" required aria-describedby="file-help" />
@@ -38,8 +40,8 @@
         </section>
         <p id="status" role="status" aria-live="polite">Kontrollerer tilgjengelighet …</p>
         <progress id="progress" aria-label="Fremdrift" hidden></progress>
-      </section>
       <section id="preview" class="card" hidden aria-labelledby="playback-heading">
+        <button class="ghost close-card" type="button" aria-label="Lukk avspilling">×</button>
         <h2 id="playback-heading" tabindex="-1">Spill av undertekster</h2>
         <p id="playback-selection"></p>
         <p id="selected-media" role="status" hidden></p>
