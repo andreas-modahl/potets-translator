@@ -72,7 +72,8 @@ page before creating a library you want to access on other devices.
 Media is temporarily written to the system temp directory and removed after
 completion, failure or cancellation. Audio is sent to Azure; the transcript is
 sent to Anthropic. Original media is not retained in the library: select the
-original audio/video file again to play saved subtitles. No new transcription
+original audio/video file again to play saved subtitles. The three local example
+stories automatically load their MP3s from `example/` when opened. No new transcription
 is needed. In-progress jobs remain in memory and are lost on server restart;
 completed database records survive restarts when the database is on persistent
 storage (as in the Render blueprint). `LESSON_DB=off` disables the library;

@@ -62,7 +62,23 @@ function openSaved(saved) {
   dirty = false; revision += 1;
   renderCues(); $('preview').hidden = false;
   $('playback-label').textContent = `Velg originalfilen «${sourceName}» for avspilling (ingen ny oversettelse)`;
-  $('save-status').textContent = 'Lagret'; message('Undertekstene er åpnet. Du kan redigere og laste dem ned.');
+  if (saved.audioUrl) {
+    player.src = saved.audioUrl;
+    $('playback-label').hidden = $('playback-file').hidden = true;
+    $('preview-help').textContent = 'Laster lyd …';
+    message('Undertekster og lyd er åpnet. Trykk på spill av.');
+  } else {
+    $('playback-label').hidden = $('playback-file').hidden = false;
+    $('preview-help').textContent = 'Velg originalfilen ovenfor for å aktivere avspilling.';
+    message('Undertekstene er åpnet. Velg original lyd/video under «Se og lytt» for å spille av.');
+  }
+  $('save-status').textContent = 'Lagret';
+}
+function updatePlayButtons() {
+  for (const button of $('cues').querySelectorAll('.cue-top button')) {
+    button.disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error);
+    button.title = button.disabled ? 'Velg original lyd/video for å spille av' : 'Spill av denne underteksten';
+  }
 }
 $('playback-file').onchange = () => {
   const file = $('playback-file').files[0]; if (!file) return;
@@ -227,6 +243,7 @@ function renderCues() {
   });
   $('result').hidden = false;
   updateTrack();
+  updatePlayButtons();
 }
 
 fileInput.addEventListener('change', () => {
@@ -240,12 +257,16 @@ fileInput.addEventListener('change', () => {
   message('Klar til å lage undertekster.');
 });
 player.addEventListener('error', () => {
+  $('playback-label').hidden = $('playback-file').hidden = false;
+  updatePlayButtons();
   $('preview-help').textContent = 'Nettleseren kan ikke spille av denne filtypen. Du kan fortsatt lage og laste ned undertekster.';
 });
 player.addEventListener('loadedmetadata', () => {
+  updatePlayButtons();
   $('preview-help').textContent = 'Spill av opptaket for å følge undertekstene.';
   updateActiveCue();
 });
+player.addEventListener('emptied', updatePlayButtons);
 player.addEventListener('timeupdate', () => {
   updateTurkish();
   updateActiveCue();
