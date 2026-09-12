@@ -29,6 +29,11 @@ let maxBytes = 100 * 1024 * 1024;
 let sentencePlayback;
 let lastSentence;
 let sentenceTimer;
+let heldSentence;
+function releaseSentence() {
+  heldSentence = undefined;
+  updateTurkish();
+}
 function cancelSentencePlayback() {
   sentencePlayback = undefined;
   clearTimeout(sentenceTimer);
@@ -39,13 +44,16 @@ function stopAtSentenceEnd() {
   const remaining = sentencePlayback.end / 1000 - player.currentTime;
   if (remaining <= .012) {
     const end = sentencePlayback.end / 1000;
+    heldSentence = sentencePlayback;
     cancelSentencePlayback(); player.pause(); player.currentTime = end;
+    updateTurkish();
     updatePlayButtons();
   } else sentenceTimer = setTimeout(stopAtSentenceEnd, Math.max(10, remaining * 1000 / player.playbackRate));
 }
 async function playSentence(sentence) {
   if (!sentence) return;
   lastSentence = sentence;
+  heldSentence = undefined;
   cancelSentencePlayback(); player.pause();
   player.currentTime = sentence.start / 1000;
   // Wait for the play event before arming, so the preceding pause can settle.
@@ -59,10 +67,14 @@ $('play-sentence').onclick = () => playSentence(sentenceAt(cues, player.currentT
 $('replay-sentence').onclick = () => playSentence(lastSentence || sentenceAt(cues, player.currentTime * 1000));
 player.addEventListener('pause', cancelSentencePlayback);
 player.addEventListener('emptied', cancelSentencePlayback);
+player.addEventListener('emptied', releaseSentence);
+player.addEventListener('play', releaseSentence);
 player.addEventListener('ended', cancelSentencePlayback);
 player.addEventListener('ratechange', stopAtSentenceEnd);
 player.addEventListener('playing', stopAtSentenceEnd);
 player.addEventListener('seeking', () => {
+  // Keep the hold through our own seek to the exact sentence endpoint.
+  if (heldSentence && Math.abs(player.currentTime * 1000 - heldSentence.end) > 1) releaseSentence();
   if (lastSentence && (player.currentTime * 1000 < lastSentence.start - 50 || player.currentTime * 1000 > lastSentence.end + 50)) lastSentence = undefined;
   if (sentencePlayback && (player.currentTime * 1000 < sentencePlayback.start || player.currentTime * 1000 >= sentencePlayback.end)) cancelSentencePlayback();
 });
@@ -177,6 +189,7 @@ function clearTrack() {
   pages = sentencePages(cues);
   cancelSentencePlayback();
   lastSentence = undefined;
+  heldSentence = undefined;
   $('sentence-actions').hidden = !cues.length;
   for (const cue of Array.from(track.cues || [])) track.removeCue(cue);
   for (const cue of Array.from(wordTrack.cues || [])) wordTrack.removeCue(cue);
@@ -187,7 +200,7 @@ function clearTrack() {
   $('audio-caption').textContent = ''; $('audio-caption').hidden = true;
 }
 function updateTurkish() {
-  const time = player.currentTime * 1000;
+  const time = heldSentence ? heldSentence.end - 1 : player.currentTime * 1000;
   // Source word times stay tied to the speech when Norwegian cue times are edited.
   const active = pages.find(cue => cue.words?.length && time >= cue.words[0].start && time < cue.words.at(-1).end);
   const caption = $('turkish-caption');
@@ -202,7 +215,7 @@ function updateTurkish() {
   }
   for (const word of highlightedWords) word.classList.remove('speaking');
   highlightedWords = [];
-  const wordIndex = active?.words.findIndex(word => time >= word.start && time < word.end) ?? -1;
+  const wordIndex = heldSentence ? -1 : active?.words.findIndex(word => time >= word.start && time < word.end) ?? -1;
   if (wordIndex >= 0) {
     const previewWord = caption.children[wordIndex];
     const word = active.words[wordIndex];
@@ -216,13 +229,13 @@ function updateTurkish() {
 wordTrack.addEventListener('cuechange', updateTurkish);
 player.addEventListener('seeked', updateTurkish);
 function updateActiveCue() {
-  const time = player.currentTime * 1000;
+  const time = heldSentence ? heldSentence.end - 1 : player.currentTime * 1000;
   const active = pages.find(cue => time >= cue.start && time < cue.end);
   const caption = $('audio-caption');
   caption.hidden = !cues.length;
   caption.replaceChildren();
   const chunks = mappedChunks(active);
-  const speaking = active?.words?.some(word => time >= word.start && time < word.end);
+  const speaking = !heldSentence && active?.words?.some(word => time >= word.start && time < word.end);
   const chunkIndex = speaking ? chunks.findIndex(chunk => time >= chunk.start && time < chunk.end) : -1;
   for (const element of $('cues').querySelectorAll('.native-chunks .speaking')) element.classList.remove('speaking');
   if (chunks.length) {
