@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { config } from './config.js';
 import { lesson } from './lesson.js';
+import { subtitleStore } from './subtitle-library.js';
 import { MAX_SUBTITLE_BYTES, MAX_SUBTITLE_MS, phraseCues, SubtitleError, transcriptPhrases, type SubtitleCue } from './subtitles.js';
 
 const execute = promisify(execFile);
@@ -16,6 +17,10 @@ const jobs = new Map<string, Job>();
 let busy = false;
 const TTL = 60 * 60 * 1000;
 interface Job {
+  owner: string;
+  source: string;
+  savedId?: string;
+  saveError?: string;
   state: 'extracting' | 'transcribing' | 'translating' | 'done' | 'error';
   completed: number;
   total: number;
@@ -85,6 +90,10 @@ async function run(job: Job, media: Buffer): Promise<void> {
       job.cues.push(...phraseCues(phrase, translated));
       job.completed += 1;
     }
+    if (subtitleStore) {
+      try { job.savedId = subtitleStore.save(job.owner, { title: job.source, source: job.source, cues: job.cues }).id; }
+      catch { job.saveError = 'Automatisk lagring feilet. Bruk Lagre-knappen for å prøve igjen.'; }
+    }
     job.state = 'done';
   } catch (error) {
     job.state = 'error';
@@ -99,11 +108,11 @@ async function run(job: Job, media: Buffer): Promise<void> {
 }
 
 /** A random job ID is the access token. Media is temporary; results expire after an hour. */
-export async function handleSubtitles(request: IncomingMessage, response: ServerResponse, path: string): Promise<void> {
+export async function handleSubtitles(request: IncomingMessage, response: ServerResponse, path: string, owner: string): Promise<void> {
   sweep();
   if (path === '/api/subtitles' && request.method === 'GET') {
     send(response, 200, { configured: Boolean(config.azureSpeechKey && config.azureSpeechRegion && ffmpeg),
-      maxBytes: MAX_SUBTITLE_BYTES, maxSeconds: MAX_SUBTITLE_MS / 1000 });
+      maxBytes: MAX_SUBTITLE_BYTES, maxSeconds: MAX_SUBTITLE_MS / 1000, storage: Boolean(subtitleStore) });
     return;
   }
   if (path === '/api/subtitles' && request.method === 'POST') {
@@ -130,7 +139,9 @@ export async function handleSubtitles(request: IncomingMessage, response: Server
       // Bound retained results even if many tiny files are processed in an hour.
       while (jobs.size >= 10) jobs.delete(jobs.keys().next().value!);
       const id = randomUUID();
-      const job: Job = { state: 'extracting', completed: 0, total: 0, cues: [], controller: new AbortController(), expires: Date.now() + TTL };
+      let source = 'Opptak';
+      try { source = decodeURIComponent(String(request.headers['x-file-name'] ?? 'Opptak')).slice(0, 200); } catch {}
+      const job: Job = { owner, source, state: 'extracting', completed: 0, total: 0, cues: [], controller: new AbortController(), expires: Date.now() + TTL };
       jobs.set(id, job);
       void run(job, Buffer.concat(chunks));
       send(response, 202, { id });
@@ -142,10 +153,11 @@ export async function handleSubtitles(request: IncomingMessage, response: Server
     return;
   }
   const id = path.slice('/api/subtitles/'.length);
-  const job = jobs.get(id);
+  const candidate = jobs.get(id);
+  const job = candidate?.owner === owner ? candidate : undefined;
   if (job && request.method === 'GET') {
     send(response, 200, { state: job.state, completed: job.completed, total: job.total,
-      error: job.error, ...(job.state === 'done' ? { cues: job.cues } : {}) });
+      error: job.error, ...(job.state === 'done' ? { cues: job.cues, savedId: job.savedId, saveError: job.saveError } : {}) });
   } else if (job && request.method === 'DELETE') {
     job.controller.abort(); jobs.delete(id); send(response, 200, { ok: true });
   } else send(response, 404, { error: 'Jobben finnes ikke lenger. Last opp filen på nytt.' });

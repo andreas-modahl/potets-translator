@@ -34,6 +34,7 @@ import { picture, pictureFingerprint, picturesConfigured, PictureUnavailable } f
 import { speak, speechConfigured, speechFingerprint, SpeechUnavailable, voiceChoices } from './speech.js';
 import { translate } from './translate.js';
 import { handleSubtitles } from './subtitle-jobs.js';
+import { handleSubtitleLibrary, subtitleOwner } from './subtitle-library.js';
 
 interface Asset {
   file: string;
@@ -605,7 +606,11 @@ const server = createServer((request, response) => {
         return;
       }
       if (path === '/api/subtitles' || path.startsWith('/api/subtitles/')) {
-        await handleSubtitles(request, response, path);
+        await handleSubtitles(request, response, path, subtitleOwner(request, response, currentUser(request)?.id));
+        return;
+      }
+      if (path === '/api/subtitle-library' || path.startsWith('/api/subtitle-library/')) {
+        await handleSubtitleLibrary(request, response, path, subtitleOwner(request, response, currentUser(request)?.id));
         return;
       }
       if (request.method === 'GET' && path === '/auth/google' && LOGIN_ENABLED) {

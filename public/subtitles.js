@@ -18,9 +18,88 @@ let mediaUrl;
 let jobId;
 let controller;
 let cues = [];
+let savedId;
+let sourceName = '';
+let dirty = false;
+let revision = 0;
+let saving = false;
+let storage = false;
 let maxBytes = 100 * 1024 * 1024;
 
 function message(text, error = false) { status.textContent = text; status.classList.toggle('error', error); }
+function edited() { dirty = true; revision += 1; $('save-status').textContent = 'Ulagrede endringer'; }
+function canReplace() { return !busy && !saving && (!dirty || window.confirm('Du har ulagrede endringer. Fortsette uten å lagre?')); }
+window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
+async function loadLibrary() {
+  try {
+    const data = await json('/api/subtitle-library');
+    storage = true;
+    $('library-status').textContent = data.scope === 'local' ? 'Lagret på denne serveren.' : data.scope === 'account'
+      ? 'Lagret på kontoen din.' : 'Lagret for denne nettleseren. Behold informasjonskapslene for å finne dem igjen.';
+    $('library').replaceChildren();
+    if (!data.items.length) $('library-status').textContent += ' Ingen undertekster ennå.';
+    for (const item of data.items) {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'ghost';
+      button.textContent = `${item.title} · ${new Date(item.updated).toLocaleDateString('nb-NO')}`;
+      button.onclick = async () => {
+        if (!canReplace()) return;
+        busy = true;
+        try { openSaved(await json(`/api/subtitle-library/${encodeURIComponent(item.id)}`)); }
+        catch (error) { $('library-status').textContent = error.message; }
+        finally { busy = false; }
+      };
+      $('library').append(button);
+    }
+  } catch (error) { $('library-status').textContent = error.message; }
+  $('save-subtitles').disabled = !storage;
+}
+function openSaved(saved) {
+  player.pause(); player.removeAttribute('src'); player.load();
+  if (mediaUrl) URL.revokeObjectURL(mediaUrl);
+  mediaUrl = undefined; fileInput.value = ''; $('playback-file').value = '';
+  savedId = saved.id; sourceName = saved.source; cues = saved.cues;
+  $('subtitle-title').value = saved.title;
+  dirty = false; revision += 1;
+  renderCues(); $('preview').hidden = false;
+  $('playback-label').textContent = `Velg originalfilen «${sourceName}» for avspilling (ingen ny oversettelse)`;
+  $('save-status').textContent = 'Lagret'; message('Undertekstene er åpnet. Du kan redigere og laste dem ned.');
+}
+$('playback-file').onchange = () => {
+  const file = $('playback-file').files[0]; if (!file) return;
+  player.pause(); if (mediaUrl) URL.revokeObjectURL(mediaUrl);
+  mediaUrl = URL.createObjectURL(file); player.src = mediaUrl;
+};
+$('subtitle-title').oninput = edited;
+$('save-subtitles').onclick = async () => {
+  if (saving || busy || !storage) return;
+  try {
+    validateCues(cues); saving = true;
+    const version = revision;
+    $('save-status').textContent = 'Lagrer …';
+    const saved = await json('/api/subtitle-library' + (savedId ? `/${encodeURIComponent(savedId)}` : ''), {
+      method: savedId ? 'PUT' : 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: $('subtitle-title').value, source: sourceName, cues }),
+    });
+    savedId = saved.id;
+    if (revision === version) { dirty = false; $('save-status').textContent = 'Lagret'; }
+    else $('save-status').textContent = 'Ulagrede endringer';
+    await loadLibrary();
+  } catch (error) { $('save-status').textContent = error.message; }
+  finally { saving = false; }
+};
+$('import-subtitles').onchange = async () => {
+  const file = $('import-subtitles').files[0];
+  if (!file || !canReplace()) return;
+  busy = true;
+  try {
+    if (file.size > 2_000_000) throw new Error('Filen er for stor (maks 2 MB).');
+    const data = JSON.parse(await file.text());
+    const saved = await json('/api/subtitle-library', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: data.title || data.source || file.name, source: data.source || '', cues: data.cues }) });
+    openSaved(saved); await loadLibrary();
+  } catch (error) { $('library-status').textContent = error.message; }
+  finally { busy = false; $('import-subtitles').value = ''; }
+};
 async function json(url, options) {
   const response = await fetch(url, options);
   const data = await response.json();
@@ -132,7 +211,7 @@ function renderCues() {
       const label = document.createElement('label'); label.textContent = title;
       const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.max = '600'; input.step = '0.001';
       input.value = String(cue[field] / 1000); input.setAttribute('aria-label', `${title}, undertekst ${index + 1}`);
-      input.oninput = () => { cue[field] = input.valueAsNumber * 1000; updateTrack(); };
+      input.oninput = () => { cue[field] = input.valueAsNumber * 1000; edited(); updateTrack(); };
       label.append(input); top.append(label);
     }
     const original = document.createElement('p'); original.lang = 'tr';
@@ -141,7 +220,7 @@ function renderCues() {
       original.append(span, ' ');
     } else original.textContent = cue.turkish;
     const text = document.createElement('textarea'); text.value = cue.text; text.setAttribute('aria-label', `Norsk undertekst ${index + 1}`);
-    text.oninput = () => { cue.text = text.value; updateTrack(); };
+    text.oninput = () => { cue.text = text.value; edited(); updateTrack(); };
     const native = document.createElement('p'); native.className = 'native-chunks'; native.lang = 'nb';
     native.setAttribute('aria-label', 'Norsk betydning, delen som uttales er markert');
     row.append(top, original, native, text); $('cues').append(row);
@@ -151,11 +230,13 @@ function renderCues() {
 }
 
 fileInput.addEventListener('change', () => {
+  if (!canReplace()) { fileInput.value = ''; return; }
+  savedId = undefined; dirty = false;
   cues = []; clearTrack(); $('result').hidden = true;
   if (mediaUrl) URL.revokeObjectURL(mediaUrl);
   const file = fileInput.files[0];
   $('preview').hidden = !file;
-  if (file) { mediaUrl = URL.createObjectURL(file); player.src = mediaUrl; }
+  if (file) { sourceName = file.name; $('subtitle-title').value = file.name; mediaUrl = URL.createObjectURL(file); player.src = mediaUrl; }
   message('Klar til å lage undertekster.');
 });
 player.addEventListener('error', () => {
@@ -176,7 +257,7 @@ player.addEventListener('timeupdate', () => {
 
 $('upload-form').addEventListener('submit', async event => {
   event.preventDefault();
-  if (busy || !configured) return;
+  if (!configured || !canReplace()) return;
   const file = fileInput.files[0];
   if (!file || !file.size) { message('Velg en fil med lyd.', true); return; }
   if (file.size > maxBytes) { message('Filen er for stor. Grensen er 100 MB.', true); return; }
@@ -187,7 +268,8 @@ $('upload-form').addEventListener('submit', async event => {
   controller = new AbortController();
   try {
     message('Laster opp opptaket …');
-    const created = await json('/api/subtitles', { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body: file, signal: controller.signal });
+    savedId = undefined; sourceName = file.name; $('subtitle-title').value = file.name; dirty = false;
+    const created = await json('/api/subtitles', { method: 'POST', headers: { 'content-type': 'application/octet-stream', 'x-file-name': encodeURIComponent(file.name) }, body: file, signal: controller.signal });
     jobId = created.id; $('cancel').hidden = false;
     while (true) {
       controller.signal.throwIfAborted();
@@ -195,6 +277,10 @@ $('upload-form').addEventListener('submit', async event => {
       if (job.state === 'error') throw new Error(job.error);
       if (job.state === 'done') {
         cues = job.cues; renderCues();
+        savedId = job.savedId;
+        dirty = !savedId;
+        $('save-status').textContent = job.saveError || (savedId ? 'Lagret automatisk' : 'Ikke lagret. Last ned filen eller bruk Lagre.');
+        await loadLibrary();
         message(cues.length === 1 ? 'Ferdig! Én undertekst er klar til gjennomlesing.' : `Ferdig! ${cues.length} undertekster er klare til gjennomlesing.`); break;
       }
       message(job.state === 'extracting' ? 'Henter lyden fra opptaket …' : job.state === 'transcribing'
@@ -217,7 +303,7 @@ for (const format of ['srt', 'vtt']) $('download-' + format).onclick = () => {
     const content = serializeSubtitles(cues, format);
     const url = URL.createObjectURL(new Blob([content], { type: format === 'vtt' ? 'text/vtt;charset=utf-8' : 'application/x-subrip;charset=utf-8' }));
     const link = document.createElement('a'); link.href = url;
-    link.download = (fileInput.files[0]?.name.replace(/\.[^.]+$/, '') || 'undertekster') + '.nb.' + format;
+    link.download = (sourceName.replace(/\.[^.]+$/, '') || 'undertekster') + '.nb.' + format;
     document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) { $('edit-status').textContent = error.message; }
 };
@@ -225,5 +311,7 @@ for (const format of ['srt', 'vtt']) $('download-' + format).onclick = () => {
 try {
   const settings = await json('/api/subtitles');
   configured = settings.configured; maxBytes = settings.maxBytes; generate.disabled = !configured;
+  storage = Boolean(settings.storage);
+  await loadLibrary();
   message(configured ? 'Velg et opptak for å komme i gang.' : 'Undertekster er ikke konfigurert ennå. Serveren trenger Azure Speech.', !configured);
 } catch { message('Kunne ikke kontakte serveren. Last siden på nytt.', true); }

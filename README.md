@@ -58,12 +58,25 @@ The matching Norwegian meaning chunk is highlighted alongside the Turkish word.
 If the Norwegian text is rewritten, its chunk highlighting is disabled until the
 original wording is restored, because the old alignment no longer applies.
 
+Completed subtitles are saved automatically in the `saved_subtitles` table in
+the existing SQLite database (`LESSON_DB`). The page lists saved recordings;
+open one, edit its title/text/times, and choose **Lagre endringer**. Turkish words
+and Norwegian meaning chunks keep their original timings. `.translation.json`
+files can also be imported. Local development requests from the same machine
+share a local library, which imports the three translations in `example/` once.
+In production, libraries belong to the signed-in account, or to a persistent
+browser cookie for guests. Guest and account libraries are separate; clearing
+the guest cookie loses access to that guest library. Sign in on the learning
+page before creating a library you want to access on other devices.
+
 Media is temporarily written to the system temp directory and removed after
 completion, failure or cancellation. Audio is sent to Azure; the transcript is
-sent to Anthropic. Results are held only in server memory for up to one hour
-(at most ten jobs), and the page deletes its server job after receiving the
-result. Restarting the server loses in-progress jobs. Downloads and the local
-media preview stay in the browser; no uploaded media is added to the lesson pool.
+sent to Anthropic. Original media is not retained in the library: select the
+original audio/video file again to play saved subtitles. No new transcription
+is needed. In-progress jobs remain in memory and are lost on server restart;
+completed database records survive restarts when the database is on persistent
+storage (as in the Render blueprint). `LESSON_DB=off` disables the library;
+downloads still work. Save edits before closing or reloading the page.
 
 ## The translator page
 
