@@ -3,9 +3,11 @@ import type { Lesson } from './lesson.js';
 
 export const MAX_SUBTITLE_BYTES = 100 * 1024 * 1024;
 export const MAX_SUBTITLE_MS = 10 * 60 * 1000;
-export interface TimedWord { text: string; start: number; end: number }
+export interface EmojiHint { emoji: string; suffixes: Array<{ kind: string; form: string }> }
+export interface TimedWord { text: string; start: number; end: number; hint?: EmojiHint }
 export interface SubtitlePhrase { text: string; words: TimedWord[] }
-export interface SubtitleCue { start: number; end: number; text: string; turkish: string; words: TimedWord[]; chunks: TimedWord[] }
+export interface NaturalLink { text: string; chunks: number[] }
+export interface SubtitleCue { start: number; end: number; text: string; turkish: string; natural?: string; naturalLinks?: NaturalLink[]; words: TimedWord[]; chunks: TimedWord[] }
 
 export class SubtitleError extends Error {
   constructor(message: string, public status = 422) { super(message); }

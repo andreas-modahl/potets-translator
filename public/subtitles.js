@@ -1,7 +1,19 @@
-import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentencePages } from './subtitles-format.js';
+import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentencePages, naturalSegments, pauseSegments, SUFFIX_HINTS, validEmojiHint } from './subtitles-format.js';
 import { zipFiles } from './subtitles-zip.js';
 
 const $ = id => document.getElementById(id);
+for (const id of ['auto-pause', 'show-sentence', 'show-gloss', 'show-norwegian-badge', 'show-natural', 'show-focus', 'show-emoji']) {
+  const checkbox = $(id);
+  const key = `subtitles:${id}`;
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved === 'true' || saved === 'false') checkbox.checked = saved === 'true';
+  } catch { /* Keep the defaults when browser storage is unavailable. */ }
+  checkbox.addEventListener('change', () => {
+    try { localStorage.setItem(key, String(checkbox.checked)); }
+    catch { /* The control still works when browser storage is unavailable. */ }
+  });
+}
 const fileInput = $('media-file');
 const generate = $('generate');
 const player = $('player');
@@ -13,6 +25,229 @@ const wordTrack = player.addTextTrack('metadata', 'Tyrkiske ord', 'tr');
 wordTrack.mode = 'hidden';
 let shownTurkish;
 let highlightedWords = [];
+let shownNatural;
+let shownFocusHint;
+let shownEmojiKey;
+const emojiCache = new Map();
+const pendingEmoji = new Map();
+const failedEmoji = new Set();
+try {
+  const cached = JSON.parse(localStorage.getItem('subtitles:emoji-hints:v1') || '[]');
+  if (Array.isArray(cached)) for (const entry of cached.slice(-100)) {
+    if (Array.isArray(entry) && typeof entry[0] === 'string' && Array.isArray(entry[1]) && entry[1].every(validEmojiHint)) emojiCache.set(entry[0], entry[1]);
+  }
+} catch { /* Saved story hints also work without browser storage. */ }
+function appendEmojiHints(element, chunks) {
+  if (!$('show-emoji').checked) return;
+  const hints = document.createElement('span'); hints.className = 'emoji-hints';
+  const seen = new Set();
+  function add(key, emoji, title, suffix = false) {
+    if (seen.has(key)) return;
+    seen.add(key);
+    const icon = document.createElement('span'); icon.textContent = emoji; icon.title = title;
+    icon.setAttribute('role', 'img'); icon.setAttribute('aria-label', title);
+    if (suffix) icon.className = 'hint-suffix';
+    hints.append(icon);
+  }
+  for (const chunk of chunks.filter(Boolean)) {
+    if (!validEmojiHint(chunk.hint)) continue;
+    if (chunk.hint.emoji) add(chunk.hint.emoji, chunk.hint.emoji, `Ordhint: ${chunk.text}`);
+    for (const suffix of chunk.hint.suffixes) {
+      const symbol = SUFFIX_HINTS[suffix.kind];
+      add(suffix.kind + suffix.form, symbol.emoji, `${suffix.form}: ${symbol.label}`, true);
+    }
+  }
+  if (hints.childNodes.length) element.prepend(hints);
+}
+function emojiStatus(text = '') {
+  $('emoji-status').textContent = text;
+  $('emoji-status').hidden = !text;
+}
+async function ensureEmojiHints(active) {
+  if (!$('show-emoji').checked || !active || pendingPosition !== undefined) return;
+  const chunks = mappedChunks(active);
+  if (!chunks.length || chunks.every(chunk => validEmojiHint(chunk.hint))) { shownEmojiKey = undefined; emojiStatus(); return; }
+  const input = { natural: active.turkish, chunks: chunks.map(chunk => ({
+    target: active.words.filter(word => word.start >= chunk.start && word.end <= chunk.end).map(word => word.text).join(' '), native: chunk.text,
+  })) };
+  const key = JSON.stringify(input);
+  shownEmojiKey = key;
+  if (failedEmoji.has(key)) { emojiStatus('Emojihint kunne ikke hentes. Slå av og på for å prøve igjen.'); return; }
+  if (pendingEmoji.has(key)) { emojiStatus('Henter emojihint …'); return; }
+  const cached = emojiCache.get(key);
+  if (cached?.length === chunks.length) {
+    chunks.forEach((chunk, index) => { chunk.hint = cached[index]; });
+    shownTurkish = shownNatural = undefined;
+    updateTurkish();
+    return;
+  }
+  emojiStatus('Henter emojihint …');
+  const request = (async () => {
+    const hints = [];
+    for (let at = 0; at < chunks.length; at += 80) {
+      const batch = input.chunks.slice(at, at + 80);
+      const result = await json('/api/subtitle-hints', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...input, chunks: batch }), signal: AbortSignal.timeout(60000) });
+      if (!Array.isArray(result.hints) || result.hints.length !== batch.length || !result.hints.every(validEmojiHint)) throw new Error('Invalid emoji hints');
+      hints.push(...result.hints);
+    }
+    chunks.forEach((chunk, index) => { chunk.hint = hints[index]; });
+    emojiCache.set(key, hints);
+    if (emojiCache.size > 100) emojiCache.delete(emojiCache.keys().next().value);
+    try { localStorage.setItem('subtitles:emoji-hints:v1', JSON.stringify([...emojiCache])); } catch {}
+    if (shownEmojiKey === key && $('show-emoji').checked) {
+      shownTurkish = shownNatural = undefined;
+      updateTurkish();
+    }
+  })();
+  pendingEmoji.set(key, request);
+  try { await request; }
+  catch {
+    failedEmoji.add(key);
+    if (shownEmojiKey === key && $('show-emoji').checked) emojiStatus('Emojihint kunne ikke hentes. Slå av og på for å prøve igjen.');
+  } finally { pendingEmoji.delete(key); }
+}
+const naturalTranslations = new Map();
+const pendingTranslations = new Map();
+const naturalLinksCache = new Map();
+const pendingLinks = new Map();
+let naturalSpans = [];
+try {
+  const cached = JSON.parse(localStorage.getItem('subtitles:natural-links:v1') || '[]');
+  if (Array.isArray(cached)) for (const entry of cached.slice(-200)) {
+    if (Array.isArray(entry) && typeof entry[0] === 'string' && Array.isArray(entry[1])) naturalLinksCache.set(entry[0], entry[1]);
+  }
+} catch { /* Phrase links can still be loaded without browser storage. */ }
+try {
+  const cached = JSON.parse(localStorage.getItem('subtitles:natural-nb:v1') || '[]');
+  if (Array.isArray(cached)) for (const entry of cached.slice(-200)) {
+    if (Array.isArray(entry) && entry.length === 2 && entry.every(value => typeof value === 'string' && value.trim())) {
+      naturalTranslations.set(...entry);
+    }
+  }
+} catch { /* Translation still works without a browser cache. */ }
+async function naturalTranslation(source) {
+  if (naturalTranslations.has(source)) return naturalTranslations.get(source);
+  if (pendingTranslations.has(source)) return pendingTranslations.get(source);
+  const request = (async () => {
+    const result = await json('/api/translate', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: source, targets: ['Norwegian Bokmål'], explain: 'off' }),
+      signal: AbortSignal.timeout(60000),
+    });
+    const text = result.translations?.[0]?.text;
+    if (typeof text !== 'string' || !text.trim()) throw new Error('Missing Norwegian translation');
+    naturalTranslations.set(source, text.trim());
+    if (naturalTranslations.size > 200) naturalTranslations.delete(naturalTranslations.keys().next().value);
+    try { localStorage.setItem('subtitles:natural-nb:v1', JSON.stringify([...naturalTranslations])); }
+    catch { /* Keep the in-memory cache when browser storage is full or blocked. */ }
+    return text.trim();
+  })();
+  pendingTranslations.set(source, request);
+  try { return await request; }
+  finally { pendingTranslations.delete(source); }
+}
+function highlightNatural(active) {
+  const time = captionTime();
+  const word = active?.words?.find(word => time >= word.start && time < word.end);
+  const index = word ? mappedChunks(active).findIndex(chunk => word.start >= chunk.start && word.end <= chunk.end) : -1;
+  for (const { element, chunks, badge } of naturalSpans) {
+    const speaking = index >= 0 && chunks.includes(index);
+    element.classList.toggle('speaking', speaking);
+    badge.textContent = speaking ? word.text : '';
+    if (speaking) appendEmojiHints(badge, [mappedChunks(active)[index]]);
+  }
+}
+function renderNatural(active, text, links) {
+  naturalSpans = [];
+  const segments = naturalSegments(text, links, mappedChunks(active).length);
+  $('natural-text').replaceChildren();
+  if (!segments.length) { $('natural-text').textContent = text; return; }
+  for (const segment of segments) {
+    if (!segment.chunks.length) { $('natural-text').append(segment.text); continue; }
+    const element = document.createElement('span');
+    element.className = 'natural-phrase';
+    const badge = document.createElement('span');
+    badge.className = 'natural-word-badge'; badge.lang = 'tr'; badge.setAttribute('aria-hidden', 'true');
+    const text = document.createElement('span'); text.className = 'natural-phrase-text'; text.textContent = segment.text;
+    element.append(badge, text);
+    // Reserve space for every possible word so badges never push the sentence around.
+    const groups = mappedChunks(active);
+    const words = active.words.filter(word => segment.chunks.some(index =>
+      word.start >= groups[index].start && word.end <= groups[index].end));
+    for (const word of words) {
+      const size = document.createElement('span'); size.className = 'natural-badge-size';
+      size.textContent = word.text; size.lang = 'tr'; size.setAttribute('aria-hidden', 'true');
+      appendEmojiHints(size, [groups.find(chunk => word.start >= chunk.start && word.end <= chunk.end)]);
+      element.append(size);
+    }
+    naturalSpans.push({ element, chunks: segment.chunks, badge });
+    $('natural-text').append(element);
+  }
+  highlightNatural(active);
+}
+async function loadNaturalLinks(active, text) {
+  const chunks = mappedChunks(active);
+  if (!chunks.length) return;
+  const input = { natural: text, chunks: chunks.map(chunk => ({
+    target: active.words.filter(word => word.start >= chunk.start && word.end <= chunk.end).map(word => word.text).join(' '), native: chunk.text,
+  })) };
+  const key = JSON.stringify(input);
+  if (naturalSegments(text, naturalLinksCache.get(key), chunks.length).length) return naturalLinksCache.get(key);
+  if (pendingLinks.has(key)) return pendingLinks.get(key);
+  const request = (async () => {
+    const { links } = await json('/api/subtitle-alignment', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: key, signal: AbortSignal.timeout(60000),
+    });
+    if (!naturalSegments(text, links, chunks.length).length) throw new Error('Invalid phrase links');
+    naturalLinksCache.set(key, links);
+    if (naturalLinksCache.size > 200) naturalLinksCache.delete(naturalLinksCache.keys().next().value);
+    try { localStorage.setItem('subtitles:natural-links:v1', JSON.stringify([...naturalLinksCache])); }
+    catch { /* Keep phrase links in memory when storage is unavailable. */ }
+    return links;
+  })();
+  pendingLinks.set(key, request);
+  try { return await request; }
+  finally { pendingLinks.delete(key); }
+}
+async function showNatural(active, text) {
+  const source = active.turkish.trim();
+  if (shownNatural !== source) return;
+  renderNatural(active, text, active.naturalLinks);
+  if (naturalSpans.length || !mappedChunks(active).length) return;
+  try {
+    const links = await loadNaturalLinks(active, text);
+    if (shownNatural === source) renderNatural(active, text, links);
+  } catch {
+    if (shownNatural === source) {
+      $('retry-natural').textContent = 'Prøv ordkobling igjen';
+      $('retry-natural').hidden = false;
+    }
+  }
+}
+function updateNatural(active) {
+  const source = active?.turkish?.trim();
+  highlightNatural(active);
+  $('natural-caption').hidden = !source || !$('show-natural').checked;
+  if ($('natural-caption').hidden || source === shownNatural) return;
+  shownNatural = source;
+  naturalSpans = [];
+  $('retry-natural').hidden = true;
+  $('retry-natural').textContent = 'Prøv igjen';
+  if (active.natural) {
+    void showNatural(active, active.natural);
+    return;
+  }
+  $('natural-text').textContent = naturalTranslations.get(source) || 'Oversetter til naturlig norsk …';
+  void naturalTranslation(source).then(text => {
+    void showNatural(active, text);
+  }).catch(() => {
+    if (shownNatural !== source) return;
+    $('natural-text').textContent = 'Kunne ikke hente norsk oversettelse.';
+    $('retry-natural').hidden = false;
+  });
+}
+$('retry-natural').onclick = () => { shownNatural = undefined; updateTurkish(); };
 let configured = false;
 let busy = false;
 let mediaUrl;
@@ -34,6 +269,138 @@ let sentenceTimer;
 let heldSentence;
 let pendingPosition;
 let previousPlaybackTime;
+let segmentBoundaryTimer;
+let segmentResumeTimer;
+let segmentTarget;
+let heldSegment;
+let playbackAudio;
+let playbackGain;
+let pauseFadeKey;
+function resetAudioFade(fadeIn = false) {
+  pauseFadeKey = undefined;
+  if (!playbackGain) return;
+  const now = playbackAudio.currentTime;
+  const gain = playbackGain.gain;
+  gain.cancelAndHoldAtTime(now);
+  if (player.paused) { gain.setValueAtTime(0, now); return; }
+  if (fadeIn) gain.setValueAtTime(0, now);
+  gain.linearRampToValueAtTime(1, now + .02);
+}
+function schedulePauseFade() {
+  if (!playbackGain || player.paused || player.seeking) return;
+  const ends = [sentencePlayback?.end, segmentDelay > 0 ? segmentTarget?.end : undefined].filter(Number.isFinite);
+  if (!ends.length) { if (pauseFadeKey !== undefined) resetAudioFade(); return; }
+  const end = Math.min(...ends);
+  const key = `${end}:${player.playbackRate}`;
+  if (pauseFadeKey === key) return;
+  pauseFadeKey = key;
+  const now = playbackAudio.currentTime;
+  const remaining = Math.max(0, (end / 1000 - player.currentTime) / player.playbackRate - .004);
+  const gain = playbackGain.gain;
+  // A brief audio-clock ramp softens the boundary without moving subtitle timings.
+  gain.cancelAndHoldAtTime(now);
+  const fadeDuration = Math.min(.025, remaining / 2);
+  const fadeStart = now + remaining - fadeDuration;
+  gain.linearRampToValueAtTime(1, Math.min(now + .015, fadeStart));
+  gain.setValueAtTime(1, fadeStart);
+  gain.linearRampToValueAtTime(0, now + remaining);
+}
+async function startPlaybackAudio() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  try {
+    playbackAudio ||= new AudioContext();
+    if (playbackAudio.state === 'suspended') await playbackAudio.resume();
+    // Leave native audio connected until the audio context can actually play.
+    if (playbackAudio.state !== 'running' || player.paused) return;
+    if (!playbackGain) {
+      const gain = playbackAudio.createGain();
+      gain.connect(playbackAudio.destination);
+      playbackAudio.createMediaElementSource(player).connect(gain);
+      playbackGain = gain;
+    }
+    resetAudioFade(true);
+    schedulePauseFade();
+  } catch { /* Browsers without Web Audio keep normal playback. */ }
+}
+player.addEventListener('play', startPlaybackAudio);
+player.addEventListener('playing', () => { resetAudioFade(true); schedulePauseFade(); });
+player.addEventListener('waiting', () => resetAudioFade());
+player.addEventListener('pause', () => resetAudioFade());
+player.addEventListener('seeking', () => resetAudioFade());
+player.addEventListener('emptied', () => resetAudioFade());
+const segmentPauseInput = $('segment-pause-seconds');
+let segmentDelay = 0;
+try {
+  const enabled = localStorage.getItem('subtitles:pause-segments') ?? localStorage.getItem('subtitles:pause-words');
+  const legacy = enabled === 'true' ? localStorage.getItem('subtitles:segment-pause-seconds') ?? localStorage.getItem('subtitles:word-pause-seconds') ?? '1' : '0';
+  const saved = Number(localStorage.getItem('subtitles:segment-delay-seconds') ?? legacy);
+  if (Number.isFinite(saved) && saved >= 0 && saved <= 10) segmentDelay = saved;
+} catch { /* Leave segment pauses off when storage is unavailable. */ }
+segmentPauseInput.value = String(segmentDelay);
+function captionTime() {
+  return heldSentence ? heldSentence.end - 1 : heldSegment ? heldSegment.end - 1 : player.currentTime * 1000;
+}
+function cancelSegmentPause() {
+  clearTimeout(segmentBoundaryTimer);
+  clearTimeout(segmentResumeTimer);
+  segmentTarget = undefined;
+  heldSegment = undefined;
+}
+function resumeAfterSegment() {
+  cancelSegmentPause();
+  void player.play().catch(() => { cancelSentencePlayback(); updateTurkish(); });
+}
+function waitAfterSegment() {
+  clearTimeout(segmentResumeTimer);
+  segmentResumeTimer = setTimeout(resumeAfterSegment, segmentDelay * 1000);
+}
+function stopAtSegmentEnd() {
+  clearTimeout(segmentBoundaryTimer);
+  if (segmentDelay <= 0 || player.paused || player.seeking) return;
+  segmentTarget ||= pauseSegments(cues).find(segment => segment.end > player.currentTime * 1000 + 1);
+  if (!segmentTarget) return;
+  schedulePauseFade();
+  const remaining = segmentTarget.end / 1000 - player.currentTime;
+  if (remaining > .003) {
+    segmentBoundaryTimer = setTimeout(stopAtSegmentEnd, Math.max(4, remaining * 1000 / player.playbackRate));
+    return;
+  }
+  // An explicit sentence stop takes priority over automatically resuming the next segment.
+  if (sentencePlayback && sentencePlayback.end <= segmentTarget.end + 1) { stopAtSentenceEnd(); return; }
+  heldSegment = segmentTarget;
+  segmentTarget = undefined;
+  clearTimeout(sentenceTimer);
+  player.pause();
+  player.currentTime = heldSegment.end / 1000;
+  updateTurkish();
+  waitAfterSegment();
+}
+function applySegmentDelay() {
+  segmentDelay = segmentPauseInput.valueAsNumber;
+  try { localStorage.setItem('subtitles:segment-delay-seconds', String(segmentDelay)); } catch {}
+  if (segmentDelay === 0) {
+    const waiting = Boolean(heldSegment);
+    cancelSegmentPause();
+    if (waiting) resumeAfterSegment();
+  } else if (heldSegment) waitAfterSegment();
+  else stopAtSegmentEnd();
+  schedulePauseFade();
+}
+segmentPauseInput.oninput = () => {
+  if (Number.isFinite(segmentPauseInput.valueAsNumber) && segmentPauseInput.validity.valid) applySegmentDelay();
+};
+segmentPauseInput.onchange = () => {
+  const value = segmentPauseInput.valueAsNumber;
+  segmentPauseInput.value = String(Number.isFinite(value) ? Math.max(0, Math.min(10, Math.round(value * 10) / 10)) : segmentDelay);
+  applySegmentDelay();
+};
+player.addEventListener('playing', stopAtSegmentEnd);
+player.addEventListener('seeked', stopAtSegmentEnd);
+player.addEventListener('ratechange', stopAtSegmentEnd);
+player.addEventListener('play', cancelSegmentPause);
+player.addEventListener('emptied', cancelSegmentPause);
+player.addEventListener('ended', cancelSegmentPause);
 function savePosition(milliseconds) {
   const url = new URL(location.href);
   if (url.searchParams.get('view') !== 'play' || !savedId || url.searchParams.get('subtitle') !== savedId) return;
@@ -68,9 +435,17 @@ function armAutoPause() {
 $('auto-pause').onchange = () => {
   if ($('auto-pause').checked) armAutoPause();
   else cancelSentencePlayback();
+  schedulePauseFade();
 };
 $('show-sentence').onchange = updateTurkish;
+$('show-gloss').onchange = updateTurkish;
+$('show-norwegian-badge').onchange = updateTurkish;
+$('show-natural').onchange = updateTurkish;
 $('show-focus').onchange = updateTurkish;
+$('show-emoji').onchange = () => {
+  shownTurkish = shownNatural = shownFocusHint = shownEmojiKey = undefined;
+  failedEmoji.clear(); emojiStatus(); updateTurkish();
+};
 function releaseSentence() {
   heldSentence = undefined;
   updateTurkish();
@@ -82,22 +457,23 @@ function cancelSentencePlayback() {
 function stopAtSentenceEnd() {
   clearTimeout(sentenceTimer);
   if (!sentencePlayback || player.paused) return;
+  schedulePauseFade();
   const remaining = sentencePlayback.end / 1000 - player.currentTime;
-  if (remaining <= .012) {
+  if (remaining <= .003) {
     const end = sentencePlayback.end / 1000;
     heldSentence = sentencePlayback;
     lastSentence = sentencePlayback;
     savePosition(sentencePlayback.end);
-    cancelSentencePlayback(); player.pause(); player.currentTime = end;
+    cancelSegmentPause(); cancelSentencePlayback(); player.pause(); player.currentTime = end;
     updateTurkish();
     updatePlayButtons();
-  } else sentenceTimer = setTimeout(stopAtSentenceEnd, Math.max(10, remaining * 1000 / player.playbackRate));
+  } else sentenceTimer = setTimeout(stopAtSentenceEnd, Math.max(4, remaining * 1000 / player.playbackRate));
 }
 async function playSentence(sentence, speed = player.playbackRate) {
   if (!sentence) return;
   lastSentence = sentence;
   heldSentence = undefined;
-  cancelSentencePlayback(); player.pause();
+  cancelSegmentPause(); cancelSentencePlayback(); player.pause();
   player.playbackRate = speed;
   for (const button of document.querySelectorAll('[data-sentence-speed]')) {
     button.setAttribute('aria-pressed', String(Number(button.dataset.sentenceSpeed) === speed));
@@ -114,7 +490,11 @@ for (const button of document.querySelectorAll('[data-sentence-speed]')) {
   button.onclick = () => playSentence(lastSentence || sentenceAt(cues, player.currentTime * 1000), Number(button.dataset.sentenceSpeed));
 }
 $('play-sentence').onclick = () => playSentence(sentenceAt(cues, player.currentTime * 1000), 1);
-player.addEventListener('pause', cancelSentencePlayback);
+player.addEventListener('pause', () => {
+  if (heldSegment) return;
+  cancelSegmentPause();
+  cancelSentencePlayback();
+});
 player.addEventListener('emptied', cancelSentencePlayback);
 player.addEventListener('emptied', releaseSentence);
 player.addEventListener('play', releaseSentence);
@@ -131,6 +511,7 @@ player.addEventListener('ratechange', stopAtSentenceEnd);
 player.addEventListener('playing', armAutoPause);
 player.addEventListener('seeked', armAutoPause);
 player.addEventListener('seeking', () => {
+  if (!heldSegment || Math.abs(player.currentTime * 1000 - heldSegment.end) > 1) cancelSegmentPause();
   previousPlaybackTime = undefined;
   // Keep the hold through our own seek to the exact sentence endpoint.
   if (heldSentence && Math.abs(player.currentTime * 1000 - heldSentence.end) > 1) releaseSentence();
@@ -181,7 +562,7 @@ async function showRoute() {
   const id = params.get('subtitle');
   const position = Number(params.get('t'));
   pendingPosition = view === 'play' && params.has('t') && Number.isFinite(position) && position >= 0 ? position : undefined;
-  player.pause(); showEditor(false);
+  cancelSegmentPause(); player.pause(); showEditor(false);
   $('recordings').hidden = view === 'upload' || view === 'play';
   showUpload(view === 'upload');
   $('preview').hidden = true;
@@ -236,7 +617,7 @@ function showSelection(id, label, name, suffix = '') {
   $(id).replaceChildren(label, value, suffix);
 }
 function openSaved(saved) {
-  player.pause(); player.removeAttribute('src'); player.load();
+  cancelSegmentPause(); player.pause(); player.removeAttribute('src'); player.load();
   if (mediaUrl) URL.revokeObjectURL(mediaUrl);
   mediaUrl = undefined; fileInput.value = ''; $('playback-file').value = '';
   savedId = saved.id; sourceName = saved.source; cues = saved.cues;
@@ -276,7 +657,7 @@ function updatePlayButtons() {
 }
 $('playback-file').onchange = () => {
   const file = $('playback-file').files[0]; if (!file) return;
-  player.pause(); if (mediaUrl) URL.revokeObjectURL(mediaUrl);
+  cancelSegmentPause(); player.pause(); if (mediaUrl) URL.revokeObjectURL(mediaUrl);
   mediaUrl = URL.createObjectURL(file); player.src = mediaUrl;
   $('selected-media').hidden = false;
   showSelection('selected-media', 'Valgt media: ', file.name);
@@ -327,6 +708,7 @@ async function json(url, options) {
   return data;
 }
 function clearTrack() {
+  cancelSegmentPause();
   pages = sentencePages(cues);
   cancelSentencePlayback();
   lastSentence = undefined;
@@ -335,35 +717,47 @@ function clearTrack() {
   for (const cue of Array.from(track.cues || [])) track.removeCue(cue);
   for (const cue of Array.from(wordTrack.cues || [])) wordTrack.removeCue(cue);
   shownTurkish = undefined;
+  shownNatural = undefined;
+  shownFocusHint = shownEmojiKey = undefined;
+  emojiStatus();
+  naturalSpans = [];
+  $('natural-caption').hidden = true;
+  $('natural-text').textContent = '';
   for (const word of highlightedWords) word.classList.remove('speaking');
   highlightedWords = [];
   $('turkish-caption').replaceChildren(); $('turkish-caption').hidden = true;
   $('reading-focus').hidden = true;
   $('focus-turkish').textContent = $('focus-norwegian').textContent = '';
-  $('sentence-progress').value = 0;
   $('audio-caption').textContent = ''; $('audio-caption').hidden = true;
 }
 function updateTurkish() {
-  const time = heldSentence ? heldSentence.end - 1 : player.currentTime * 1000;
+  const time = captionTime();
   // Source word times stay tied to the speech when Norwegian cue times are edited.
   const active = pages.find(cue => cue.words?.length && time >= cue.words[0].start && time < cue.words.at(-1).end)
     || pages.findLast(cue => cue.words?.length && cue.words[0].start <= time)
     || pages.find(cue => cue.words?.length);
   const caption = $('turkish-caption');
+  void ensureEmojiHints(active);
+  updateNatural(active);
   const hasWords = cues.some(cue => cue.words?.length);
   caption.hidden = !hasWords || !$('show-sentence').checked;
+  caption.classList.toggle('hide-gloss', !$('show-gloss').checked);
+  caption.classList.toggle('show-norwegian-badge', $('show-norwegian-badge').checked);
   $('reading-focus').hidden = !hasWords || !$('show-focus').checked;
-  $('sentence-progress').value = Number.isFinite(player.duration) && player.duration > 0
-    ? Math.max(0, Math.min(1, player.currentTime / player.duration)) : 0;
   // Keep the last spoken group through brief pauses and single-sentence stops.
   const focusWord = active?.words.findLast(word => word.start <= time);
   const focusChunk = focusWord && mappedChunks(active).find(chunk => focusWord.start >= chunk.start && focusWord.end <= chunk.end);
   const focusSource = focusChunk
     ? active.words.filter(word => word.start >= focusChunk.start && word.end <= focusChunk.end).map(word => word.text).join(' ')
     : focusWord?.text || '';
-  if ($('focus-turkish').textContent !== focusSource) $('focus-turkish').textContent = focusSource;
   const focusMeaning = focusChunk?.text || '';
-  if ($('focus-norwegian').textContent !== focusMeaning) $('focus-norwegian').textContent = focusMeaning;
+  const focusHint = JSON.stringify([focusSource, focusMeaning, $('show-emoji').checked, focusChunk?.hint]);
+  if (shownFocusHint !== focusHint) {
+    shownFocusHint = focusHint;
+    $('focus-turkish').textContent = focusSource;
+    appendEmojiHints($('focus-turkish'), [focusChunk]);
+    $('focus-norwegian').textContent = focusMeaning;
+  }
   if (shownTurkish !== active) {
     shownTurkish = active;
     caption.replaceChildren();
@@ -378,10 +772,15 @@ function updateTurkish() {
         const source = document.createElement('span'); source.className = 'source-words';
         const translation = document.createElement('span'); translation.className = 'word-meaning spoken-word';
         translation.lang = 'nb'; translation.textContent = chunk?.text || '';
+        appendEmojiHints(source, [chunk]);
         group.append(source, translation); caption.append(group);
       }
       const span = document.createElement('span'); span.className = 'spoken-word'; span.textContent = word.text;
-      group.firstChild.append(span, ' ');
+      const unit = document.createElement('span'); unit.className = 'source-word-unit';
+      const badge = document.createElement('span'); badge.className = 'norwegian-word-badge';
+      badge.lang = 'nb'; badge.textContent = chunk?.text || ''; badge.setAttribute('aria-hidden', 'true');
+      unit.append(badge, span);
+      group.firstChild.append(unit, ' ');
       previousChunk = chunk;
     }
   }
@@ -402,7 +801,7 @@ function updateTurkish() {
 wordTrack.addEventListener('cuechange', updateTurkish);
 player.addEventListener('seeked', updateTurkish);
 function updateActiveCue() {
-  const time = heldSentence ? heldSentence.end - 1 : player.currentTime * 1000;
+  const time = captionTime();
   const active = pages.find(cue => time >= cue.start && time < cue.end);
   const caption = $('audio-caption');
   caption.hidden = true;
@@ -535,6 +934,7 @@ player.addEventListener('timeupdate', () => {
   }
   previousPlaybackTime = player.seeking ? undefined : time;
   stopAtSentenceEnd();
+  stopAtSegmentEnd();
   if (!player.paused) {
     lastSentence = sentencePlayback || sentenceAt(cues, player.currentTime * 1000) || lastSentence;
   }

@@ -78,7 +78,7 @@ test('long meaning chunks are not dropped or split into invented timestamps', ()
 });
 
 // This module is also loaded directly by the browser, without a build step.
-const { serializeSubtitles, validateCues, timestamp, mappedChunks, sentenceAt, sentencePages } = await import(
+const { serializeSubtitles, validateCues, timestamp, mappedChunks, sentenceAt, sentencePages, naturalSegments, pauseSegments } = await import(
   new URL('../public/subtitles-format.js', import.meta.url).href
 );
 test('sentence pages reunite split cues across pauses and retain word and meaning alignment', () => {
@@ -99,6 +99,54 @@ test('sentence pages reunite split cues across pauses and retain word and meanin
   assert.deepEqual(sentencePages([{ ...split[0], text: 'Edited' }, split[1]])[0].chunks, []);
   assert.deepEqual(sentencePages([]), []);
 });
+test('natural Norwegian stays with the full sentence when display cues are joined', () => {
+  const first = { start: 0, end: 500, turkish: 'Yarın', text: 'I morgen', natural: 'Jeg kommer i morgen.' };
+  const second = { start: 600, end: 1000, turkish: 'geleceğim.', text: 'skal jeg komme.' };
+  const next = { start: 1200, end: 1700, turkish: 'Merhaba.', text: 'Hei.', natural: 'Hei.' };
+  const pages = sentencePages([first, second, next]);
+  assert.equal(pages[0].natural, 'Jeg kommer i morgen.');
+  assert.equal(pages[1].natural, 'Hei.');
+  assert.equal(first.turkish, 'Yarın');
+  assert.equal(sentencePages([{ ...first, natural: undefined }, second])[0].natural, undefined);
+});
+
+test('natural phrase links preserve exact text and allow reordered, shared and unmatched meanings', () => {
+  const text = 'Jeg tar den med i morgen.';
+  const links = [
+    { text: 'Jeg', chunks: [] }, { text: 'tar', chunks: [2] }, { text: 'den', chunks: [1] },
+    { text: 'med', chunks: [2] }, { text: 'i morgen', chunks: [0, 3] },
+  ];
+  const segments = naturalSegments(text, links, 4);
+  assert.equal(segments.map((part: { text: string }) => part.text).join(''), text);
+  assert.deepEqual(segments.filter((part: { chunks: number[] }) => part.chunks.includes(2)).map((part: { text: string }) => part.text), ['tar', 'med']);
+  assert.deepEqual(naturalSegments('Ja, ja.', [{ text: 'Ja', chunks: [1] }, { text: 'ja', chunks: [0] }], 2).filter((part: { chunks: number[] }) => part.chunks.length).map((part: { chunks: number[] }) => part.chunks[0]), [1, 0]);
+  const reordered = naturalSegments('Skogen er stor.', [{ text: 'er', chunks: [1] }, { text: 'stor', chunks: [2] }, { text: 'Skogen', chunks: [0] }], 3);
+  assert.equal(reordered.map((part: { text: string }) => part.text).join(''), 'Skogen er stor.');
+  const embedded = naturalSegments('Haren var redd for reven.', [{ text: 'Haren', chunks: [0] }, { text: 'var redd for', chunks: [1] }, { text: 'reven', chunks: [2] }], 3);
+  assert.equal(embedded.map((part: { text: string }) => part.text).join(''), 'Haren var redd for reven.');
+});
+
+test('unsafe or stale natural links leave the sentence unhighlighted', () => {
+  for (const links of [undefined, [], [{ text: 'hei', chunks: [0] }], [{ text: 'haren', chunks: [5] }],
+    [{ text: 'haren', chunks: [-1] }], [{ text: 'har', chunks: [0] }], [{ text: 'haren', chunks: ['0'] }],
+    [{ text: 'haren', chunks: [] }], [{ text: 'haren', chunks: [0] }, { text: 'haren', chunks: [1] }]]) {
+    assert.deepEqual(naturalSegments('haren', links, 2), []);
+  }
+  assert.deepEqual(naturalSegments('Denne haren', [{ text: 'haren', chunks: [0] }], 1), []);
+  assert.deepEqual(naturalSegments('haren hopper', [{ text: 'haren', chunks: [0] }], 1), []);
+});
+
+test('phrase links retain group indices across split cues and shift when sentences are combined', () => {
+  const a = { start: 0, end: 500, turkish: 'Yarın', text: 'i morgen', natural: 'Jeg kommer i morgen.', naturalLinks: [{ text: 'Jeg kommer', chunks: [1] }, { text: 'i morgen', chunks: [0] }], chunks: [{ text: 'i morgen' }] };
+  const b = { start: 600, end: 1000, turkish: 'geleceğim.', text: 'jeg kommer', chunks: [{ text: 'jeg kommer' }] };
+  const [page] = sentencePages([a, b]);
+  assert.deepEqual(page.naturalLinks, a.naturalLinks);
+  assert.ok(naturalSegments(page.natural, page.naturalLinks, page.chunks.length).length);
+  const c = { ...b, natural: 'kommer', naturalLinks: [{ text: 'kommer', chunks: [0] }] };
+  const [combined] = sentencePages([{ ...a, natural: 'I morgen', naturalLinks: [{ text: 'I morgen', chunks: [0] }] }, c]);
+  assert.deepEqual(combined.naturalLinks.map((link: { chunks: number[] }) => link.chunks), [[0], [1]]);
+});
+
 test('single sentence playback crosses cue boundaries and advances after its endpoint', () => {
   const cues = [
     { words: [{ text: 'Yarın', start: 100, end: 300 }] },
@@ -116,6 +164,15 @@ test('Norwegian highlighting is disabled for changed text and restored when the 
   assert.deepEqual(mappedChunks({ ...cue, text: 'En annen oversettelse.' }), []);
   assert.deepEqual(mappedChunks({ ...cue, text: cue.text.replaceAll(' ', '\n') }), cue.chunks);
   assert.deepEqual(mappedChunks(undefined), []);
+});
+
+test('segment pauses preserve multiword meanings and fall back to whole spoken cues after edits', () => {
+  const grouped = { ...lesson, chunks: [{ target: 'Yarın seninle', native: 'I morgen sammen med deg' }, lesson.chunks[2]!] };
+  const cues = phraseCues(phrase, grouped);
+  assert.deepEqual(pauseSegments(cues).map((segment: { end: number }) => segment.end), [1600, 2500]);
+  assert.deepEqual(pauseSegments([{ ...cues[0], text: 'Endret tekst' }]), [{ start: 500, end: 2500 }]);
+  assert.deepEqual(pauseSegments([{ start: 10, end: 20, text: 'Hei' }]), [{ start: 10, end: 20 }]);
+  assert.deepEqual(pauseSegments([]), []);
 });
 test('SRT and VTT exports have correct timestamps and retain Norwegian letters', () => {
   const cues = [{ start: 59999.6, end: 62000, text: 'Jeg hører blåbær.' }];

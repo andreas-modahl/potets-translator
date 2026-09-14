@@ -1,8 +1,75 @@
+/** Stable visual vocabulary for optional hints about Turkish endings. */
+export const SUFFIX_HINTS = {
+  past: { emoji: '⏪', label: 'Fortid' },
+  future: { emoji: '🔮', label: 'Framtid' },
+  reported: { emoji: '🗣️', label: 'Gjenfortalt / indirekte erfart' },
+  plural: { emoji: '👥', label: 'Flertall' },
+  negative: { emoji: '🚫', label: 'Nektelse' },
+  question: { emoji: '❓', label: 'Spørsmål' },
+  possession: { emoji: '🔗', label: 'Eieforhold' },
+  to: { emoji: '➡️', label: 'Til / mot' },
+  from: { emoji: '⬅️', label: 'Fra' },
+  location: { emoji: '📍', label: 'I / på / ved' },
+  with: { emoji: '🤝', label: 'Med / sammen med' },
+  ability: { emoji: '💪', label: 'Kan / evne til' },
+};
+
+export function validEmojiHint(value) {
+  return Boolean(value && typeof value === 'object' && typeof value.emoji === 'string' && value.emoji.length <= 24 &&
+    (value.emoji === '' || /^[0-9#*]\uFE0F?\u20E3$/u.test(value.emoji) || (/[\p{Extended_Pictographic}\p{Regional_Indicator}]/u.test(value.emoji) && !/[\p{L}\p{N}]/u.test(value.emoji))) &&
+    Array.isArray(value.suffixes) && value.suffixes.length <= 3 && value.suffixes.every(suffix => suffix &&
+      Object.hasOwn(SUFFIX_HINTS, suffix.kind) && typeof suffix.form === 'string' && suffix.form.trim().length > 0 && suffix.form.length <= 40));
+}
+
 /** Only reuse the original meaning alignment while the wording still matches. */
 export function mappedChunks(cue) {
   const normalize = text => text.replace(/\s+/gu, ' ').trim();
   return cue?.chunks?.length && normalize(cue.chunks.map(chunk => chunk.text).join(' ')) === normalize(cue.text)
     ? cue.chunks : [];
+}
+
+/** Pause after complete meaning groups; use the cue's spoken range if alignment was edited away. */
+export function pauseSegments(cues) {
+  return cues.flatMap(cue => {
+    const chunks = mappedChunks(cue);
+    return chunks.length ? chunks : [{ start: cue.words?.[0]?.start ?? cue.start, end: cue.words?.at(-1)?.end ?? cue.end }];
+  });
+}
+
+/** Keep natural wording intact; only highlight verified, non-overlapping substrings. */
+export function naturalSegments(text, links, chunkCount) {
+  if (typeof text !== 'string' || !Array.isArray(links) || !links.length || !chunkCount) return [];
+  const segments = [];
+  const occurrences = new Map();
+  const located = [];
+  const word = char => char && /[\p{L}\p{N}]/u.test(char);
+  for (const link of links) {
+    if (!link || typeof link.text !== 'string' || !link.text.trim() || !Array.isArray(link.chunks) ||
+        !link.chunks.every(index => Number.isInteger(index) && index >= 0 && index < chunkCount)) return [];
+    let start = text.indexOf(link.text, occurrences.get(link.text) || 0);
+    while (start >= 0 && ((word(text[start - 1]) && word(link.text[0])) ||
+      (word(link.text.at(-1)) && word(text[start + link.text.length])) ||
+      located.some(part => start < part.start + part.link.text.length && start + link.text.length > part.start))) {
+      start = text.indexOf(link.text, start + 1);
+    }
+    if (start < 0) return [];
+    occurrences.set(link.text, start + link.text.length);
+    located.push({ link, start });
+  }
+  let at = 0;
+  for (const { link, start } of located.sort((a, b) => a.start - b.start)) {
+    if (start < at) return [];
+    // Never highlight part of a word or silently skip untranslated words.
+    if ((word(text[start - 1]) && word(link.text[0])) ||
+        (word(link.text.at(-1)) && word(text[start + link.text.length])) ||
+        /[\p{L}\p{N}]/u.test(text.slice(at, start))) return [];
+    if (start > at) segments.push({ text: text.slice(at, start), chunks: [] });
+    segments.push({ text: link.text, chunks: link.chunks });
+    at = start + link.text.length;
+  }
+  if (/[\p{L}\p{N}]/u.test(text.slice(at))) return [];
+  if (at < text.length) segments.push({ text: text.slice(at), chunks: [] });
+  return segments.some(segment => segment.chunks.length) ? segments : [];
 }
 
 /** Display complete sentences even when subtitle length limits created several cues. */
@@ -14,6 +81,12 @@ export function sentencePages(cues) {
       previous.end = cue.end;
       previous.text += ' ' + cue.text;
       previous.turkish += ' ' + cue.turkish;
+      if (cue.natural) {
+        previous.naturalLinks = previous.naturalLinks && cue.naturalLinks
+          ? [...previous.naturalLinks, ...cue.naturalLinks.map(link => ({ ...link, chunks: link.chunks.map(index => index + previous.chunks.length) }))]
+          : undefined;
+        previous.natural = [previous.natural, cue.natural].filter(Boolean).join(' ');
+      }
       previous.words.push(...(cue.words || []));
       previous.chunks = previous.chunks.length && mappedChunks(cue).length
         ? [...previous.chunks, ...mappedChunks(cue)] : [];

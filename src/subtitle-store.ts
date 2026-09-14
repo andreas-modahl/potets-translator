@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { MAX_SUBTITLE_MS, SubtitleError, type SubtitleCue } from './subtitles.js';
+import { validEmojiHint } from './subtitle-hints.js';
 
 export interface SavedSubtitles { id: string; title: string; source: string; cues: SubtitleCue[]; updated: string }
 export function validateSaved(value: unknown): { title: string; source: string; cues: SubtitleCue[] } {
@@ -21,6 +22,14 @@ export function validateSaved(value: unknown): { title: string; source: string; 
       throw new SubtitleError('Undertekstene må ha tekst og gyldige tider uten overlapp.', 400);
     }
     end = cue.end;
+    if (cue.natural !== undefined && (typeof cue.natural !== 'string' || !cue.natural.trim() || cue.natural.length > 10000)) {
+      throw new SubtitleError('Ugyldig naturlig norsk oversettelse.', 400);
+    }
+    if (cue.naturalLinks !== undefined && (!cue.natural || !Array.isArray(cue.naturalLinks) || cue.naturalLinks.length > 1000 ||
+        cue.naturalLinks.some((link: { text?: unknown; chunks?: unknown }) => !link || typeof link.text !== 'string' || !link.text.trim() || link.text.length > 10000 ||
+          !Array.isArray(link.chunks) || link.chunks.length > 1000 || link.chunks.some(index => !Number.isInteger(index) || index < 0 || index > 3000)))) {
+      throw new SubtitleError('Ugyldige koblinger til norsk oversettelse.', 400);
+    }
     for (const parts of [cue.words, cue.chunks]) {
       if (!Array.isArray(parts) || parts.length > 1000) throw new SubtitleError('Ordtider mangler.', 400);
       let partEnd = 0;
@@ -29,6 +38,7 @@ export function validateSaved(value: unknown): { title: string; source: string; 
             !Number.isFinite(part.start) || !Number.isFinite(part.end) || part.start < partEnd ||
             part.end <= part.start || part.end > MAX_SUBTITLE_MS) throw new SubtitleError('Ugyldige ordtider.', 400);
         partEnd = part.end;
+        if (part.hint !== undefined && !validEmojiHint(part.hint)) throw new SubtitleError('Ugyldige emojihint.', 400);
       }
     }
   }

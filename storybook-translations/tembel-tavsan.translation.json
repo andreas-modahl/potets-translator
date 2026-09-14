@@ -53,37 +53,106 @@
         {
           "text": "Late",
           "start": 990,
-          "end": 1470
+          "end": 1470,
+          "hint": {
+            "emoji": "😴",
+            "suffixes": []
+          }
         },
         {
           "text": "Kanin (tittel/navn)",
           "start": 1470,
-          "end": 2190
+          "end": 2190,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": []
+          }
         },
         {
           "text": "En gang / det var en gang",
           "start": 2910,
-          "end": 3870
+          "end": 3870,
+          "hint": {
+            "emoji": "⏳",
+            "suffixes": []
+          }
         },
         {
           "text": "i skogen",
           "start": 4030,
-          "end": 4670
+          "end": 4670,
+          "hint": {
+            "emoji": "🌳",
+            "suffixes": [
+              {
+                "kind": "location",
+                "form": "-da"
+              }
+            ]
+          }
         },
         {
           "text": "fryktelig",
           "start": 4670,
-          "end": 5230
+          "end": 5230,
+          "hint": {
+            "emoji": "😱",
+            "suffixes": []
+          }
         },
         {
           "text": "en",
           "start": 5230,
-          "end": 5390
+          "end": 5390,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "tørke",
           "start": 5430,
-          "end": 5950
+          "end": 5950,
+          "hint": {
+            "emoji": "🏜️",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "Den late kaninen: Det var en gang en forferdelig tørke som begynte i skogen.",
+      "naturalLinks": [
+        {
+          "text": "Den late kaninen:",
+          "chunks": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "Det var en gang",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "en forferdelig tørke",
+          "chunks": [
+            4,
+            5,
+            6
+          ]
+        },
+        {
+          "text": "som begynte",
+          "chunks": [
+            7
+          ]
+        },
+        {
+          "text": "i skogen.",
+          "chunks": [
+            3
+          ]
         }
       ]
     },
@@ -103,7 +172,16 @@
         {
           "text": "begynte (skal ha begynt)",
           "start": 5950,
-          "end": 6550
+          "end": 6550,
+          "hint": {
+            "emoji": "▶️",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
         }
       ]
     },
@@ -163,47 +241,135 @@
         {
           "text": "sommeren",
           "start": 7230,
-          "end": 7630
+          "end": 7630,
+          "hint": {
+            "emoji": "☀️",
+            "suffixes": []
+          }
         },
         {
           "text": "kommer og",
           "start": 7630,
-          "end": 7870
+          "end": 7870,
+          "hint": {
+            "emoji": "➡️",
+            "suffixes": []
+          }
         },
         {
           "text": "har gått",
           "start": 7870,
-          "end": 8190
+          "end": 8190,
+          "hint": {
+            "emoji": "⌛",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-i"
+              }
+            ]
+          }
         },
         {
           "text": "til tross for at",
           "start": 8350,
-          "end": 8910
+          "end": 8910,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "eneste",
           "start": 9110,
-          "end": 9230
+          "end": 9230,
+          "hint": {
+            "emoji": "1️⃣",
+            "suffixes": []
+          }
         },
         {
           "text": "en",
           "start": 9310,
-          "end": 9470
+          "end": 9470,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "dråpe",
           "start": 9470,
-          "end": 9790
+          "end": 9790,
+          "hint": {
+            "emoji": "💧",
+            "suffixes": []
+          }
         },
         {
           "text": "til og med",
           "start": 9790,
-          "end": 10030
+          "end": 10030,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "regn",
           "start": 10030,
-          "end": 10430
+          "end": 10430,
+          "hint": {
+            "emoji": "🌧️",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "Selv om sommeren kom og gikk, falt det ikke en eneste dråpe regn.",
+      "naturalLinks": [
+        {
+          "text": "Selv om",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "sommeren",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "kom og gikk",
+          "chunks": [
+            1,
+            2
+          ]
+        },
+        {
+          "text": "falt det ikke",
+          "chunks": [
+            9
+          ]
+        },
+        {
+          "text": "en eneste",
+          "chunks": [
+            5,
+            4
+          ]
+        },
+        {
+          "text": "dråpe",
+          "chunks": [
+            6
+          ]
+        },
+        {
+          "text": "regn",
+          "chunks": [
+            8
+          ]
         }
       ]
     },
@@ -223,7 +389,20 @@
         {
           "text": "har (tilsynelatende) ikke regnet",
           "start": 10430,
-          "end": 11070
+          "end": 11070,
+          "hint": {
+            "emoji": "🚫🌧️",
+            "suffixes": [
+              {
+                "kind": "negative",
+                "form": "-ma"
+              },
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
         }
       ]
     },
@@ -278,37 +457,129 @@
         {
           "text": "Tørsten",
           "start": 11950,
-          "end": 12670
+          "end": 12670,
+          "hint": {
+            "emoji": "🥵",
+            "suffixes": []
+          }
         },
         {
           "text": "dyrenes",
           "start": 12830,
-          "end": 13550
+          "end": 13550,
+          "hint": {
+            "emoji": "🐾",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-ların"
+              }
+            ]
+          }
         },
         {
           "text": "tålmodigheten (deres)",
           "start": 13590,
-          "end": 13990
+          "end": 13990,
+          "hint": {
+            "emoji": "😖",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-ına"
+              }
+            ]
+          }
         },
         {
           "text": "da det ble for mye",
           "start": 13990,
-          "end": 14750
+          "end": 14750,
+          "hint": {
+            "emoji": "⏰",
+            "suffixes": []
+          }
         },
         {
           "text": "denne",
           "start": 14990,
-          "end": 15070
+          "end": 15070,
+          "hint": {
+            "emoji": "👉",
+            "suffixes": []
+          }
         },
         {
           "text": "på situasjonen",
           "start": 15070,
-          "end": 15390
+          "end": 15390,
+          "hint": {
+            "emoji": "📍",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-a"
+              }
+            ]
+          }
         },
         {
           "text": "en",
           "start": 15390,
-          "end": 15550
+          "end": 15550,
+          "hint": {
+            "emoji": "1️⃣",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "Da tørsten ble uutholdelig for dyrene, samlet de seg for å finne en løsning på problemet.",
+      "naturalLinks": [
+        {
+          "text": "Da tørsten",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "ble uutholdelig",
+          "chunks": [
+            2,
+            3
+          ]
+        },
+        {
+          "text": "for dyrene,",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "samlet de seg",
+          "chunks": [
+            10
+          ]
+        },
+        {
+          "text": "for å finne",
+          "chunks": [
+            8,
+            9
+          ]
+        },
+        {
+          "text": "en løsning",
+          "chunks": [
+            6,
+            7
+          ]
+        },
+        {
+          "text": "på problemet.",
+          "chunks": [
+            4,
+            5
+          ]
         }
       ]
     },
@@ -343,22 +614,52 @@
         {
           "text": "løsning",
           "start": 15550,
-          "end": 15870
+          "end": 15870,
+          "hint": {
+            "emoji": "💡",
+            "suffixes": []
+          }
         },
         {
           "text": "å finne",
           "start": 15870,
-          "end": 16190
+          "end": 16190,
+          "hint": {
+            "emoji": "🔍",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-mak"
+              }
+            ]
+          }
         },
         {
           "text": "for å",
           "start": 16230,
-          "end": 16430
+          "end": 16430,
+          "hint": {
+            "emoji": "➡️",
+            "suffixes": []
+          }
         },
         {
           "text": "de samlet seg (visstnok)",
           "start": 16470,
-          "end": 17470
+          "end": 17470,
+          "hint": {
+            "emoji": "👥",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mışlar"
+              },
+              {
+                "kind": "plural",
+                "form": "-lar"
+              }
+            ]
+          }
         }
       ]
     },
@@ -408,37 +709,134 @@
         {
           "text": "blant dem",
           "start": 18190,
-          "end": 18990
+          "end": 18990,
+          "hint": {
+            "emoji": "👫",
+            "suffixes": [
+              {
+                "kind": "from",
+                "form": "-nden"
+              }
+            ]
+          }
         },
         {
           "text": "noens (en av dems)",
           "start": 18990,
-          "end": 19430
+          "end": 19430,
+          "hint": {
+            "emoji": "🙋",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-in"
+              }
+            ]
+          }
         },
         {
           "text": "forslag",
           "start": 19430,
-          "end": 19910
+          "end": 19910,
+          "hint": {
+            "emoji": "🗣️",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-i"
+              }
+            ]
+          }
         },
         {
           "text": "på grunn av / etter",
           "start": 19950,
-          "end": 20510
+          "end": 20510,
+          "hint": {
+            "emoji": "⚖️",
+            "suffixes": []
+          }
         },
         {
           "text": "en",
           "start": 20750,
-          "end": 20950
+          "end": 20950,
+          "hint": {
+            "emoji": "1️⃣",
+            "suffixes": []
+          }
         },
         {
           "text": "brønn",
           "start": 21030,
-          "end": 21230
+          "end": 21230,
+          "hint": {
+            "emoji": "🕳️",
+            "suffixes": []
+          }
         },
         {
           "text": "å grave",
           "start": 21230,
-          "end": 21710
+          "end": 21710,
+          "hint": {
+            "emoji": "⛏️",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-maya"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Etter forslag fra en av dem, bestemte de seg for å grave en brønn og begynte å arbeide.",
+      "naturalLinks": [
+        {
+          "text": "Etter forslag",
+          "chunks": [
+            2,
+            3
+          ]
+        },
+        {
+          "text": "fra en av dem,",
+          "chunks": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "bestemte de seg",
+          "chunks": [
+            7,
+            8
+          ]
+        },
+        {
+          "text": "for å grave",
+          "chunks": [
+            6
+          ]
+        },
+        {
+          "text": "en brønn",
+          "chunks": [
+            4,
+            5
+          ]
+        },
+        {
+          "text": "og begynte",
+          "chunks": [
+            10
+          ]
+        },
+        {
+          "text": "å arbeide.",
+          "chunks": [
+            9
+          ]
         }
       ]
     },
@@ -473,22 +871,52 @@
         {
           "text": "beslutning",
           "start": 21710,
-          "end": 22030
+          "end": 22030,
+          "hint": {
+            "emoji": "⚖️",
+            "suffixes": []
+          }
         },
         {
           "text": "og ga/tok (og)",
           "start": 22030,
-          "end": 22350
+          "end": 22350,
+          "hint": {
+            "emoji": "🤝",
+            "suffixes": []
+          }
         },
         {
           "text": "å jobbe",
           "start": 22390,
-          "end": 22950
+          "end": 22950,
+          "hint": {
+            "emoji": "💪",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-maya"
+              }
+            ]
+          }
         },
         {
           "text": "de begynte (skal ha begynt)",
           "start": 22950,
-          "end": 23790
+          "end": 23790,
+          "hint": {
+            "emoji": "🚀",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mışlar"
+              },
+              {
+                "kind": "plural",
+                "form": "-lar"
+              }
+            ]
+          }
         }
       ]
     },
@@ -543,42 +971,124 @@
         {
           "text": "alle",
           "start": 24590,
-          "end": 24950
+          "end": 24950,
+          "hint": {
+            "emoji": "🌍",
+            "suffixes": []
+          }
         },
         {
           "text": "dyrene",
           "start": 24990,
-          "end": 25630
+          "end": 25630,
+          "hint": {
+            "emoji": "🐾",
+            "suffixes": [
+              {
+                "kind": "plural",
+                "form": "-lar"
+              }
+            ]
+          }
         },
         {
           "text": "til og med",
           "start": 25790,
-          "end": 26270
+          "end": 26270,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "fuglene",
           "start": 26270,
-          "end": 26750
+          "end": 26750,
+          "hint": {
+            "emoji": "🐦",
+            "suffixes": [
+              {
+                "kind": "plural",
+                "form": "-lar"
+              }
+            ]
+          }
         },
         {
           "text": "til og med",
           "start": 26790,
-          "end": 27230
+          "end": 27230,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "natt",
           "start": 27310,
-          "end": 27710
+          "end": 27710,
+          "hint": {
+            "emoji": "🌙",
+            "suffixes": []
+          }
         },
         {
           "text": "dag",
           "start": 27710,
-          "end": 28110
+          "end": 28110,
+          "hint": {
+            "emoji": "☀️",
+            "suffixes": []
+          }
         },
         {
           "text": "jobber (visstnok)",
           "start": 28190,
-          "end": 29070
+          "end": 29070,
+          "hint": {
+            "emoji": "💼",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-muş"
+              },
+              {
+                "kind": "future",
+                "form": "-yor"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Alle dyrene, til og med fuglene, jobbet dag og natt.",
+      "naturalLinks": [
+        {
+          "text": "Alle dyrene,",
+          "chunks": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "til og med fuglene,",
+          "chunks": [
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "text": "jobbet",
+          "chunks": [
+            7
+          ]
+        },
+        {
+          "text": "dag og natt.",
+          "chunks": [
+            5,
+            6
+          ]
         }
       ]
     },
@@ -633,42 +1143,131 @@
         {
           "text": "men",
           "start": 29990,
-          "end": 30470
+          "end": 30470,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "kaninen",
           "start": 30470,
-          "end": 31110
+          "end": 31110,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": []
+          }
         },
         {
           "text": "jeg",
           "start": 31590,
-          "end": 31910
+          "end": 31910,
+          "hint": {
+            "emoji": "🙋",
+            "suffixes": []
+          }
         },
         {
           "text": "fortsatt/ennå",
           "start": 31950,
-          "end": 32230
+          "end": 32230,
+          "hint": {
+            "emoji": "⏳",
+            "suffixes": []
+          }
         },
         {
           "text": "veldig",
           "start": 32230,
-          "end": 32470
+          "end": 32470,
+          "hint": {
+            "emoji": "💯",
+            "suffixes": []
+          }
         },
         {
           "text": "jeg er liten",
           "start": 32510,
-          "end": 33110
+          "end": 33110,
+          "hint": {
+            "emoji": "📏",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-üm"
+              }
+            ]
+          }
         },
         {
           "text": "idet hun sa/ved å si",
           "start": 33510,
-          "end": 33950
+          "end": 33950,
+          "hint": {
+            "emoji": "🗣️",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-erek"
+              }
+            ]
+          }
         },
         {
           "text": "å jobbe",
           "start": 34270,
-          "end": 34790
+          "end": 34790,
+          "hint": {
+            "emoji": "💼",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-mak"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Men kaninen ville ikke jobbe og sa: \"Jeg er fortsatt for liten.\"",
+      "naturalLinks": [
+        {
+          "text": "Men kaninen",
+          "chunks": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "ville ikke jobbe",
+          "chunks": [
+            6,
+            8
+          ]
+        },
+        {
+          "text": "og sa:",
+          "chunks": [
+            7
+          ]
+        },
+        {
+          "text": "\"Jeg er",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "fortsatt",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "for liten.\"",
+          "chunks": [
+            4,
+            5
+          ]
         }
       ]
     },
@@ -688,7 +1287,20 @@
         {
           "text": "hun skal ha ikke villet",
           "start": 34790,
-          "end": 35870
+          "end": 35870,
+          "hint": {
+            "emoji": "🚫",
+            "suffixes": [
+              {
+                "kind": "negative",
+                "form": "-mi"
+              },
+              {
+                "kind": "reported",
+                "form": "-muş"
+              }
+            ]
+          }
         }
       ]
     },
@@ -738,37 +1350,131 @@
         {
           "text": "kaninens",
           "start": 36550,
-          "end": 37190
+          "end": 37190,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-ın"
+              }
+            ]
+          }
         },
         {
           "text": "slik",
           "start": 37350,
-          "end": 37750
+          "end": 37750,
+          "hint": {
+            "emoji": "👉",
+            "suffixes": []
+          }
         },
         {
           "text": "det å kokettere/late seg vanskelig",
           "start": 37790,
-          "end": 38710
+          "end": 38710,
+          "hint": {
+            "emoji": "💅",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-ması"
+              }
+            ]
+          }
         },
         {
           "text": "andre",
           "start": 38990,
-          "end": 39270
+          "end": 39270,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "alle",
           "start": 39270,
-          "end": 39550
+          "end": 39550,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "dyrene",
           "start": 39590,
-          "end": 40230
+          "end": 40230,
+          "hint": {
+            "emoji": "🐾",
+            "suffixes": [
+              {
+                "kind": "plural",
+                "form": "-lar"
+              },
+              {
+                "kind": "possession",
+                "form": "-ı"
+              }
+            ]
+          }
         },
         {
           "text": "veldig",
           "start": 40270,
-          "end": 40510
+          "end": 40510,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "At kaninen kranglet seg unna på den måten, gjorde alle de andre dyrene veldig sinte.",
+      "naturalLinks": [
+        {
+          "text": "At kaninen",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "kranglet seg unna",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "på den måten,",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "gjorde",
+          "chunks": [
+            7
+          ]
+        },
+        {
+          "text": "alle",
+          "chunks": [
+            4
+          ]
+        },
+        {
+          "text": "de andre dyrene",
+          "chunks": [
+            3,
+            5
+          ]
+        },
+        {
+          "text": "veldig sinte.",
+          "chunks": [
+            6,
+            7
+          ]
         }
       ]
     },
@@ -788,7 +1494,16 @@
         {
           "text": "gjorde visstnok sint",
           "start": 40510,
-          "end": 41070
+          "end": 41070,
+          "hint": {
+            "emoji": "😠",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
         }
       ]
     },
@@ -823,22 +1538,93 @@
         {
           "text": "dyrenes",
           "start": 41750,
-          "end": 42430
+          "end": 42430,
+          "hint": {
+            "emoji": "🐾",
+            "suffixes": [
+              {
+                "kind": "plural",
+                "form": "-lar"
+              },
+              {
+                "kind": "possession",
+                "form": "-ın"
+              }
+            ]
+          }
         },
         {
           "text": "innsatsen deres",
           "start": 42470,
-          "end": 42790
+          "end": 42790,
+          "hint": {
+            "emoji": "💪",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-i"
+              }
+            ]
+          }
         },
         {
           "text": "forgjeves",
           "start": 42910,
-          "end": 43190
+          "end": 43190,
+          "hint": {
+            "emoji": "❌",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-a"
+              }
+            ]
+          }
         },
         {
           "text": "har visstnok ikke blitt / viste seg ikke å bli",
           "start": 43190,
-          "end": 43790
+          "end": 43790,
+          "hint": {
+            "emoji": "🚫",
+            "suffixes": [
+              {
+                "kind": "negative",
+                "form": "-ma"
+              },
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Dyrenes strev var ikke forgjeves.",
+      "naturalLinks": [
+        {
+          "text": "Dyrenes",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "strev",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "var ikke",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "forgjeves.",
+          "chunks": [
+            2
+          ]
         }
       ]
     },
@@ -898,47 +1684,144 @@
         {
           "text": "som de gravde",
           "start": 44230,
-          "end": 44910
+          "end": 44910,
+          "hint": {
+            "emoji": "⛏️",
+            "suffixes": [
+              {
+                "kind": "past",
+                "form": "-dık"
+              },
+              {
+                "kind": "possession",
+                "form": "-ları"
+              }
+            ]
+          }
         },
         {
           "text": "fra brønnen",
           "start": 44950,
-          "end": 45510
+          "end": 45510,
+          "hint": {
+            "emoji": "🕳️",
+            "suffixes": [
+              {
+                "kind": "from",
+                "form": "-dan"
+              }
+            ]
+          }
         },
         {
           "text": "is",
           "start": 45710,
-          "end": 46070
+          "end": 46070,
+          "hint": {
+            "emoji": "🧊",
+            "suffixes": []
+          }
         },
         {
           "text": "som",
           "start": 46070,
-          "end": 46310
+          "end": 46310,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "en",
           "start": 46310,
-          "end": 46550
+          "end": 46550,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "vann",
           "start": 46630,
-          "end": 46790
+          "end": 46790,
+          "hint": {
+            "emoji": "💧",
+            "suffixes": []
+          }
         },
         {
           "text": "da det kom (ut)",
           "start": 46790,
-          "end": 47590
+          "end": 47590,
+          "hint": {
+            "emoji": "➡️",
+            "suffixes": [
+              {
+                "kind": "future",
+                "form": "-ınca"
+              }
+            ]
+          }
         },
         {
           "text": "alle",
           "start": 47750,
-          "end": 48270
+          "end": 48270,
+          "hint": {
+            "emoji": "👥",
+            "suffixes": []
+          }
         },
         {
           "text": "veldig",
           "start": 48350,
-          "end": 48550
+          "end": 48550,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "Da isvann strømmet opp fra brønnen de hadde gravd, ble alle svært glade.",
+      "naturalLinks": [
+        {
+          "text": "Da isvann",
+          "chunks": [
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "text": "strømmet opp",
+          "chunks": [
+            6
+          ]
+        },
+        {
+          "text": "fra brønnen",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "de hadde gravd,",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "ble alle",
+          "chunks": [
+            7
+          ]
+        },
+        {
+          "text": "svært glade.",
+          "chunks": [
+            8,
+            9
+          ]
         }
       ]
     },
@@ -958,7 +1841,16 @@
         {
           "text": "ble visstnok glad",
           "start": 48590,
-          "end": 49150
+          "end": 49150,
+          "hint": {
+            "emoji": "😊",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-miş"
+              }
+            ]
+          }
         }
       ]
     },
@@ -988,17 +1880,57 @@
         {
           "text": "til å bli mett/rikelig",
           "start": 49830,
-          "end": 50150
+          "end": 50150,
+          "hint": {
+            "emoji": "😋",
+            "suffixes": []
+          }
         },
         {
           "text": "(gjentakelse for å forsterke)",
           "start": 50150,
-          "end": 50390
+          "end": 50390,
+          "hint": {
+            "emoji": "💧",
+            "suffixes": []
+          }
         },
         {
           "text": "de drakk (og)",
           "start": 50470,
-          "end": 50790
+          "end": 50790,
+          "hint": {
+            "emoji": "🥤",
+            "suffixes": [
+              {
+                "kind": "past",
+                "form": "-ip"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "De drakk seg mette og badet i vannet.",
+      "naturalLinks": [
+        {
+          "text": "De drakk seg mette",
+          "chunks": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "text": "og badet",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "i vannet.",
+          "chunks": [
+            3
+          ]
         }
       ]
     },
@@ -1018,7 +1950,20 @@
         {
           "text": "de har visst vasket seg",
           "start": 50790,
-          "end": 51830
+          "end": 51830,
+          "hint": {
+            "emoji": "🛁",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mış"
+              },
+              {
+                "kind": "plural",
+                "form": "-lar"
+              }
+            ]
+          }
         }
       ]
     },
@@ -1063,32 +2008,112 @@
         {
           "text": "brønnens",
           "start": 52470,
-          "end": 52910
+          "end": 52910,
+          "hint": {
+            "emoji": "🕳️",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-nun"
+              }
+            ]
+          }
         },
         {
           "text": "til at den ble gravd",
           "start": 52950,
-          "end": 53670
+          "end": 53670,
+          "hint": {
+            "emoji": "⛏️",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-sına"
+              }
+            ]
+          }
         },
         {
           "text": "hjelp",
           "start": 53670,
-          "end": 54070
+          "end": 54070,
+          "hint": {
+            "emoji": "🤝",
+            "suffixes": []
+          }
         },
         {
           "text": "som ikke ga (hjelp til)",
           "start": 54070,
-          "end": 54790
+          "end": 54790,
+          "hint": {
+            "emoji": "🚫",
+            "suffixes": [
+              {
+                "kind": "negative",
+                "form": "-me"
+              }
+            ]
+          }
         },
         {
           "text": "til kaninen",
           "start": 54790,
-          "end": 55350
+          "end": 55350,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-a"
+              }
+            ]
+          }
         },
         {
           "text": "derimot",
           "start": 55430,
-          "end": 55830
+          "end": 55830,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "Men kaninen, som ikke hadde hjulpet til med å grave brønnen, fikk ikke vann.",
+      "naturalLinks": [
+        {
+          "text": "Men kaninen,",
+          "chunks": [
+            4,
+            5
+          ]
+        },
+        {
+          "text": "som ikke hadde hjulpet",
+          "chunks": [
+            2,
+            3
+          ]
+        },
+        {
+          "text": "til med å grave brønnen,",
+          "chunks": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "fikk ikke",
+          "chunks": [
+            7
+          ]
+        },
+        {
+          "text": "vann.",
+          "chunks": [
+            6
+          ]
         }
       ]
     },
@@ -1113,12 +2138,33 @@
         {
           "text": "vann",
           "start": 56070,
-          "end": 56230
+          "end": 56230,
+          "hint": {
+            "emoji": "💧",
+            "suffixes": []
+          }
         },
         {
           "text": "de ga visstnok ikke",
           "start": 56230,
-          "end": 57190
+          "end": 57190,
+          "hint": {
+            "emoji": "🚫",
+            "suffixes": [
+              {
+                "kind": "negative",
+                "form": "-me"
+              },
+              {
+                "kind": "reported",
+                "form": "-miş"
+              },
+              {
+                "kind": "plural",
+                "form": "-ler"
+              }
+            ]
+          }
         }
       ]
     },
@@ -1143,12 +2189,86 @@
         {
           "text": "konge",
           "start": 57990,
-          "end": 58310
+          "end": 58310,
+          "hint": {
+            "emoji": "👑",
+            "suffixes": []
+          }
         },
         {
           "text": "løve",
           "start": 58310,
-          "end": 58950
+          "end": 58950,
+          "hint": {
+            "emoji": "🦁",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "Kongen løven satte hver dag ut en vakt ved brønnen for å hindre kaninen i å komme nær den.",
+      "naturalLinks": [
+        {
+          "text": "Kongen",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "løven",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "satte",
+          "chunks": [
+            12
+          ]
+        },
+        {
+          "text": "hver dag",
+          "chunks": [
+            9
+          ]
+        },
+        {
+          "text": "ut en vakt",
+          "chunks": [
+            10,
+            11
+          ]
+        },
+        {
+          "text": "ved brønnen",
+          "chunks": [
+            7,
+            8
+          ]
+        },
+        {
+          "text": "for å hindre",
+          "chunks": [
+            5,
+            6
+          ]
+        },
+        {
+          "text": "kaninen",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "i å komme nær",
+          "chunks": [
+            4
+          ]
+        },
+        {
+          "text": "den.",
+          "chunks": [
+            3
+          ]
         }
       ]
     },
@@ -1193,32 +2313,81 @@
         {
           "text": "haren (sin)",
           "start": 59190,
-          "end": 59710
+          "end": 59710,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-nın"
+              }
+            ]
+          }
         },
         {
           "text": "til brønnen",
           "start": 59790,
-          "end": 60070
+          "end": 60070,
+          "hint": {
+            "emoji": "🕳️",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-ya"
+              }
+            ]
+          }
         },
         {
           "text": "at (den) nærmer seg",
           "start": 60110,
-          "end": 60910
+          "end": 60910,
+          "hint": {
+            "emoji": "➡️",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-sını"
+              }
+            ]
+          }
         },
         {
           "text": "å hindre",
           "start": 60910,
-          "end": 61550
+          "end": 61550,
+          "hint": {
+            "emoji": "✋",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-mek"
+              }
+            ]
+          }
         },
         {
           "text": "for",
           "start": 61550,
-          "end": 61870
+          "end": 61870,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "brønnens",
           "start": 62230,
-          "end": 62590
+          "end": 62590,
+          "hint": {
+            "emoji": "🕳️",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-nun"
+              }
+            ]
+          }
         }
       ]
     },
@@ -1263,27 +2432,57 @@
         {
           "text": "ved kanten av (den)",
           "start": 62630,
-          "end": 62990
+          "end": 62990,
+          "hint": {
+            "emoji": "📍",
+            "suffixes": [
+              {
+                "kind": "location",
+                "form": "-a"
+              }
+            ]
+          }
         },
         {
           "text": "hver dag",
           "start": 62990,
-          "end": 63550
+          "end": 63550,
+          "hint": {
+            "emoji": "📅",
+            "suffixes": []
+          }
         },
         {
           "text": "en",
           "start": 63550,
-          "end": 63750
+          "end": 63750,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "vakt",
           "start": 63830,
-          "end": 64190
+          "end": 64190,
+          "hint": {
+            "emoji": "💂",
+            "suffixes": []
+          }
         },
         {
           "text": "satte (han/hun) ut / tildelte oppgave",
           "start": 64270,
-          "end": 65150
+          "end": 65150,
+          "hint": {
+            "emoji": "📋",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-miş"
+              }
+            ]
+          }
         }
       ]
     },
@@ -1328,32 +2527,115 @@
         {
           "text": "Kaninen",
           "start": 66150,
-          "end": 66750
+          "end": 66750,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": []
+          }
         },
         {
           "text": "som den hadde gjort",
           "start": 66910,
-          "end": 67390
+          "end": 67390,
+          "hint": {
+            "emoji": "🔨",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-ığı"
+              }
+            ]
+          }
         },
         {
           "text": "feilen",
           "start": 67390,
-          "end": 67910
+          "end": 67910,
+          "hint": {
+            "emoji": "❌",
+            "suffixes": [
+              {
+                "kind": "location",
+                "form": "-ı"
+              }
+            ]
+          }
         },
         {
           "text": "hadde forstått",
           "start": 67910,
-          "end": 68390
+          "end": 68390,
+          "hint": {
+            "emoji": "🧠",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
         },
         {
           "text": "forsto den nok",
           "start": 68430,
-          "end": 69310
+          "end": 69310,
+          "hint": {
+            "emoji": "🤔",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-a"
+              }
+            ]
+          }
         },
         {
           "text": "men",
           "start": 69630,
-          "end": 70190
+          "end": 70190,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "Kaninen innså feilen sin, men det var for sent å gjøre noe med det.",
+      "naturalLinks": [
+        {
+          "text": "Kaninen",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "innså feilen sin",
+          "chunks": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "text": "men",
+          "chunks": [
+            5
+          ]
+        },
+        {
+          "text": "det var for sent",
+          "chunks": [
+            6
+          ]
+        },
+        {
+          "text": "å gjøre noe med det",
+          "chunks": [
+            7,
+            8,
+            9,
+            10
+          ]
         }
       ]
     },
@@ -1413,27 +2695,61 @@
         {
           "text": "fordi det var for sent",
           "start": 70270,
-          "end": 71790
+          "end": 71790,
+          "hint": {
+            "emoji": "⏳",
+            "suffixes": []
+          }
         },
         {
           "text": "å gjøre",
           "start": 71950,
-          "end": 72430
+          "end": 72430,
+          "hint": {
+            "emoji": "🔨",
+            "suffixes": [
+              {
+                "kind": "future",
+                "form": "-acak"
+              }
+            ]
+          }
         },
         {
           "text": "noe",
           "start": 72430,
-          "end": 72870
+          "end": 72870,
+          "hint": {
+            "emoji": "❓",
+            "suffixes": []
+          }
         },
         {
           "text": "heller",
           "start": 72870,
-          "end": 72990
+          "end": 72990,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "fantes ikke (viste seg å være)",
           "start": 72990,
-          "end": 73390
+          "end": 73390,
+          "hint": {
+            "emoji": "🚫",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-muş"
+              },
+              {
+                "kind": "negative",
+                "form": "yok"
+              }
+            ]
+          }
         }
       ]
     },
@@ -1453,7 +2769,56 @@
         {
           "text": "en",
           "start": 73390,
-          "end": 73630
+          "end": 73630,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "En natt var det til og med elefantens tur til å holde vakt ved brønnen.",
+      "naturalLinks": [
+        {
+          "text": "En",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "natt",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "var det",
+          "chunks": [
+            6
+          ]
+        },
+        {
+          "text": "til og med",
+          "chunks": [
+            5
+          ]
+        },
+        {
+          "text": "elefantens tur",
+          "chunks": [
+            4
+          ]
+        },
+        {
+          "text": "til å holde vakt",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "ved brønnen",
+          "chunks": [
+            2
+          ]
         }
       ]
     },
@@ -1498,27 +2863,62 @@
         {
           "text": "natt",
           "start": 74510,
-          "end": 75070
+          "end": 75070,
+          "hint": {
+            "emoji": "🌙",
+            "suffixes": []
+          }
         },
         {
           "text": "i brønnen",
           "start": 75310,
-          "end": 75590
+          "end": 75590,
+          "hint": {
+            "emoji": "🕳️",
+            "suffixes": [
+              {
+                "kind": "location",
+                "form": "-da"
+              }
+            ]
+          }
         },
         {
           "text": "å holde vakt",
           "start": 75630,
-          "end": 76350
+          "end": 76350,
+          "hint": {
+            "emoji": "💂",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-ma"
+              }
+            ]
+          }
         },
         {
           "text": "hans tur (til det)",
           "start": 76350,
-          "end": 76750
+          "end": 76750,
+          "hint": {
+            "emoji": "🔄",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-sı"
+              }
+            ]
+          }
         },
         {
           "text": "til og med",
           "start": 76750,
-          "end": 76990
+          "end": 76990,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         }
       ]
     },
@@ -1538,7 +2938,20 @@
         {
           "text": "hadde kommet/blitt (det viste seg)",
           "start": 76990,
-          "end": 77630
+          "end": 77630,
+          "hint": {
+            "emoji": "",
+            "suffixes": [
+              {
+                "kind": "past",
+                "form": "-miş"
+              },
+              {
+                "kind": "reported",
+                "form": "-miş"
+              }
+            ]
+          }
         }
       ]
     },
@@ -1573,22 +2986,65 @@
         {
           "text": "kaninen",
           "start": 78270,
-          "end": 78830
+          "end": 78830,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": []
+          }
         },
         {
           "text": "til og med / selv",
           "start": 78910,
-          "end": 79150
+          "end": 79150,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "veldig",
           "start": 79150,
-          "end": 79390
+          "end": 79390,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "skal visstnok like",
           "start": 79390,
-          "end": 79990
+          "end": 79990,
+          "hint": {
+            "emoji": "❤️",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-miş"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Kaninen likte elefanten veldig godt.",
+      "naturalLinks": [
+        {
+          "text": "Kaninen",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "likte elefanten",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "veldig godt",
+          "chunks": [
+            1,
+            2
+          ]
         }
       ]
     },
@@ -1638,37 +3094,130 @@
         {
           "text": "ingen",
           "start": 80830,
-          "end": 81230
+          "end": 81230,
+          "hint": {
+            "emoji": "🚫",
+            "suffixes": []
+          }
         },
         {
           "text": "uten å se",
           "start": 81230,
-          "end": 81790
+          "end": 81790,
+          "hint": {
+            "emoji": "👀",
+            "suffixes": [
+              {
+                "kind": "negative",
+                "form": "-meden"
+              }
+            ]
+          }
         },
         {
           "text": "til meg",
           "start": 81870,
-          "end": 82110
+          "end": 82110,
+          "hint": {
+            "emoji": "",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-a"
+              }
+            ]
+          }
         },
         {
           "text": "litt",
           "start": 82110,
-          "end": 82390
+          "end": 82390,
+          "hint": {
+            "emoji": "➖",
+            "suffixes": []
+          }
         },
         {
           "text": "vann",
           "start": 82390,
-          "end": 82510
+          "end": 82510,
+          "hint": {
+            "emoji": "💧",
+            "suffixes": []
+          }
         },
         {
           "text": "gir (han/hun/den)",
           "start": 82590,
-          "end": 83070
+          "end": 83070,
+          "hint": {
+            "emoji": "🤲",
+            "suffixes": []
+          }
         },
         {
           "text": "med tanken om at",
           "start": 83470,
-          "end": 84310
+          "end": 84310,
+          "hint": {
+            "emoji": "💭",
+            "suffixes": [
+              {
+                "kind": "with",
+                "form": "-yle"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Tenkte den: \"Kanskje han gir meg litt vann uten at noen ser det\", og da den gikk bort til ham, så den at elefanten sov.",
+      "naturalLinks": [
+        {
+          "text": "Tenkte den",
+          "chunks": [
+            7
+          ]
+        },
+        {
+          "text": "\"Kanskje han gir meg",
+          "chunks": [
+            6
+          ]
+        },
+        {
+          "text": "litt vann",
+          "chunks": [
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "text": "uten at noen ser det\"",
+          "chunks": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "og da den gikk bort til ham",
+          "chunks": [
+            8,
+            9
+          ]
+        },
+        {
+          "text": "så den",
+          "chunks": [
+            11
+          ]
+        },
+        {
+          "text": "at elefanten sov",
+          "chunks": [
+            10,
+            11
+          ]
         }
       ]
     },
@@ -1703,22 +3252,58 @@
         {
           "text": "bort til den (siden av den)",
           "start": 84310,
-          "end": 84670
+          "end": 84670,
+          "hint": {
+            "emoji": "➡️",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-ına"
+              }
+            ]
+          }
         },
         {
           "text": "da (han/hun) gikk / kom",
           "start": 84670,
-          "end": 85470
+          "end": 85470,
+          "hint": {
+            "emoji": "🚶",
+            "suffixes": [
+              {
+                "kind": "future",
+                "form": "-ince"
+              }
+            ]
+          }
         },
         {
           "text": "elefantens",
           "start": 85630,
-          "end": 85990
+          "end": 85990,
+          "hint": {
+            "emoji": "🐘",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-in"
+              }
+            ]
+          }
         },
         {
           "text": "at (den) sov",
           "start": 86070,
-          "end": 86470
+          "end": 86470,
+          "hint": {
+            "emoji": "😴",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-uğunu"
+              }
+            ]
+          }
         }
       ]
     },
@@ -1738,7 +3323,16 @@
         {
           "text": "så (det viste seg)",
           "start": 86470,
-          "end": 87070
+          "end": 87070,
+          "hint": {
+            "emoji": "",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-müş"
+              }
+            ]
+          }
         }
       ]
     },
@@ -1768,17 +3362,53 @@
         {
           "text": "til tross for at hun anstrengte seg mye",
           "start": 87870,
-          "end": 88030
+          "end": 88030,
+          "hint": {
+            "emoji": "💪",
+            "suffixes": []
+          }
         },
         {
           "text": "at hun anstrengte seg",
           "start": 88070,
-          "end": 88670
+          "end": 88670,
+          "hint": {
+            "emoji": "💪",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-masına"
+              }
+            ]
+          }
         },
         {
           "text": "til tross for",
           "start": 88670,
-          "end": 89110
+          "end": 89110,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "Uansett hvor mye den prøvde, klarte den ikke å vekke ham.",
+      "naturalLinks": [
+        {
+          "text": "Uansett hvor mye den prøvde",
+          "chunks": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "text": "klarte den ikke å vekke ham",
+          "chunks": [
+            3,
+            4,
+            5
+          ]
         }
       ]
     },
@@ -1813,17 +3443,38 @@
         {
           "text": "ham/henne",
           "start": 89390,
-          "end": 89630
+          "end": 89630,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "på ingen måte",
           "start": 89630,
-          "end": 90070
+          "end": 90070,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "klarte visstnok ikke å vekke",
           "start": 90070,
-          "end": 90990
+          "end": 90990,
+          "hint": {
+            "emoji": "😴",
+            "suffixes": [
+              {
+                "kind": "negative",
+                "form": "-ama"
+              },
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
         }
       ]
     },
@@ -1863,22 +3514,79 @@
         {
           "text": "til slutt",
           "start": 91630,
-          "end": 92590
+          "end": 92590,
+          "hint": {
+            "emoji": "⏱️",
+            "suffixes": []
+          }
         },
         {
           "text": "gikk (og)",
           "start": 92590,
-          "end": 92990
+          "end": 92990,
+          "hint": {
+            "emoji": "🚶",
+            "suffixes": []
+          }
         },
         {
           "text": "i øret hans",
           "start": 93070,
-          "end": 93550
+          "end": 93550,
+          "hint": {
+            "emoji": "👂",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-ı"
+              },
+              {
+                "kind": "to",
+                "form": "-na"
+              }
+            ]
+          }
         },
         {
           "text": "ropte (skal ha ropt)",
           "start": 93550,
-          "end": 94350
+          "end": 94350,
+          "hint": {
+            "emoji": "📢",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Til slutt gikk den bort og ropte rett i øret hans.",
+      "naturalLinks": [
+        {
+          "text": "Til slutt",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "gikk den bort",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "og ropte",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "rett i øret hans",
+          "chunks": [
+            2
+          ]
         }
       ]
     },
@@ -1923,27 +3631,137 @@
         {
           "text": "Elefanten",
           "start": 94990,
-          "end": 95390
+          "end": 95390,
+          "hint": {
+            "emoji": "🐘",
+            "suffixes": []
+          }
         },
         {
           "text": "på en slik (måte)",
           "start": 95550,
-          "end": 96190
+          "end": 96190,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "hoppet (visstnok/det viste seg)",
           "start": 96190,
-          "end": 96990
+          "end": 96990,
+          "hint": {
+            "emoji": "🦘",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
         },
         {
           "text": "at",
           "start": 97150,
-          "end": 97310
+          "end": 97310,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "brønnens",
           "start": 97630,
-          "end": 98030
+          "end": 98030,
+          "hint": {
+            "emoji": "🕳️",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-nun"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Elefanten spratt så voldsomt opp at steinene og jorden rundt brønnen traff siden hans og falt ned i brønnen.",
+      "naturalLinks": [
+        {
+          "text": "Elefanten",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "spratt",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "så voldsomt opp",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "at",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "steinene",
+          "chunks": [
+            6,
+            12
+          ]
+        },
+        {
+          "text": "og",
+          "chunks": [
+            7,
+            13
+          ]
+        },
+        {
+          "text": "jorden",
+          "chunks": [
+            8,
+            14
+          ]
+        },
+        {
+          "text": "rundt brønnen",
+          "chunks": [
+            5
+          ]
+        },
+        {
+          "text": "traff",
+          "chunks": [
+            10
+          ]
+        },
+        {
+          "text": "siden hans",
+          "chunks": [
+            9
+          ]
+        },
+        {
+          "text": "og falt ned",
+          "chunks": [
+            11
+          ]
+        },
+        {
+          "text": "i brønnen",
+          "chunks": [
+            4,
+            16,
+            17
+          ]
         }
       ]
     },
@@ -2008,52 +3826,116 @@
         {
           "text": "som er rundt",
           "start": 98030,
-          "end": 98830
+          "end": 98830,
+          "hint": {
+            "emoji": "🔄",
+            "suffixes": [
+              {
+                "kind": "location",
+                "form": "-daki"
+              }
+            ]
+          }
         },
         {
           "text": "stein",
           "start": 98830,
-          "end": 99190
+          "end": 99190,
+          "hint": {
+            "emoji": "🪨",
+            "suffixes": []
+          }
         },
         {
           "text": "og",
           "start": 99190,
-          "end": 99310
+          "end": 99310,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "jord",
           "start": 99310,
-          "end": 99870
+          "end": 99870,
+          "hint": {
+            "emoji": "🟤",
+            "suffixes": []
+          }
         },
         {
           "text": "på siden hans",
           "start": 99870,
-          "end": 100270
+          "end": 100270,
+          "hint": {
+            "emoji": "➡️",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-ı"
+              },
+              {
+                "kind": "to",
+                "form": "-na"
+              }
+            ]
+          }
         },
         {
           "text": "traff (visstnok)",
           "start": 100270,
-          "end": 101230
+          "end": 101230,
+          "hint": {
+            "emoji": "💥",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
         },
         {
           "text": "all",
           "start": 101470,
-          "end": 101950
+          "end": 101950,
+          "hint": {
+            "emoji": "🌐",
+            "suffixes": []
+          }
         },
         {
           "text": "stein",
           "start": 102110,
-          "end": 102430
+          "end": 102430,
+          "hint": {
+            "emoji": "🪨",
+            "suffixes": []
+          }
         },
         {
           "text": "og",
           "start": 102430,
-          "end": 102670
+          "end": 102670,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "jorden",
           "start": 102670,
-          "end": 103510
+          "end": 103510,
+          "hint": {
+            "emoji": "🌍",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-ları"
+              }
+            ]
+          }
         }
       ]
     },
@@ -2083,17 +3965,44 @@
         {
           "text": "brønnens",
           "start": 103550,
-          "end": 104030
+          "end": 104030,
+          "hint": {
+            "emoji": "🕳️",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-nun"
+              }
+            ]
+          }
         },
         {
           "text": "inn i",
           "start": 104030,
-          "end": 104350
+          "end": 104350,
+          "hint": {
+            "emoji": "⬇️",
+            "suffixes": [
+              {
+                "kind": "location",
+                "form": "-ine"
+              }
+            ]
+          }
         },
         {
           "text": "helte (visstnok)",
           "start": 104350,
-          "end": 105150
+          "end": 105150,
+          "hint": {
+            "emoji": "🫗",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-müş"
+              }
+            ]
+          }
         }
       ]
     },
@@ -2123,17 +4032,55 @@
         {
           "text": "slik, på den måten",
           "start": 106270,
-          "end": 107150
+          "end": 107150,
+          "hint": {
+            "emoji": "👉",
+            "suffixes": []
+          }
         },
         {
           "text": "brønnen",
           "start": 107470,
-          "end": 107790
+          "end": 107790,
+          "hint": {
+            "emoji": "🕳️",
+            "suffixes": []
+          }
         },
         {
           "text": "ble lukket (visstnok/det viser seg)",
           "start": 107790,
-          "end": 108590
+          "end": 108590,
+          "hint": {
+            "emoji": "🔒",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Slik ble brønnen tettet igjen.",
+      "naturalLinks": [
+        {
+          "text": "Slik",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "ble brønnen",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "tettet igjen",
+          "chunks": [
+            2
+          ]
         }
       ]
     },
@@ -2183,37 +4130,120 @@
         {
           "text": "denne",
           "start": 109310,
-          "end": 109550
+          "end": 109550,
+          "hint": {
+            "emoji": "👆",
+            "suffixes": []
+          }
         },
         {
           "text": "over situasjonen",
           "start": 109550,
-          "end": 109950
+          "end": 109950,
+          "hint": {
+            "emoji": "⚠️",
+            "suffixes": [
+              {
+                "kind": "location",
+                "form": "-a"
+              }
+            ]
+          }
         },
         {
           "text": "veldig",
           "start": 109950,
-          "end": 110190
+          "end": 110190,
+          "hint": {
+            "emoji": "❗",
+            "suffixes": []
+          }
         },
         {
           "text": "som ble lei seg",
           "start": 110270,
-          "end": 110750
+          "end": 110750,
+          "hint": {
+            "emoji": "😢",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-en"
+              }
+            ]
+          }
         },
         {
           "text": "elefanten",
           "start": 110750,
-          "end": 110990
+          "end": 110990,
+          "hint": {
+            "emoji": "🐘",
+            "suffixes": []
+          }
         },
         {
           "text": "å gråte",
           "start": 111230,
-          "end": 111910
+          "end": 111910,
+          "hint": {
+            "emoji": "😭",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-a"
+              }
+            ]
+          }
         },
         {
           "text": "skal ha begynt",
           "start": 111910,
-          "end": 112590
+          "end": 112590,
+          "hint": {
+            "emoji": "▶️",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Elefanten ble veldig lei seg over dette og begynte å gråte.",
+      "naturalLinks": [
+        {
+          "text": "Elefanten",
+          "chunks": [
+            6
+          ]
+        },
+        {
+          "text": "ble veldig lei seg",
+          "chunks": [
+            2,
+            3
+          ]
+        },
+        {
+          "text": "over dette",
+          "chunks": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "og begynte",
+          "chunks": [
+            5
+          ]
+        },
+        {
+          "text": "å gråte",
+          "chunks": [
+            4
+          ]
         }
       ]
     },
@@ -2248,22 +4278,75 @@
         {
           "text": "min/meg",
           "start": 113630,
-          "end": 114110
+          "end": 114110,
+          "hint": {
+            "emoji": "🙋",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-im"
+              }
+            ]
+          }
         },
         {
           "text": "på grunn av (meg)",
           "start": 114110,
-          "end": 114750
+          "end": 114750,
+          "hint": {
+            "emoji": "😔",
+            "suffixes": [
+              {
+                "kind": "from",
+                "form": "-den"
+              }
+            ]
+          }
         },
         {
           "text": "det skjedde",
           "start": 114750,
-          "end": 115230
+          "end": 115230,
+          "hint": {
+            "emoji": "✅",
+            "suffixes": [
+              {
+                "kind": "past",
+                "form": "-du"
+              }
+            ]
+          }
         },
         {
           "text": "skal ha sagt",
           "start": 115790,
-          "end": 116510
+          "end": 116510,
+          "hint": {
+            "emoji": "🗣️",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-muş"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "\"Det er min skyld,\" sa han.",
+      "naturalLinks": [
+        {
+          "text": "\"Det er min skyld,\"",
+          "chunks": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "text": "sa han",
+          "chunks": [
+            3
+          ]
         }
       ]
     },
@@ -2293,17 +4376,55 @@
         {
           "text": "nå",
           "start": 117190,
-          "end": 117470
+          "end": 117470,
+          "hint": {
+            "emoji": "⏰",
+            "suffixes": []
+          }
         },
         {
           "text": "hva",
           "start": 117470,
-          "end": 117750
+          "end": 117750,
+          "hint": {
+            "emoji": "❓",
+            "suffixes": []
+          }
         },
         {
           "text": "skal vi drikke",
           "start": 117750,
-          "end": 118430
+          "end": 118430,
+          "hint": {
+            "emoji": "🥤",
+            "suffixes": [
+              {
+                "kind": "future",
+                "form": "-eceğiz"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Hva skal vi drikke nå?",
+      "naturalLinks": [
+        {
+          "text": "Hva",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "skal vi drikke",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "nå",
+          "chunks": [
+            0
+          ]
         }
       ]
     },
@@ -2353,37 +4474,119 @@
         {
           "text": "og dessuten",
           "start": 118790,
-          "end": 119070
+          "end": 119070,
+          "hint": {
+            "emoji": "➕",
+            "suffixes": []
+          }
         },
         {
           "text": "morgen",
           "start": 119110,
-          "end": 119430
+          "end": 119430,
+          "hint": {
+            "emoji": "🌅",
+            "suffixes": []
+          }
         },
         {
           "text": "når det blir",
           "start": 119430,
-          "end": 119870
+          "end": 119870,
+          "hint": {
+            "emoji": "🔄",
+            "suffixes": [
+              {
+                "kind": "future",
+                "form": "-unca"
+              }
+            ]
+          }
         },
         {
           "text": "de andre",
           "start": 119870,
-          "end": 120270
+          "end": 120270,
+          "hint": {
+            "emoji": "🔀",
+            "suffixes": []
+          }
         },
         {
           "text": "til dyrene",
           "start": 120270,
-          "end": 120990
+          "end": 120990,
+          "hint": {
+            "emoji": "🐾",
+            "suffixes": [
+              {
+                "kind": "location",
+                "form": "-lara"
+              }
+            ]
+          }
         },
         {
           "text": "hva",
           "start": 120990,
-          "end": 121150
+          "end": 121150,
+          "hint": {
+            "emoji": "❓",
+            "suffixes": []
+          }
         },
         {
           "text": "skal jeg si",
           "start": 121150,
-          "end": 121950
+          "end": 121950,
+          "hint": {
+            "emoji": "🗣️",
+            "suffixes": [
+              {
+                "kind": "future",
+                "form": "-eceğim"
+              },
+              {
+                "kind": "question",
+                "form": "?"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Og hva skal jeg si til de andre dyrene når morgenen kommer?",
+      "naturalLinks": [
+        {
+          "text": "Og",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "hva",
+          "chunks": [
+            5
+          ]
+        },
+        {
+          "text": "skal jeg si",
+          "chunks": [
+            6
+          ]
+        },
+        {
+          "text": "til de andre dyrene",
+          "chunks": [
+            3,
+            4
+          ]
+        },
+        {
+          "text": "når morgenen kommer",
+          "chunks": [
+            1,
+            2
+          ]
         }
       ]
     },
@@ -2423,22 +4626,70 @@
         {
           "text": "så mye / så veldig",
           "start": 123070,
-          "end": 123550
+          "end": 123550,
+          "hint": {
+            "emoji": "🤏",
+            "suffixes": []
+          }
         },
         {
           "text": "ikke vær lei deg",
           "start": 123550,
-          "end": 124190
+          "end": 124190,
+          "hint": {
+            "emoji": "😢",
+            "suffixes": [
+              {
+                "kind": "negative",
+                "form": "-me"
+              }
+            ]
+          }
         },
         {
           "text": "skal ha sagt",
           "start": 124590,
-          "end": 124990
+          "end": 124990,
+          "hint": {
+            "emoji": "🗨️",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-miş"
+              }
+            ]
+          }
         },
         {
           "text": "haren",
           "start": 124990,
-          "end": 125550
+          "end": 125550,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "Ikke vær så lei deg, sa kaninen.",
+      "naturalLinks": [
+        {
+          "text": "Ikke vær så lei deg",
+          "chunks": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "sa",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "kaninen.",
+          "chunks": [
+            3
+          ]
         }
       ]
     },
@@ -2473,22 +4724,75 @@
         {
           "text": "selvfølgelig",
           "start": 126190,
-          "end": 126710
+          "end": 126710,
+          "hint": {
+            "emoji": "✅",
+            "suffixes": []
+          }
         },
         {
           "text": "en",
           "start": 126710,
-          "end": 126830
+          "end": 126830,
+          "hint": {
+            "emoji": "1️⃣",
+            "suffixes": []
+          }
         },
         {
           "text": "løsning på det (objekt)",
           "start": 126830,
-          "end": 127390
+          "end": 127390,
+          "hint": {
+            "emoji": "🔧",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-si"
+              }
+            ]
+          }
         },
         {
           "text": "vi finner",
           "start": 127390,
-          "end": 128030
+          "end": 128030,
+          "hint": {
+            "emoji": "🔍",
+            "suffixes": [
+              {
+                "kind": "future",
+                "form": "-ruz"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Vi finner nok en løsning.",
+      "naturalLinks": [
+        {
+          "text": "Vi finner",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "nok",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "en",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "løsning.",
+          "chunks": [
+            2
+          ]
         }
       ]
     },
@@ -2538,37 +4842,162 @@
         {
           "text": "dessuten/og",
           "start": 129230,
-          "end": 129470
+          "end": 129470,
+          "hint": {
+            "emoji": "➕",
+            "suffixes": []
+          }
         },
         {
           "text": "vi to",
           "start": 129550,
-          "end": 129950
+          "end": 129950,
+          "hint": {
+            "emoji": "🤝",
+            "suffixes": [
+              {
+                "kind": "plural",
+                "form": "-imiz"
+              }
+            ]
+          }
         },
         {
           "text": "sammen",
           "start": 130030,
-          "end": 130670
+          "end": 130670,
+          "hint": {
+            "emoji": "🤝",
+            "suffixes": [
+              {
+                "kind": "with",
+                "form": "-ce"
+              }
+            ]
+          }
         },
         {
           "text": "hvis vi jobber",
           "start": 130670,
-          "end": 131470
+          "end": 131470,
+          "hint": {
+            "emoji": "⚙️",
+            "suffixes": [
+              {
+                "kind": "future",
+                "form": "-r"
+              },
+              {
+                "kind": "negative",
+                "form": "-sa"
+              }
+            ]
+          }
         },
         {
           "text": "til morgenen",
           "start": 131710,
-          "end": 132190
+          "end": 132190,
+          "hint": {
+            "emoji": "🌅",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-a"
+              }
+            ]
+          }
         },
         {
           "text": "innen/frem til",
           "start": 132190,
-          "end": 132510
+          "end": 132510,
+          "hint": {
+            "emoji": "⏳",
+            "suffixes": []
+          }
         },
         {
           "text": "brønnen",
           "start": 132510,
-          "end": 132830
+          "end": 132830,
+          "hint": {
+            "emoji": "🕳️",
+            "suffixes": [
+              {
+                "kind": "location",
+                "form": "-u"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Hvis vi to jobber sammen, kan vi rydde og åpne brønnen igjen før morgenen.",
+      "naturalLinks": [
+        {
+          "text": "Hvis",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "vi to",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "jobber",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "sammen,",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "kan vi",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "rydde",
+          "chunks": [
+            7
+          ]
+        },
+        {
+          "text": "og",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "åpne",
+          "chunks": [
+            8
+          ]
+        },
+        {
+          "text": "brønnen",
+          "chunks": [
+            6
+          ]
+        },
+        {
+          "text": "igjen",
+          "chunks": []
+        },
+        {
+          "text": "før morgenen.",
+          "chunks": [
+            4,
+            5
+          ]
         }
       ]
     },
@@ -2593,12 +5022,34 @@
         {
           "text": "rense og",
           "start": 132910,
-          "end": 133430
+          "end": 133430,
+          "hint": {
+            "emoji": "🧹",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-ip"
+              }
+            ]
+          }
         },
         {
           "text": "åpner vi",
           "start": 133470,
-          "end": 134110
+          "end": 134110,
+          "hint": {
+            "emoji": "🔓",
+            "suffixes": [
+              {
+                "kind": "future",
+                "form": "-r"
+              },
+              {
+                "kind": "plural",
+                "form": "-ız"
+              }
+            ]
+          }
         }
       ]
     },
@@ -2643,32 +5094,119 @@
         {
           "text": "men",
           "start": 136590,
-          "end": 137150
+          "end": 137150,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "du",
           "start": 137150,
-          "end": 137270
+          "end": 137270,
+          "hint": {
+            "emoji": "👉",
+            "suffixes": []
+          }
         },
         {
           "text": "liten",
           "start": 137270,
-          "end": 137710
+          "end": 137710,
+          "hint": {
+            "emoji": "🐭",
+            "suffixes": []
+          }
         },
         {
           "text": "og",
           "start": 137710,
-          "end": 137950
+          "end": 137950,
+          "hint": {
+            "emoji": "➕",
+            "suffixes": []
+          }
         },
         {
           "text": "er svak",
           "start": 137950,
-          "end": 138750
+          "end": 138750,
+          "hint": {
+            "emoji": "🥀",
+            "suffixes": [
+              {
+                "kind": "question",
+                "form": "-sın"
+              }
+            ]
+          }
         },
         {
           "text": "skal ha sagt",
           "start": 139150,
-          "end": 139430
+          "end": 139430,
+          "hint": {
+            "emoji": "🗣️",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-miş"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Men du er så liten og svak, sa elefanten.",
+      "naturalLinks": [
+        {
+          "text": "Men",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "du",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "er",
+          "chunks": [
+            4
+          ]
+        },
+        {
+          "text": "så",
+          "chunks": []
+        },
+        {
+          "text": "liten",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "og",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "svak,",
+          "chunks": [
+            4
+          ]
+        },
+        {
+          "text": "sa",
+          "chunks": [
+            5
+          ]
+        },
+        {
+          "text": "elefanten.",
+          "chunks": []
         }
       ]
     },
@@ -2703,22 +5241,65 @@
         {
           "text": "haren",
           "start": 140230,
-          "end": 140830
+          "end": 140830,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": []
+          }
         },
         {
           "text": "slik/på denne måten",
           "start": 140870,
-          "end": 141150
+          "end": 141150,
+          "hint": {
+            "emoji": "👆",
+            "suffixes": []
+          }
         },
         {
           "text": "svar",
           "start": 141150,
-          "end": 141510
+          "end": 141510,
+          "hint": {
+            "emoji": "💬",
+            "suffixes": []
+          }
         },
         {
           "text": "skal ha gitt/har visstnok gitt",
           "start": 141510,
-          "end": 142190
+          "end": 142190,
+          "hint": {
+            "emoji": "🗣️",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-miş"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Kaninen svarte slik:",
+      "naturalLinks": [
+        {
+          "text": "Kaninen",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "svarte",
+          "chunks": [
+            2,
+            3
+          ]
+        },
+        {
+          "text": "slik:",
+          "chunks": [
+            1
+          ]
         }
       ]
     },
@@ -2753,22 +5334,59 @@
         {
           "text": "du",
           "start": 142910,
-          "end": 143230
+          "end": 143230,
+          "hint": {
+            "emoji": "👉",
+            "suffixes": []
+          }
         },
         {
           "text": "meg",
           "start": 143310,
-          "end": 143470
+          "end": 143470,
+          "hint": {
+            "emoji": "👈",
+            "suffixes": []
+          }
         },
         {
           "text": "nå",
           "start": 143550,
-          "end": 143790
+          "end": 143790,
+          "hint": {
+            "emoji": "⏰",
+            "suffixes": []
+          }
         },
         {
           "text": "se!",
           "start": 144030,
-          "end": 144430
+          "end": 144430,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "Se på meg nå.",
+      "naturalLinks": [
+        {
+          "text": "Se",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "på meg",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "nå.",
+          "chunks": [
+            2
+          ]
         }
       ]
     },
@@ -2803,22 +5421,65 @@
         {
           "text": "se",
           "start": 144670,
-          "end": 145070
+          "end": 145070,
+          "hint": {
+            "emoji": "👀",
+            "suffixes": []
+          }
         },
         {
           "text": "at/hvor",
           "start": 145070,
-          "end": 145310
+          "end": 145310,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "hvordan/hvor mye",
           "start": 145350,
-          "end": 145710
+          "end": 145710,
+          "hint": {
+            "emoji": "❓",
+            "suffixes": []
+          }
         },
         {
           "text": "jeg jobber",
           "start": 145710,
-          "end": 146590
+          "end": 146590,
+          "hint": {
+            "emoji": "💼",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-yorum"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Se hvordan jeg jobber.",
+      "naturalLinks": [
+        {
+          "text": "Se",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "hvordan",
+          "chunks": [
+            1,
+            2
+          ]
+        },
+        {
+          "text": "jeg jobber.",
+          "chunks": [
+            3
+          ]
         }
       ]
     },
@@ -2878,32 +5539,109 @@
         {
           "text": "virkelig",
           "start": 147630,
-          "end": 148550
+          "end": 148550,
+          "hint": {
+            "emoji": "✅",
+            "suffixes": []
+          }
         },
         {
           "text": "også/til og med",
           "start": 148550,
-          "end": 148670
+          "end": 148670,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "kaninen",
           "start": 148670,
-          "end": 149390
+          "end": 149390,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": []
+          }
         },
         {
           "text": "jobbet så utrolig mye",
           "start": 149630,
-          "end": 151870
+          "end": 151870,
+          "hint": {
+            "emoji": "💪",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
         },
         {
           "text": "at",
           "start": 151870,
-          "end": 152030
+          "end": 152030,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "du skal ikke spørre",
           "start": 152030,
-          "end": 152830
+          "end": 152830,
+          "hint": {
+            "emoji": "🚫",
+            "suffixes": [
+              {
+                "kind": "negative",
+                "form": "-ma"
+              },
+              {
+                "kind": "question",
+                "form": "-yın"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Og virkelig, kaninen jobbet og jobbet som aldri før.",
+      "naturalLinks": [
+        {
+          "text": "Og",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "virkelig,",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "kaninen",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "jobbet og jobbet",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "som",
+          "chunks": [
+            4
+          ]
+        },
+        {
+          "text": "aldri før.",
+          "chunks": [
+            5
+          ]
         }
       ]
     },
@@ -2953,37 +5691,127 @@
         {
           "text": "morgenen",
           "start": 153350,
-          "end": 153790
+          "end": 153790,
+          "hint": {
+            "emoji": "🌅",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-a"
+              }
+            ]
+          }
         },
         {
           "text": "innen/frem til",
           "start": 153790,
-          "end": 154190
+          "end": 154190,
+          "hint": {
+            "emoji": "⏳",
+            "suffixes": []
+          }
         },
         {
           "text": "med elefanten",
           "start": 154190,
-          "end": 154550
+          "end": 154550,
+          "hint": {
+            "emoji": "🐘",
+            "suffixes": [
+              {
+                "kind": "with",
+                "form": "-yle"
+              }
+            ]
+          }
         },
         {
           "text": "sammen",
           "start": 154550,
-          "end": 155150
+          "end": 155150,
+          "hint": {
+            "emoji": "🤝",
+            "suffixes": []
+          }
         },
         {
           "text": "brønnen",
           "start": 155430,
-          "end": 155750
+          "end": 155750,
+          "hint": {
+            "emoji": "🕳️",
+            "suffixes": [
+              {
+                "kind": "location",
+                "form": "-yu"
+              }
+            ]
+          }
         },
         {
           "text": "å åpne",
           "start": 155790,
-          "end": 156230
+          "end": 156230,
+          "hint": {
+            "emoji": "🔓",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-mayı"
+              }
+            ]
+          }
         },
         {
           "text": "de skal ha klart",
           "start": 156230,
-          "end": 157310
+          "end": 157310,
+          "hint": {
+            "emoji": "🏆",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mışlar"
+              },
+              {
+                "kind": "plural",
+                "form": "-lar"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Sammen klarte de å åpne brønnen igjen før morgenen.",
+      "naturalLinks": [
+        {
+          "text": "Sammen",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "klarte de å åpne",
+          "chunks": [
+            5,
+            6
+          ]
+        },
+        {
+          "text": "brønnen",
+          "chunks": [
+            4
+          ]
+        },
+        {
+          "text": "igjen",
+          "chunks": []
+        },
+        {
+          "text": "før morgenen",
+          "chunks": [
+            0,
+            1
+          ]
         }
       ]
     },
@@ -3038,42 +5866,155 @@
         {
           "text": "neste",
           "start": 158670,
-          "end": 159230
+          "end": 159230,
+          "hint": {
+            "emoji": "➡️",
+            "suffixes": []
+          }
         },
         {
           "text": "dag",
           "start": 159310,
-          "end": 159590
+          "end": 159590,
+          "hint": {
+            "emoji": "☀️",
+            "suffixes": []
+          }
         },
         {
           "text": "elefanten",
           "start": 159590,
-          "end": 159790
+          "end": 159790,
+          "hint": {
+            "emoji": "🐘",
+            "suffixes": []
+          }
         },
         {
           "text": "alle",
           "start": 160110,
-          "end": 160510
+          "end": 160510,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "til dyrene",
           "start": 160510,
-          "end": 161310
+          "end": 161310,
+          "hint": {
+            "emoji": "🐾",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-lara"
+              }
+            ]
+          }
         },
         {
           "text": "harens",
           "start": 161550,
-          "end": 162110
+          "end": 162110,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-nın"
+              }
+            ]
+          }
         },
         {
           "text": "flittigheten",
           "start": 162150,
-          "end": 162950
+          "end": 162950,
+          "hint": {
+            "emoji": "💪",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-ğını"
+              }
+            ]
+          }
         },
         {
           "text": "å fortelle",
           "start": 162950,
-          "end": 163550
+          "end": 163550,
+          "hint": {
+            "emoji": "🗣️",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-maya"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Neste dag begynte elefanten å fortelle alle dyrene om kaninens flid.",
+      "naturalLinks": [
+        {
+          "text": "Neste",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "dag",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "begynte",
+          "chunks": [
+            8
+          ]
+        },
+        {
+          "text": "elefanten",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "å fortelle",
+          "chunks": [
+            7
+          ]
+        },
+        {
+          "text": "alle",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "dyrene",
+          "chunks": [
+            4
+          ]
+        },
+        {
+          "text": "om",
+          "chunks": []
+        },
+        {
+          "text": "kaninens",
+          "chunks": [
+            5
+          ]
+        },
+        {
+          "text": "flid.",
+          "chunks": [
+            6
+          ]
         }
       ]
     },
@@ -3093,7 +6034,16 @@
         {
           "text": "begynte (visstnok)",
           "start": 163550,
-          "end": 164270
+          "end": 164270,
+          "hint": {
+            "emoji": "▶️",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
         }
       ]
     },
@@ -3138,32 +6088,128 @@
         {
           "text": "alle",
           "start": 165070,
-          "end": 165790
+          "end": 165790,
+          "hint": {
+            "emoji": "👥",
+            "suffixes": []
+          }
         },
         {
           "text": "kaninen (objekt)",
           "start": 166070,
-          "end": 166430
+          "end": 166430,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": []
+          }
         },
         {
           "text": "og klappet for (og)",
           "start": 166430,
-          "end": 167270
+          "end": 167270,
+          "hint": {
+            "emoji": "👏",
+            "suffixes": [
+              {
+                "kind": "with",
+                "form": "-ıp"
+              }
+            ]
+          }
         },
         {
           "text": "fra brønnen",
           "start": 167550,
-          "end": 168030
+          "end": 168030,
+          "hint": {
+            "emoji": "🕳️",
+            "suffixes": [
+              {
+                "kind": "from",
+                "form": "-dan"
+              }
+            ]
+          }
         },
         {
           "text": "vann",
           "start": 168190,
-          "end": 168270
+          "end": 168270,
+          "hint": {
+            "emoji": "💧",
+            "suffixes": []
+          }
         },
         {
           "text": "å drikke (objekt)",
           "start": 168310,
-          "end": 168670
+          "end": 168670,
+          "hint": {
+            "emoji": "🥤",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-meyi"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Alle klappet for kaninen og sa at den fortjente å drikke fra brønnen.",
+      "naturalLinks": [
+        {
+          "text": "Alle",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "klappet for",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "kaninen",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "og",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "sa at",
+          "chunks": [
+            8,
+            7
+          ]
+        },
+        {
+          "text": "den fortjente",
+          "chunks": [
+            7,
+            6
+          ]
+        },
+        {
+          "text": "å drikke",
+          "chunks": [
+            5
+          ]
+        },
+        {
+          "text": "fra brønnen",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": ".",
+          "chunks": []
         }
       ]
     },
@@ -3193,17 +6239,39 @@
         {
           "text": "rett/fortjeneste",
           "start": 168670,
-          "end": 168910
+          "end": 168910,
+          "hint": {
+            "emoji": "⚖️",
+            "suffixes": []
+          }
         },
         {
           "text": "at (den/han) fortjente",
           "start": 168910,
-          "end": 169310
+          "end": 169310,
+          "hint": {
+            "emoji": "✅",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-tiğini"
+              }
+            ]
+          }
         },
         {
           "text": "skal ha sagt",
           "start": 169350,
-          "end": 170030
+          "end": 170030,
+          "hint": {
+            "emoji": "💬",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-mış"
+              }
+            ]
+          }
         }
       ]
     },
@@ -3243,27 +6311,139 @@
         {
           "text": "kaninen",
           "start": 170750,
-          "end": 171470
+          "end": 171470,
+          "hint": {
+            "emoji": "🐇",
+            "suffixes": []
+          }
         },
         {
           "text": "bare",
           "start": 171710,
-          "end": 172190
+          "end": 172190,
+          "hint": {
+            "emoji": "",
+            "suffixes": []
+          }
         },
         {
           "text": "vann",
           "start": 172190,
-          "end": 172350
+          "end": 172350,
+          "hint": {
+            "emoji": "💧",
+            "suffixes": []
+          }
         },
         {
           "text": "til at (den) kunne drikke",
           "start": 172350,
-          "end": 173070
+          "end": 173070,
+          "hint": {
+            "emoji": "🥤",
+            "suffixes": [
+              {
+                "kind": "ability",
+                "form": "-ebildiğine"
+              }
+            ]
+          }
         },
         {
           "text": "ikke",
           "start": 173070,
-          "end": 173550
+          "end": 173550,
+          "hint": {
+            "emoji": "",
+            "suffixes": [
+              {
+                "kind": "negative",
+                "form": "değil"
+              }
+            ]
+          }
+        }
+      ],
+      "natural": "Kaninen ble ikke bare glad for å kunne drikke vann, men også for å være venner med de andre dyrene igjen.",
+      "naturalLinks": [
+        {
+          "text": "Kaninen",
+          "chunks": [
+            0
+          ]
+        },
+        {
+          "text": "ble",
+          "chunks": [
+            12
+          ]
+        },
+        {
+          "text": "ikke",
+          "chunks": [
+            4
+          ]
+        },
+        {
+          "text": "bare",
+          "chunks": [
+            1
+          ]
+        },
+        {
+          "text": "glad",
+          "chunks": [
+            12
+          ]
+        },
+        {
+          "text": "for å kunne drikke",
+          "chunks": [
+            3
+          ]
+        },
+        {
+          "text": "vann,",
+          "chunks": [
+            2
+          ]
+        },
+        {
+          "text": "men også",
+          "chunks": [
+            10
+          ]
+        },
+        {
+          "text": "for å være",
+          "chunks": [
+            9
+          ]
+        },
+        {
+          "text": "venner",
+          "chunks": [
+            8
+          ]
+        },
+        {
+          "text": "med de andre",
+          "chunks": [
+            5,
+            6
+          ]
+        },
+        {
+          "text": "dyrene",
+          "chunks": [
+            6
+          ]
+        },
+        {
+          "text": "igjen.",
+          "chunks": [
+            7
+          ]
         }
       ]
     },
@@ -3313,37 +6493,83 @@
         {
           "text": "andre",
           "start": 173910,
-          "end": 174110
+          "end": 174110,
+          "hint": {
+            "emoji": "🔀",
+            "suffixes": []
+          }
         },
         {
           "text": "med dyrene",
           "start": 174110,
-          "end": 174910
+          "end": 174910,
+          "hint": {
+            "emoji": "🐾",
+            "suffixes": [
+              {
+                "kind": "plural",
+                "form": "-lar"
+              },
+              {
+                "kind": "with",
+                "form": "-la"
+              }
+            ]
+          }
         },
         {
           "text": "på nytt / igjen",
           "start": 174910,
-          "end": 175390
+          "end": 175390,
+          "hint": {
+            "emoji": "🔄",
+            "suffixes": []
+          }
         },
         {
           "text": "venn",
           "start": 175390,
-          "end": 175550
+          "end": 175550,
+          "hint": {
+            "emoji": "🤝",
+            "suffixes": []
+          }
         },
         {
           "text": "at han var/ble",
           "start": 175710,
-          "end": 176110
+          "end": 176110,
+          "hint": {
+            "emoji": "",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-du"
+              },
+              {
+                "kind": "to",
+                "form": "-na"
+              }
+            ]
+          }
         },
         {
           "text": "også",
           "start": 176110,
-          "end": 176190
+          "end": 176190,
+          "hint": {
+            "emoji": "➕",
+            "suffixes": []
+          }
         },
         {
           "text": "veldig",
           "start": 176390,
-          "end": 176590
+          "end": 176590,
+          "hint": {
+            "emoji": "💯",
+            "suffixes": []
+          }
         }
       ]
     },
@@ -3363,7 +6589,16 @@
         {
           "text": "ble glad (fortalt fortid)",
           "start": 176590,
-          "end": 177230
+          "end": 177230,
+          "hint": {
+            "emoji": "😊",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-miş"
+              }
+            ]
+          }
         }
       ]
     },
@@ -3418,42 +6653,142 @@
         {
           "text": "seg selv (akkusativ)",
           "start": 178030,
-          "end": 178750
+          "end": 178750,
+          "hint": {
+            "emoji": "🙋",
+            "suffixes": []
+          }
         },
         {
           "text": "skogens",
           "start": 178990,
-          "end": 179550
+          "end": 179550,
+          "hint": {
+            "emoji": "🌲",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-ın"
+              }
+            ]
+          }
         },
         {
           "text": "et",
           "start": 179590,
-          "end": 179750
+          "end": 179750,
+          "hint": {
+            "emoji": "1️⃣",
+            "suffixes": []
+          }
         },
         {
           "text": "medlem (hans/dets)",
           "start": 179830,
-          "end": 180150
+          "end": 180150,
+          "hint": {
+            "emoji": "👥",
+            "suffixes": [
+              {
+                "kind": "possession",
+                "form": "-si"
+              }
+            ]
+          }
         },
         {
           "text": "som",
           "start": 180190,
-          "end": 180430
+          "end": 180430,
+          "hint": {
+            "emoji": "⚖️",
+            "suffixes": []
+          }
         },
         {
           "text": "å se",
           "start": 180430,
-          "end": 180910
+          "end": 180910,
+          "hint": {
+            "emoji": "👀",
+            "suffixes": [
+              {
+                "kind": "to",
+                "form": "-mek"
+              }
+            ]
+          }
         },
         {
           "text": "ham (akkusativ)",
           "start": 181150,
-          "end": 181390
+          "end": 181390,
+          "hint": {
+            "emoji": "👉",
+            "suffixes": []
+          }
         },
         {
           "text": "glad",
           "start": 181390,
-          "end": 181710
+          "end": 181710,
+          "hint": {
+            "emoji": "😃",
+            "suffixes": []
+          }
+        }
+      ],
+      "natural": "Det gjorde den lykkelig å bli sett på som et medlem av skogen.",
+      "naturalLinks": [
+        {
+          "text": "Det",
+          "chunks": [
+            6
+          ]
+        },
+        {
+          "text": "gjorde",
+          "chunks": [
+            8
+          ]
+        },
+        {
+          "text": "den",
+          "chunks": [
+            7
+          ]
+        },
+        {
+          "text": "lykkelig",
+          "chunks": [
+            7,
+            8
+          ]
+        },
+        {
+          "text": "å bli sett på",
+          "chunks": [
+            5
+          ]
+        },
+        {
+          "text": "som",
+          "chunks": [
+            4
+          ]
+        },
+        {
+          "text": "et medlem",
+          "chunks": [
+            2,
+            3
+          ]
+        },
+        {
+          "text": "av skogen",
+          "chunks": [
+            1
+          ]
         }
       ]
     },
@@ -3473,7 +6808,16 @@
         {
           "text": "gjorde (visstnok, pågående)",
           "start": 181710,
-          "end": 182590
+          "end": 182590,
+          "hint": {
+            "emoji": "🔁",
+            "suffixes": [
+              {
+                "kind": "reported",
+                "form": "-muş"
+              }
+            ]
+          }
         }
       ]
     }

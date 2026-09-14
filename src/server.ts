@@ -33,6 +33,8 @@ import { UserStore, type User } from './users.js';
 import { picture, pictureFingerprint, picturesConfigured, PictureUnavailable } from './pictures.js';
 import { speak, speechConfigured, speechFingerprint, SpeechUnavailable, voiceChoices } from './speech.js';
 import { translate } from './translate.js';
+import { alignmentInput, alignNatural } from './subtitle-alignment.js';
+import { emojiHints } from './subtitle-hints.js';
 import { handleSubtitles } from './subtitle-jobs.js';
 import { handleSubtitleLibrary, subtitleOwner } from './subtitle-library.js';
 
@@ -654,6 +656,26 @@ const server = createServer((request, response) => {
       }
       if (request.method === 'POST' && path === '/api/translate') {
         await handleTranslate(request, response);
+        return;
+      }
+      if (request.method === 'POST' && path === '/api/subtitle-alignment') {
+        let data: unknown;
+        try { data = JSON.parse(await readBody(request)); }
+        catch { throw new BadRequest('Expected a JSON body.'); }
+        const input = alignmentInput(data);
+        if (!input) throw new BadRequest('Invalid subtitle alignment input.');
+        const [links] = await limiter.run(() => alignNatural([input]));
+        send(response, 200, { links });
+        return;
+      }
+      if (request.method === 'POST' && path === '/api/subtitle-hints') {
+        let data: unknown;
+        try { data = JSON.parse(await readBody(request)); }
+        catch { throw new BadRequest('Expected a JSON body.'); }
+        const input = alignmentInput(data);
+        if (!input || input.chunks.length > 80) throw new BadRequest('Invalid emoji hint input.');
+        const hints = await limiter.run(() => emojiHints(input.chunks.map(chunk => ({ ...chunk, context: input.natural }))));
+        send(response, 200, { hints });
         return;
       }
       if (request.method === 'POST' && path === '/api/lesson') {

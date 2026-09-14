@@ -35,3 +35,33 @@ test('reject invalid subtitle imports before persistence', () => {
   assert.throws(() => validateSaved(reversed));
   assert.deepEqual(validateSaved(data()), data());
 });
+
+test('natural Norwegian survives saving and rejects invalid imported translations', () => {
+  const store = new SubtitleStore(':memory:');
+  try {
+    const value = { ...data(), cues: [{ ...data().cues[0]!, natural: 'I morgen.', naturalLinks: [{ text: 'I morgen', chunks: [0] }] }] };
+    const saved = store.save('alice', value);
+    assert.equal(store.get('alice', saved.id)?.cues[0]?.natural, 'I morgen.');
+    assert.deepEqual(store.get('alice', saved.id)?.cues[0]?.naturalLinks, value.cues[0]!.naturalLinks);
+    for (const naturalLinks of [null, {}, [{ text: 'I morgen', chunks: [-1] }], [{ text: '', chunks: [0] }], [{ text: 'I morgen', chunks: ['0'] }]]) {
+      assert.throws(() => validateSaved({ ...value, cues: [{ ...value.cues[0], naturalLinks }] }));
+    }
+    for (const natural of [null, 42, {}, '', ' ', 'x'.repeat(10001)]) {
+      assert.throws(() => validateSaved({ ...data(), cues: [{ ...data().cues[0], natural }] }));
+    }
+  } finally { store.close(); }
+});
+
+test('optional meaning and suffix hints survive saving without changing subtitle words', () => {
+  const store = new SubtitleStore(':memory:');
+  try {
+    const value = data();
+    const hint = { emoji: '🔮', suffixes: [{ kind: 'future', form: '-ecek' }] };
+    const enriched = { ...value, cues: value.cues.map(cue => ({ ...cue, chunks: cue.chunks.map(chunk => ({ ...chunk, hint })) })) };
+    const saved = store.save('alice', enriched);
+    assert.deepEqual(store.get('alice', saved.id)?.cues[0]?.chunks[0]?.hint, hint);
+    assert.equal(saved.cues[0]?.text, value.cues[0]?.text);
+    assert.deepEqual(saved.cues[0]?.words, value.cues[0]?.words);
+    assert.throws(() => validateSaved({ ...enriched, cues: [{ ...enriched.cues[0], chunks: [{ ...enriched.cues[0]?.chunks[0], hint: { emoji: '<img>', suffixes: [] } }] }] }));
+  } finally { store.close(); }
+});
