@@ -2,7 +2,7 @@ import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sent
 import { zipFiles } from './subtitles-zip.js';
 
 const $ = id => document.getElementById(id);
-for (const id of ['auto-pause', 'show-sentence', 'show-gloss', 'show-norwegian-badge', 'show-natural', 'show-focus', 'show-emoji']) {
+for (const id of ['show-sentence', 'show-gloss', 'show-norwegian-badge', 'show-natural', 'show-focus', 'show-emoji']) {
   const checkbox = $(id);
   const key = `subtitles:${id}`;
   try {
@@ -266,6 +266,9 @@ let maxBytes = 100 * 1024 * 1024;
 let sentencePlayback;
 let lastSentence;
 let sentenceTimer;
+let sentenceResumeTimer;
+let waitingAfterSentence = false;
+let singleSentence = false;
 let heldSentence;
 let pendingPosition;
 let previousPlaybackTime;
@@ -276,6 +279,15 @@ let heldSegment;
 let playbackAudio;
 let playbackGain;
 let pauseFadeKey;
+function smoothGainRamp(gain, from, to, start, duration) {
+  gain.setValueAtTime(from, start);
+  // Ease both ends of the fade to avoid an abrupt change in loudness.
+  for (let step = 1; step <= 12; step++) {
+    const position = step / 12;
+    const eased = position * position * (3 - 2 * position);
+    gain.linearRampToValueAtTime(from + (to - from) * eased, start + duration * position);
+  }
+}
 function resetAudioFade(fadeIn = false) {
   pauseFadeKey = undefined;
   if (!playbackGain) return;
@@ -283,8 +295,7 @@ function resetAudioFade(fadeIn = false) {
   const gain = playbackGain.gain;
   gain.cancelAndHoldAtTime(now);
   if (player.paused) { gain.setValueAtTime(0, now); return; }
-  if (fadeIn) gain.setValueAtTime(0, now);
-  gain.linearRampToValueAtTime(1, now + .02);
+  smoothGainRamp(gain, fadeIn ? 0 : gain.value, 1, now, .04);
 }
 function schedulePauseFade() {
   if (!playbackGain || player.paused || player.seeking) return;
@@ -297,13 +308,13 @@ function schedulePauseFade() {
   const now = playbackAudio.currentTime;
   const remaining = Math.max(0, (end / 1000 - player.currentTime) / player.playbackRate - .004);
   const gain = playbackGain.gain;
-  // A brief audio-clock ramp softens the boundary without moving subtitle timings.
+  // A longer eased fade softens the cut; short segments retain most of their speech.
   gain.cancelAndHoldAtTime(now);
-  const fadeDuration = Math.min(.025, remaining / 2);
+  const fadeDuration = Math.min(.065, remaining / 3);
   const fadeStart = now + remaining - fadeDuration;
-  gain.linearRampToValueAtTime(1, Math.min(now + .015, fadeStart));
+  smoothGainRamp(gain, gain.value, 1, now, Math.min(.04, Math.max(0, fadeStart - now)));
   gain.setValueAtTime(1, fadeStart);
-  gain.linearRampToValueAtTime(0, now + remaining);
+  smoothGainRamp(gain, 1, 0, fadeStart, fadeDuration);
 }
 async function startPlaybackAudio() {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -330,6 +341,44 @@ player.addEventListener('pause', () => resetAudioFade());
 player.addEventListener('seeking', () => resetAudioFade());
 player.addEventListener('emptied', () => resetAudioFade());
 const segmentPauseInput = $('segment-pause-seconds');
+const sentencePauseInput = $('sentence-pause-seconds');
+let sentenceDelay = 1;
+try {
+  const saved = Number(localStorage.getItem('subtitles:sentence-delay-seconds') ?? (localStorage.getItem('subtitles:auto-pause') === 'false' ? '0' : '1'));
+  if (Number.isFinite(saved) && saved >= 0 && saved <= 60) sentenceDelay = saved;
+} catch { /* Use a short sentence pause by default. */ }
+sentencePauseInput.value = String(sentenceDelay);
+function cancelSentenceWait() {
+  clearTimeout(sentenceResumeTimer);
+  waitingAfterSentence = false;
+}
+function resumeAfterSentence() {
+  cancelSentenceWait();
+  void player.play().catch(() => { cancelSentencePlayback(); updateTurkish(); });
+}
+function waitAfterSentence() {
+  clearTimeout(sentenceResumeTimer);
+  waitingAfterSentence = true;
+  sentenceResumeTimer = setTimeout(resumeAfterSentence, sentenceDelay * 1000);
+}
+function applySentenceDelay() {
+  sentenceDelay = sentencePauseInput.valueAsNumber;
+  try { localStorage.setItem('subtitles:sentence-delay-seconds', String(sentenceDelay)); } catch {}
+  if (waitingAfterSentence) {
+    if (sentenceDelay === 0) resumeAfterSentence();
+    else waitAfterSentence();
+  } else if (sentenceDelay === 0 && !singleSentence) cancelSentencePlayback();
+  else armAutoPause();
+  schedulePauseFade();
+}
+sentencePauseInput.oninput = () => {
+  if (Number.isFinite(sentencePauseInput.valueAsNumber) && sentencePauseInput.validity.valid) applySentenceDelay();
+};
+sentencePauseInput.onchange = () => {
+  const value = sentencePauseInput.valueAsNumber;
+  sentencePauseInput.value = String(Number.isFinite(value) ? Math.max(0, Math.min(60, Math.round(value * 10) / 10)) : sentenceDelay);
+  applySentenceDelay();
+};
 let segmentDelay = 0;
 try {
   const enabled = localStorage.getItem('subtitles:pause-segments') ?? localStorage.getItem('subtitles:pause-words');
@@ -426,17 +475,12 @@ function sentenceAt(_cues, time) {
     .find(sentence => sentence.end > time + 1);
 }
 function armAutoPause() {
-  if ($('auto-pause').checked && !player.paused && !sentencePlayback) {
+  if (sentenceDelay > 0 && !player.paused && !sentencePlayback) {
     sentencePlayback = sentenceAt(cues, player.currentTime * 1000);
     lastSentence = sentencePlayback || lastSentence;
   }
   stopAtSentenceEnd();
 }
-$('auto-pause').onchange = () => {
-  if ($('auto-pause').checked) armAutoPause();
-  else cancelSentencePlayback();
-  schedulePauseFade();
-};
 $('show-sentence').onchange = updateTurkish;
 $('show-gloss').onchange = updateTurkish;
 $('show-norwegian-badge').onchange = updateTurkish;
@@ -447,10 +491,13 @@ $('show-emoji').onchange = () => {
   failedEmoji.clear(); emojiStatus(); updateTurkish();
 };
 function releaseSentence() {
+  cancelSentenceWait();
   heldSentence = undefined;
   updateTurkish();
 }
 function cancelSentencePlayback() {
+  cancelSentenceWait();
+  singleSentence = false;
   sentencePlayback = undefined;
   clearTimeout(sentenceTimer);
 }
@@ -464,7 +511,9 @@ function stopAtSentenceEnd() {
     heldSentence = sentencePlayback;
     lastSentence = sentencePlayback;
     savePosition(sentencePlayback.end);
+    const resume = !singleSentence && sentenceDelay > 0 && Boolean(sentenceAt(cues, sentencePlayback.end));
     cancelSegmentPause(); cancelSentencePlayback(); player.pause(); player.currentTime = end;
+    if (resume) waitAfterSentence();
     updateTurkish();
     updatePlayButtons();
   } else sentenceTimer = setTimeout(stopAtSentenceEnd, Math.max(4, remaining * 1000 / player.playbackRate));
@@ -482,6 +531,7 @@ async function playSentence(sentence, speed = player.playbackRate) {
   // Wait for the play event before arming, so the preceding pause can settle.
   try {
     await player.play();
+    singleSentence = true;
     sentencePlayback = sentence;
     stopAtSentenceEnd();
   } catch { message('Kunne ikke spille av setningen. Velg lydfilen på nytt.', true); }
@@ -491,7 +541,7 @@ for (const button of document.querySelectorAll('[data-sentence-speed]')) {
 }
 $('play-sentence').onclick = () => playSentence(sentenceAt(cues, player.currentTime * 1000), 1);
 player.addEventListener('pause', () => {
-  if (heldSegment) return;
+  if (heldSegment || waitingAfterSentence) return;
   cancelSegmentPause();
   cancelSentencePlayback();
 });
@@ -562,7 +612,7 @@ async function showRoute() {
   const id = params.get('subtitle');
   const position = Number(params.get('t'));
   pendingPosition = view === 'play' && params.has('t') && Number.isFinite(position) && position >= 0 ? position : undefined;
-  cancelSegmentPause(); player.pause(); showEditor(false);
+  cancelSegmentPause(); cancelSentencePlayback(); player.pause(); showEditor(false);
   $('recordings').hidden = view === 'upload' || view === 'play';
   showUpload(view === 'upload');
   $('preview').hidden = true;
@@ -617,7 +667,7 @@ function showSelection(id, label, name, suffix = '') {
   $(id).replaceChildren(label, value, suffix);
 }
 function openSaved(saved) {
-  cancelSegmentPause(); player.pause(); player.removeAttribute('src'); player.load();
+  cancelSegmentPause(); cancelSentencePlayback(); player.pause(); player.removeAttribute('src'); player.load();
   if (mediaUrl) URL.revokeObjectURL(mediaUrl);
   mediaUrl = undefined; fileInput.value = ''; $('playback-file').value = '';
   savedId = saved.id; sourceName = saved.source; cues = saved.cues;
@@ -657,7 +707,7 @@ function updatePlayButtons() {
 }
 $('playback-file').onchange = () => {
   const file = $('playback-file').files[0]; if (!file) return;
-  cancelSegmentPause(); player.pause(); if (mediaUrl) URL.revokeObjectURL(mediaUrl);
+  cancelSegmentPause(); cancelSentencePlayback(); player.pause(); if (mediaUrl) URL.revokeObjectURL(mediaUrl);
   mediaUrl = URL.createObjectURL(file); player.src = mediaUrl;
   $('selected-media').hidden = false;
   showSelection('selected-media', 'Valgt media: ', file.name);

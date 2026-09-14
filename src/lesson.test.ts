@@ -34,6 +34,24 @@ test('generation retries a duplicate and never falls back to serving it', async 
   } finally { stub.mock.restore(); }
 });
 
+test('subtitle lessons retry corrected transcript spelling and reject persistent changes', async () => {
+  const text = "prişine'de doğdum.";
+  const request = { learning: 'tr' as const, level: 'avansert' as const, text, preserveText: true };
+  const outputs = ["Priştine'de doğdum.", text];
+  const stub = mock.method(client().messages, 'create', async () => {
+    const target = outputs.shift() ?? "Priştine'de doğdum.";
+    return { stop_reason: 'tool_use', content: [{ type: 'tool_use', input: {
+      target, native: 'Jeg ble født i Pristina.', chunks: [{ target, native: 'Jeg ble født i Pristina.' }],
+    } }] } as any;
+  });
+  try {
+    assert.match(brief(request), /Do not correct names/);
+    assert.equal((await lesson(request)).chunks[0]?.target, text);
+    assert.equal(stub.mock.callCount(), 2);
+    assert.equal((await lesson(request)).chunks.length, 0);
+  } finally { stub.mock.restore(); }
+});
+
 test('batch generation rejects seen sentences and duplicates within the batch', async () => {
   const entries = ['Hello.', 'Welcome!', 'WELCOME.'].map(target => ({ target, native: 'Hei',
     chunks: [{ target, native: 'Hei', pos: 'interjection' }] }));

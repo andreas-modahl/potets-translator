@@ -86,7 +86,7 @@ async function run(job: Job, media: Buffer): Promise<void> {
     job.total = phrases.length;
     for (const phrase of phrases) {
       signal.throwIfAborted();
-      const translated = await lesson({ learning: 'tr', level: 'avansert', text: phrase.text, signal });
+      const translated = await lesson({ learning: 'tr', level: 'avansert', text: phrase.text, preserveText: true, signal }, 3);
       job.cues.push(...phraseCues(phrase, translated));
       job.completed += 1;
     }

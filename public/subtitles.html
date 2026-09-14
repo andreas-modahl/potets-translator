@@ -46,7 +46,7 @@
             <summary aria-label="Undertekstvalg" title="Undertekstvalg"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg></summary>
             <div class="subtitle-menu">
               <details class="subtitle-submenu"><summary>Avspilling</summary>
-              <label><input id="auto-pause" type="checkbox" checked /><span>Stop etter hver setning</span></label>
+              <label class="segment-pause-duration" for="sentence-pause-seconds"><span>Pause etter hver setning (sek.)</span><input id="sentence-pause-seconds" type="number" min="0" max="60" step="0.1" value="1" title="0 betyr ingen pause" /></label>
               <label class="segment-pause-duration" for="segment-pause-seconds"><span>Segmentpause (sek.)</span><input id="segment-pause-seconds" type="number" min="0" max="10" step="0.1" value="0" title="0 betyr ingen pause" /></label>
               </details>
               <details class="subtitle-submenu"><summary>Hele setningen</summary>

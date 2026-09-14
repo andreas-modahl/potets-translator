@@ -49,7 +49,7 @@ button.icon-button[aria-expanded=true] { background: var(--mark); border-color: 
 .subtitle-menu input[type=checkbox] { appearance: auto; flex: 0 0 18px; width: 18px; height: 18px; min-height: 0; padding: 0; margin: 0; border-radius: 3px; box-shadow: none; accent-color: var(--teal); cursor: pointer; }
 .subtitle-menu input[type=checkbox]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .subtitle-menu .segment-pause-duration { justify-content: space-between; font-size: .85rem; }
-#segment-pause-seconds { box-sizing: border-box; width: 76px; min-width: 0; padding: 6px; font: inherit; }
+#segment-pause-seconds, #sentence-pause-seconds { box-sizing: border-box; width: 76px; flex-shrink: 0; min-width: 0; padding: 6px; font: inherit; }
 #subtitle-title { max-width: 100%; box-sizing: border-box; margin-bottom: 12px; }
 #save-status { color: var(--muted); }
 progress { width: 100%; accent-color: var(--teal); }
