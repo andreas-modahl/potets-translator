@@ -1,11 +1,13 @@
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { config } from './config.js';
 import { parseCookies, randomToken, serializeCookie } from './session.js';
 import { SubtitleStore } from './subtitle-store.js';
 import { SubtitleError } from './subtitles.js';
 import { storybook, storyMedia, findStory } from './storybook.js';
+import { youtubeMedia } from './youtube.js';
 
 export const subtitleStore = config.lessonDb === 'off' ? undefined : new SubtitleStore(config.lessonDb);
 export function audioRange(header: string | undefined, size: number): { start: number; end: number } | undefined {
@@ -47,23 +49,27 @@ export async function handleSubtitleLibrary(request: IncomingMessage, response: 
     if (id?.endsWith('/audio') && (request.method === 'GET' || request.method === 'HEAD')) {
       const recordId = id.slice(0, -'/audio'.length);
       const saved = findStory(stories, recordId) || subtitleStore?.get(owner, recordId);
-      const file = saved && await storyMedia(saved.source);
+      const file = saved && (await storyMedia(saved.source) || await youtubeMedia(saved.source, owner));
       if (!file) { send(response, 404, { error: 'Velg originalfilen for å spille av undertekstene.' }); return; }
-      const audio = await readFile(file);
-      const range = audioRange(request.headers.range, audio.length);
+      const { size } = await stat(file);
+      const range = audioRange(request.headers.range, size);
       if (!range) {
-        response.writeHead(416, { 'content-range': `bytes */${audio.length}` }); response.end(); return;
+        response.writeHead(416, { 'content-range': `bytes */${size}` }); response.end(); return;
       }
       response.writeHead(request.headers.range ? 206 : 200, {
-        'content-type': 'audio/mpeg', 'accept-ranges': 'bytes', 'cache-control': 'private, no-store',
+        'content-type': file.pathname.endsWith('.mp4') ? 'video/mp4' : 'audio/mpeg', 'accept-ranges': 'bytes', 'cache-control': 'private, no-store',
         'content-length': range.end - range.start + 1,
-        ...(request.headers.range ? { 'content-range': `bytes ${range.start}-${range.end}/${audio.length}` } : {}),
+        ...(request.headers.range ? { 'content-range': `bytes ${range.start}-${range.end}/${size}` } : {}),
       });
-      response.end(request.method === 'HEAD' ? undefined : audio.subarray(range.start, range.end + 1)); return;
+      if (request.method === 'HEAD') { response.end(); return; }
+      const stream = createReadStream(file, range);
+      stream.on('error', () => response.destroy());
+      response.on('close', () => stream.destroy());
+      stream.pipe(response); return;
     }
     if (id && request.method === 'GET') {
       const saved = findStory(stories, id) || subtitleStore?.get(owner, id);
-      const audioUrl = saved && await storyMedia(saved.source) ? `/api/subtitle-library/${encodeURIComponent(id)}/audio` : undefined;
+      const audioUrl = saved && (await storyMedia(saved.source) || await youtubeMedia(saved.source, owner)) ? `/api/subtitle-library/${encodeURIComponent(id)}/audio` : undefined;
       send(response, saved ? 200 : 404, saved ? { ...saved, audioUrl } : { error: 'Fant ikke undertekstene.' }); return;
     }
     if ((!id && request.method === 'POST') || (id && request.method === 'PUT')) {

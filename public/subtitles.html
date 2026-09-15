@@ -13,34 +13,35 @@
     <main>
       <nav aria-label="Sider"><a href="/">Languageballs</a><a href="/translate">Oversetter</a><a href="/subtitles" aria-current="page">Undertekster</a></nav>
       <header>
-        <p class="eyebrow">Tyrkisk tale → norsk tekst</p>
-        <h1>Følg ordene du hører.</h1>
-        <p>Lag norske undertekster i tyrkisk ordstilling, akkurat som på læresiden. Betydningen følger ordene i opptaket.</p>
+        <h1>Undertekster</h1>
       </header>
+      <form id="youtube-form">
+        <label for="youtube-url">Din YouTube-lenke</label>
+        <div class="youtube-input-row"><input id="youtube-url" type="url" placeholder="Lim inn en YouTube-lenke" required maxlength="2048" /><button id="generate-youtube" type="submit" disabled>Hent video</button></div>
+      </form>
+      <p id="status" role="status" aria-live="polite">Kontrollerer tilgjengelighet …</p>
+      <progress id="progress" aria-label="Fremdrift" hidden></progress>
+      <button id="cancel" type="button" class="ghost" hidden>Avbryt</button>
       <section id="recordings" class="card workspace" aria-label="Opptak og undertekster">
-        <h2>Velg et opptak</h2>
+        <h2>Oversatte YouTube-videoer</h2>
         <p id="library-status" role="status">Henter lagrede undertekster …</p>
         <div id="library"></div>
-        <button id="toggle-upload" type="button" aria-expanded="false" aria-controls="add-recording">Last opp nytt opptak</button>
       </section>
-        <section id="add-recording" class="card" aria-labelledby="upload-heading" hidden>
-          <button class="ghost close-card icon-button" type="button" aria-label="Lukk opplasting" title="Lukk opplasting"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
-          <h2 id="upload-heading" tabindex="-1">Legg til lyd, video eller undertekster</h2>
-        <form id="upload-form">
-          <label for="media-file">Velg lyd eller video</label>
-          <input id="media-file" type="file" accept=".mp4,.m4a,.mov,.webm,.mkv,.avi,.mp3,.wav,.flac,.ogg,.aac" required aria-describedby="file-help" />
-          <p id="file-help">Maks 100 MB og 10 minutter. MP4, WebM, MOV, MKV, AVI, M4A, MP3, WAV, FLAC, OGG eller AAC.</p>
-          <p class="muted">Lyden sendes til Azure Speech, og teksten til Claude. Undertekstene lagres automatisk når lagring er tilgjengelig. Opplastet lyd og video slettes etter behandling.</p>
-          <div class="actions"><button id="generate" type="submit" disabled>Lag undertekster</button><button id="cancel" type="button" class="ghost" hidden>Avbryt</button></div>
-        </form>
-        <div class="import-row">
-          <label for="import-subtitles">Importer lagret oversettelse (.translation.json)</label>
-          <input id="import-subtitles" type="file" accept=".json,application/json" />
-        </div>
-        </section>
-        <p id="status" role="status" aria-live="polite">Kontrollerer tilgjengelighet …</p>
-        <progress id="progress" aria-label="Fremdrift" hidden></progress>
-      <section id="preview" class="card" hidden aria-labelledby="playback-heading">
+      <section id="preview" hidden aria-labelledby="playback-heading">
+        <div class="playback-toolbar">
+          <div class="playback-source">
+            <h2 id="playback-heading" tabindex="-1"><span id="playback-selection"></span></h2>
+            <div class="media-picker">
+              <span id="selected-media" hidden></span>
+              <details id="video-picker">
+                <summary>Bytt video</summary>
+                <div class="video-picker-menu">
+                  <button id="new-youtube" type="button" class="ghost">Ny YouTube-lenke</button>
+                  <div id="translated-videos" aria-label="Oversatte YouTube-videoer"></div>
+                </div>
+              </details>
+            </div>
+          </div>
         <div class="playback-card-actions">
           <details id="subtitle-actions" hidden>
             <summary aria-label="Undertekstvalg" title="Undertekstvalg"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg></summary>
@@ -55,6 +56,7 @@
               <label><input id="show-norwegian-badge" type="checkbox" aria-controls="turkish-caption" /><span>Vis norsk over gjeldende ord</span></label>
               </details>
               <details class="subtitle-submenu"><summary>Flere visningsvalg</summary>
+              <label><input id="overlay-text" type="checkbox" aria-controls="subtitle-text" /><span>Vis tekst på videoen</span></label>
               <label><input id="show-natural" type="checkbox" checked aria-controls="natural-caption" /><span>Vis naturlig norsk setning</span></label>
               <label><input id="show-focus" type="checkbox" aria-controls="reading-focus" /><span>Vis fokuspanel</span></label>
               <label><input id="show-emoji" type="checkbox" /><span>Vis emojihint</span></label>
@@ -68,18 +70,15 @@
           </details>
           <button class="ghost close-card icon-button" type="button" aria-label="Lukk avspilling" title="Lukk avspilling"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
         </div>
-        <h2 id="playback-heading" tabindex="-1">Spill av undertekster</h2>
-        <p id="playback-selection"></p>
-        <p id="selected-media" role="status" hidden></p>
-        <label for="playback-file" id="playback-label">Velg original lyd/video for å spille av lagrede undertekster</label>
-        <input id="playback-file" type="file" accept="audio/*,video/*,.mkv" />
-        <video id="player" controls preload="metadata"></video>
+        </div>
+        <div id="video-stage"><video id="player" controls preload="metadata" playsinline></video></div>
         <div id="sentence-actions" class="actions" hidden>
           <button type="button" class="ghost" data-sentence-speed="0.75" aria-label="Gjenta setningen med 0,75 ganger hastighet" aria-pressed="false" disabled>↻ 0,75×</button>
           <button type="button" class="ghost" data-sentence-speed="0.9" aria-label="Gjenta setningen med 0,9 ganger hastighet" aria-pressed="false" disabled>↻ 0,9×</button>
           <button type="button" class="ghost" data-sentence-speed="1" aria-label="Gjenta setningen med normal hastighet" aria-pressed="true" disabled>↻ 1×</button>
           <button id="play-sentence" type="button" disabled>Spill én setning</button>
         </div>
+        <div id="subtitle-home"><div id="subtitle-text">
         <section id="reading-focus" class="reading-focus" aria-label="Ord og betydning som leses" hidden>
           <div id="focus-turkish" lang="tr"></div>
           <div id="focus-norwegian" lang="nb"></div>
@@ -90,7 +89,8 @@
           <button id="retry-natural" class="ghost" type="button" hidden>Prøv igjen</button>
         </section>
         <p id="audio-caption" class="audio-caption" aria-label="Norsk undertekst" hidden></p>
-        <p class="muted" id="preview-help">Undertekstene vises i avspilleren når de er klare.</p>
+        </div></div>
+        <p class="muted" id="preview-help" role="status"></p>
       </section>
       <section id="result" class="card" hidden aria-label="Rediger undertekster">
         <h2>Undertekstene dine</h2>
@@ -98,7 +98,6 @@
         <input id="subtitle-title" maxlength="200" />
         <button id="save-subtitles" type="button">Lagre endringer</button>
         <p id="save-status" role="status"></p>
-        <p>Les gjennom og rett teksten før du laster ned. Norsk ordstilling følger tyrkisk med vilje. Tidene er i sekunder.</p>
         <p id="edit-status" role="status"></p>
         <div id="cues"></div>
       </section>

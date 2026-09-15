@@ -72,6 +72,16 @@ export function naturalSegments(text, links, chunkCount) {
   return segments.some(segment => segment.chunks.length) ? segments : [];
 }
 
+/** Keep brief timing gaps smooth, but never leave an old subtitle over a long gap. */
+export function captionPage(pages, time, preview = false) {
+  const timed = pages.filter(page => page.words?.length);
+  const active = timed.find(page => time >= page.words[0].start && time < page.words.at(-1).end);
+  if (active) return active;
+  const previous = timed.findLast(page => page.words.at(-1).end <= time);
+  if (previous && time - previous.words.at(-1).end <= 300) return previous;
+  if (preview && !previous && time < timed[0]?.words[0].start) return timed[0];
+}
+
 /** Display complete sentences even when subtitle length limits created several cues. */
 export function sentencePages(cues) {
   const pages = [];
@@ -92,7 +102,31 @@ export function sentencePages(cues) {
         ? [...previous.chunks, ...mappedChunks(cue)] : [];
     } else pages.push({ ...cue, words: [...(cue.words || [])], chunks: [...mappedChunks(cue)] });
   }
-  return pages;
+  return pages.flatMap(page => {
+    if (page.words.length <= 20 && page.end - page.start <= 14000) return [page];
+    const chunks = mappedChunks(page);
+    if (!chunks.length) return [page];
+    const sections = [];
+    let section;
+    for (const chunk of chunks) {
+      const words = page.words.filter(word => word.start >= chunk.start && word.end <= chunk.end);
+      if (!words.length) return [page];
+      const previous = section?.words.at(-1);
+      const split = section && (section.words.length + words.length > 12 || chunk.end - section.start > 8000 ||
+        /[.!?…]["'»”’)]*$/u.test(previous.text) || (words[0].start - previous.end >= 600 && section.words.length >= 4));
+      if (!section || split) {
+        // A whole-sentence translation cannot be reused for just one of its parts.
+        section = { start: words[0].start, end: chunk.end, text: '', turkish: '', words: [], chunks: [] };
+        sections.push(section);
+      }
+      section.end = chunk.end;
+      section.words.push(...words);
+      section.chunks.push(chunk);
+      section.text = section.chunks.map(part => part.text).join(' ');
+      section.turkish = section.words.map(word => word.text).join(' ');
+    }
+    return sections.reduce((count, part) => count + part.words.length, 0) === page.words.length ? sections : [page];
+  });
 }
 
 /** Sentence punctuation and long pauses define short, repeatable speech units. */

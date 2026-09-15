@@ -29,7 +29,7 @@ to show, the lesson pool, the picture lookup, and the session and user stores.
 
 ## Subtitles from Turkish speech
 
-Open `/subtitles`, upload an audio or video clip (up to 100 MB and 10 minutes),
+Open `/subtitles`, enter a YouTube link (up to 500 MB and 30 minutes),
 then review the timed Norwegian text and download SRT or WebVTT. The Norwegian
 meaning chunks stay in Turkish order, like the learning page. This deliberately
 produces a learning gloss rather than natural Norwegian sentence order.
@@ -39,10 +39,9 @@ The page uses `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION` for
 and the existing Claude lesson breakdown for translation. The Azure resource
 must support fast transcription in its region. FFmpeg is installed with npm to
 extract audio from video; `FFMPEG_PATH` can override its location. The Docker
-image uses Alpine's FFmpeg package. Formats accepted: MP4/M4A/MOV, WebM/MKV,
-AVI, MP3, WAV, FLAC, OGG and AAC, provided they contain a decodable audio track.
+image uses Alpine's FFmpeg package. Local media uploads are disabled.
 
-Jobs run in the background, one at a time, while the page displays progress.
+Jobs run in the background, one at a time, in one-minute audio chunks with overlapping context. Each completed chunk is saved; playback is available after the first translated chunk. The open player polls for only new cues while later chunks are processed. Partial recordings are marked `(delvis)` in the library until complete. Video responses stream byte ranges instead of reading the entire media file into memory. This is progressive generation, not seek-driven transcription: the rest of the video continues processing in order.
 The server validates word timestamps and checks the meaning chunks against the
 transcribed words before constructing cues. A bad breakdown stops generation;
 it never silently substitutes natural Norwegian or omits a phrase. Subtitle
@@ -268,3 +267,27 @@ after the model choice.
 The subtitle page includes the shared [storybook](storybook-translations/README.md) for all
 visitors. Its files ship with the repository and Docker image; no production
 transcription is needed. Saving edits to a shared story creates a private copy.
+
+YouTube links can also be imported from the subtitle upload page. Watch, youtu.be,
+mobile, and Shorts links are accepted; playlist parameters are ignored. Videos
+must be non-live, at most thirty minutes, and at most 500 MB. The server downloads
+up to 720p MP4 and uses the same transcription, highlighting and smooth pause
+controls as uploaded files. Imports do not use browser cookies or YouTube logins;
+YouTube can reject videos or server IPs, in which case file upload remains available.
+
+Subtitle translations refer to numbered whole words from the transcript. The
+server constructs Turkish chunks from those original words and validates complete,
+non-overlapping coverage, so model spelling corrections cannot move the timing.
+
+Docker includes yt-dlp and its JavaScript support. For Windows development:
+
+```powershell
+python -m venv data/tools/ytdlp
+data/tools/ytdlp/Scripts/python.exe -m pip install "yt-dlp[default]==2026.8.19"
+```
+
+On other hosts, install `yt-dlp[default]`, FFmpeg and Node, and set `YTDLP_PATH`
+if the executable is not on PATH. Downloaded videos are kept under `data/youtube`
+(override with `YOUTUBE_MEDIA_DIR`), scoped to the importing account/browser.
+Persist this directory alongside the subtitle database so saved videos reopen.
+The extractor is pinned in Docker; update it when YouTube changes its delivery.

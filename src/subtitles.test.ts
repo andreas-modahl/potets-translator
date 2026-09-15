@@ -22,7 +22,7 @@ test('Azure word timestamps and Unicode survive parsing', () => {
 });
 test('reject empty, missing, invalid, overlapping and overlong transcription results', () => {
   for (const input of [null, {}, { durationMilliseconds: 5, phrases: [] },
-    { durationMilliseconds: 600001, phrases: [] }, { durationMilliseconds: 100, phrases: [{}] }]) {
+    { durationMilliseconds: 1800001, phrases: [] }, { durationMilliseconds: 100, phrases: [{}] }]) {
     assert.throws(() => transcriptPhrases(input));
   }
   for (const timing of [NaN, Infinity, -1, 5000]) {
@@ -187,4 +187,32 @@ test('edits cannot introduce empty cues, invalid timings or subtitle markup', ()
     assert.throws(() => validateCues(cues));
   }
   assert.match(serializeSubtitles([{ start: 0, end: 1000, text: '<b>æ</b> & ø\n\nny' }], 'vtt'), /&lt;b&gt;æ&lt;\/b&gt; &amp; ø ny/);
+});
+
+test('long unpunctuated dialogue becomes short pages without splitting meanings or changing saved cues', async () => {
+  const { sentencePages } = await import(new URL('../public/subtitles-format.js', import.meta.url).href);
+  const words = Array.from({ length: 60 }, (_, i) => ({ text: `ord${i}`, start: i * 500, end: i * 500 + 400 }));
+  const chunks = Array.from({ length: 30 }, (_, i) => ({ text: `mening${i}`, start: words[i * 2]!.start, end: words[i * 2 + 1]!.end }));
+  const cue = { start: 0, end: words.at(-1)!.end, turkish: words.map(w => w.text).join(' '), text: chunks.map(c => c.text).join(' '), words, chunks, natural: 'En lang oversettelse.', naturalLinks: [{ text: 'En lang oversettelse', chunks: [0] }] };
+  const before = JSON.stringify(cue);
+  const pages = sentencePages([cue]);
+  assert.ok(pages.length > 1);
+  assert.ok(pages.every((page: any) => page.words.length <= 12 && page.end - page.start <= 8000));
+  assert.deepEqual(pages.flatMap((page: any) => page.words), words);
+  assert.deepEqual(pages.flatMap((page: any) => page.chunks), chunks);
+  assert.ok(pages.every((page: any) => !page.natural && !page.naturalLinks));
+  assert.equal(JSON.stringify(cue), before);
+});
+
+test('caption gaps clear stale text but preserve brief gaps and explicit held times', async () => {
+  const { captionPage } = await import(new URL('../public/subtitles-format.js', import.meta.url).href);
+  const pages = [{ words: [{ start: 138710, end: 142150 }] }, { words: [{ start: 174750, end: 176190 }] }];
+  assert.equal(captionPage(pages, 142149), pages[0]);
+  assert.equal(captionPage(pages, 142300), pages[0]);
+  assert.equal(captionPage(pages, 150000), undefined);
+  assert.equal(captionPage(pages, 150000, true), undefined);
+  assert.equal(captionPage(pages, 174800), pages[1]);
+  assert.equal(captionPage(pages, 0, true), pages[0]);
+  assert.equal(captionPage(pages, 0, false), undefined);
+  assert.equal(captionPage([], 0), undefined);
 });

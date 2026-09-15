@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { storybook, storyMedia, findStory } from './storybook.js';
-import { Readable } from 'node:stream';
+import { Readable, Writable } from 'node:stream';
+import { finished } from 'node:stream/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 test('bundled stories are validated public records with matching audio and legacy links', async () => {
@@ -25,9 +26,13 @@ test('shared stories and ranged media work for guests and accounts; edits remain
   async function call(owner: string, path: string, method = 'GET', data?: unknown, headers = {}) {
     const request = Object.assign(Readable.from(data ? [Buffer.from(JSON.stringify(data))] : []), { method, headers: { host: 'localhost', ...headers } });
     let status = 0;
-    let body: Buffer | string = '';
-    const response = { writeHead(code: number) { status = code; }, end(value: Buffer | string) { body = value; } };
+    const parts: Buffer[] = [];
+    const response = Object.assign(new Writable({ write(chunk, _encoding, callback) { parts.push(Buffer.from(chunk)); callback(); } }), {
+      writeHead(code: number) { status = code; },
+    });
     await handleSubtitleLibrary(request as IncomingMessage, response as unknown as ServerResponse, path, owner);
+    await finished(response);
+    const body = Buffer.concat(parts);
     return { status, body, json: () => JSON.parse(String(body)) };
   }
   try {

@@ -1,8 +1,8 @@
-import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentencePages, naturalSegments, pauseSegments, SUFFIX_HINTS, validEmojiHint } from './subtitles-format.js';
+import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentencePages, captionPage, naturalSegments, pauseSegments, SUFFIX_HINTS, validEmojiHint } from './subtitles-format.js';
 import { zipFiles } from './subtitles-zip.js';
 
 const $ = id => document.getElementById(id);
-for (const id of ['show-sentence', 'show-gloss', 'show-norwegian-badge', 'show-natural', 'show-focus', 'show-emoji']) {
+for (const id of ['show-sentence', 'show-gloss', 'show-norwegian-badge', 'show-natural', 'show-focus', 'show-emoji', 'overlay-text']) {
   const checkbox = $(id);
   const key = `subtitles:${id}`;
   try {
@@ -14,8 +14,6 @@ for (const id of ['show-sentence', 'show-gloss', 'show-norwegian-badge', 'show-n
     catch { /* The control still works when browser storage is unavailable. */ }
   });
 }
-const fileInput = $('media-file');
-const generate = $('generate');
 const player = $('player');
 const status = $('status');
 const track = player.addTextTrack('subtitles', 'Norsk i tyrkisk ordstilling', 'nb');
@@ -250,7 +248,6 @@ function updateNatural(active) {
 $('retry-natural').onclick = () => { shownNatural = undefined; updateTurkish(); };
 let configured = false;
 let busy = false;
-let mediaUrl;
 let jobId;
 let controller;
 let cues = [];
@@ -262,7 +259,6 @@ let dirty = false;
 let revision = 0;
 let saving = false;
 let storage = false;
-let maxBytes = 100 * 1024 * 1024;
 let sentencePlayback;
 let lastSentence;
 let sentenceTimer;
@@ -486,6 +482,7 @@ $('show-gloss').onchange = updateTurkish;
 $('show-norwegian-badge').onchange = updateTurkish;
 $('show-natural').onchange = updateTurkish;
 $('show-focus').onchange = updateTurkish;
+$('overlay-text').onchange = updateMediaLayout;
 $('show-emoji').onchange = () => {
   shownTurkish = shownNatural = shownFocusHint = shownEmojiKey = undefined;
   failedEmoji.clear(); emojiStatus(); updateTurkish();
@@ -534,7 +531,7 @@ async function playSentence(sentence, speed = player.playbackRate) {
     singleSentence = true;
     sentencePlayback = sentence;
     stopAtSentenceEnd();
-  } catch { message('Kunne ikke spille av setningen. Velg lydfilen på nytt.', true); }
+  } catch { message('Kunne ikke spille av setningen. Velg videoen på nytt.', true); }
 }
 for (const button of document.querySelectorAll('[data-sentence-speed]')) {
   button.onclick = () => playSentence(lastSentence || sentenceAt(cues, player.currentTime * 1000), Number(button.dataset.sentenceSpeed));
@@ -570,7 +567,10 @@ player.addEventListener('seeking', () => {
 });
 
 function message(text, error = false) { status.textContent = text; status.classList.toggle('error', error); }
+let editorNeedsRender = false;
 function showEditor(open) {
+  if (open && busy) return;
+  if (open && editorNeedsRender) { editorNeedsRender = false; renderCues(); }
   $('result').hidden = !open;
   $('toggle-editor').setAttribute('aria-expanded', String(open));
   const label = open ? 'Skjul redigering' : 'Rediger undertekster';
@@ -591,10 +591,6 @@ actionMenu.addEventListener('keydown', event => {
     actionMenu.querySelector('summary').focus();
   }
 });
-function showUpload(open) {
-  $('add-recording').hidden = !open;
-  $('toggle-upload').setAttribute('aria-expanded', String(open));
-}
 let routeVersion = 0;
 function navigate(view, id, replace = false) {
   const url = new URL(location.href);
@@ -613,8 +609,8 @@ async function showRoute() {
   const position = Number(params.get('t'));
   pendingPosition = view === 'play' && params.has('t') && Number.isFinite(position) && position >= 0 ? position : undefined;
   cancelSegmentPause(); cancelSentencePlayback(); player.pause(); showEditor(false);
-  $('recordings').hidden = view === 'upload' || view === 'play';
-  showUpload(view === 'upload');
+  $('recordings').hidden = view === 'play';
+  $('video-picker').open = false;
   $('preview').hidden = true;
   if (view === 'play') {
     try {
@@ -631,10 +627,14 @@ async function showRoute() {
       if (version !== routeVersion) return;
       navigate('', undefined, true); message(error.message, true);
     }
-  } else if (view === 'upload') $('upload-heading').focus();
-  else $('toggle-upload').focus();
+  } else $('youtube-url').focus();
 }
-$('toggle-upload').onclick = () => navigate('upload');
+$('new-youtube').onclick = () => { if (canReplace()) navigate('new'); };
+const videoPicker = $('video-picker');
+document.addEventListener('click', event => { if (!videoPicker.contains(event.target)) videoPicker.open = false; });
+videoPicker.addEventListener('keydown', event => {
+  if (event.key === 'Escape') { videoPicker.open = false; videoPicker.querySelector('summary').focus(); }
+});
 for (const button of document.querySelectorAll('.close-card')) button.onclick = () => {
   if (history.state?.subtitleCard) history.back();
   else navigate('', undefined, true);
@@ -647,50 +647,48 @@ window.addEventListener('beforeunload', event => { if (dirty) { event.preventDef
 async function loadLibrary() {
   try {
     const data = await json('/api/subtitle-library');
+    const videos = data.items.filter(item => isYoutubeVideo(item.source));
     storage = data.storage !== false;
-    $('library-status').textContent = data.scope === 'local' ? '' : data.scope === 'account'
-      ? 'Lagret på kontoen din.' : 'Lagret for denne nettleseren. Behold informasjonskapslene for å finne dem igjen.';
+    $('library-status').textContent = '';
     $('library').replaceChildren();
-    if (!data.items.length) $('library-status').textContent += ' Ingen undertekster ennå.';
-    for (const item of data.items) {
+    $('translated-videos').replaceChildren();
+    if (!videos.length) $('library-status').textContent = 'Ingen oversatte YouTube-videoer ennå.';
+    for (const item of videos) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'ghost';
       button.textContent = item.shared ? `${item.title} · Fortelling` : `${item.title} · ${new Date(item.updated).toLocaleDateString('nb-NO')}`;
       button.onclick = () => { if (!busy && !saving) navigate('play', item.id); };
       $('library').append(button);
+      const choice = button.cloneNode(true);
+      choice.textContent = item.title;
+      choice.onclick = () => { if (!busy && !saving) navigate('play', item.id); };
+      $('translated-videos').append(choice);
     }
   } catch (error) { $('library-status').textContent = error.message; }
   $('save-subtitles').disabled = !storage;
 }
-function showSelection(id, label, name, suffix = '') {
-  const value = document.createElement('strong');
-  value.textContent = name;
-  $(id).replaceChildren(label, value, suffix);
+function isYoutubeVideo(source) {
+  try { const url = new URL(source); return url.protocol === 'https:' && url.hostname === 'www.youtube.com' && url.pathname === '/watch' && /^[\w-]{11}$/.test(url.searchParams.get('v') || ''); }
+  catch { return false; }
+}
+function showPlaybackSelection(title, filename) {
+  $('playback-selection').textContent = title || filename || 'Undertekster';
+  $('selected-media').textContent = filename;
+  $('selected-media').hidden = !filename || filename === title;
+
 }
 function openSaved(saved) {
+  if (!isYoutubeVideo(saved.source)) throw new Error('Velg en YouTube-video.');
   cancelSegmentPause(); cancelSentencePlayback(); player.pause(); player.removeAttribute('src'); player.load();
-  if (mediaUrl) URL.revokeObjectURL(mediaUrl);
-  mediaUrl = undefined; fileInput.value = ''; $('playback-file').value = '';
   savedId = saved.id; sourceName = saved.source; cues = saved.cues;
   sharedStory = Boolean(saved.shared);
   $('save-subtitles').textContent = sharedStory ? 'Lagre egen kopi' : 'Lagre endringer';
   $('subtitle-title').value = saved.title;
   dirty = false; revision += 1;
   renderCues(); $('preview').hidden = false;
-  showSelection('playback-selection', 'Valgte undertekster: ', saved.title);
-  $('selected-media').hidden = !saved.audioUrl;
-  showSelection('selected-media', 'Valgt media: ', saved.audioUrl ? sourceName : '', saved.audioUrl ? ' (fra storybook)' : '');
-  showUpload(false);
-  $('playback-label').textContent = `Velg originalfilen «${sourceName}» for avspilling (ingen ny oversettelse)`;
-  if (saved.audioUrl) {
-    player.src = saved.audioUrl;
-    $('playback-label').hidden = $('playback-file').hidden = true;
-    $('preview-help').textContent = 'Laster lyd …';
-    message('');
-  } else {
-    $('playback-label').hidden = $('playback-file').hidden = false;
-    $('preview-help').textContent = 'Velg originalfilen ovenfor for å aktivere avspilling.';
-    message('Undertekstene er åpnet. Velg original lyd/video under «Se og lytt» for å spille av.');
-  }
+  showPlaybackSelection(saved.title, sourceName, Boolean(saved.audioUrl));
+  if (saved.audioUrl) player.src = saved.audioUrl;
+  $('preview-help').textContent = '';
+  message('');
   $('save-status').textContent = 'Lagret';
   $('playback-heading').focus();
 }
@@ -702,16 +700,9 @@ function updatePlayButtons() {
   }
   for (const button of $('cues').querySelectorAll('.cue-top button')) {
     button.disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error);
-    button.title = button.disabled ? 'Velg original lyd/video for å spille av' : 'Spill av denne underteksten';
+    button.title = button.disabled ? 'Velg en YouTube-video for å spille av' : 'Spill av denne underteksten';
   }
 }
-$('playback-file').onchange = () => {
-  const file = $('playback-file').files[0]; if (!file) return;
-  cancelSegmentPause(); cancelSentencePlayback(); player.pause(); if (mediaUrl) URL.revokeObjectURL(mediaUrl);
-  mediaUrl = URL.createObjectURL(file); player.src = mediaUrl;
-  $('selected-media').hidden = false;
-  showSelection('selected-media', 'Valgt media: ', file.name);
-};
 $('subtitle-title').oninput = edited;
 $('save-subtitles').onclick = async () => {
   if (saving || busy || !storage) return;
@@ -737,19 +728,6 @@ $('save-subtitles').onclick = async () => {
     await loadLibrary();
   } catch (error) { $('save-status').textContent = error.message; }
   finally { saving = false; }
-};
-$('import-subtitles').onchange = async () => {
-  const file = $('import-subtitles').files[0];
-  if (!file || !canReplace()) return;
-  busy = true;
-  try {
-    if (file.size > 2_000_000) throw new Error('Filen er for stor (maks 2 MB).');
-    const data = JSON.parse(await file.text());
-    const saved = await json('/api/subtitle-library', { method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title: data.title || data.source || file.name, source: data.source || '', cues: data.cues }) });
-    openSaved(saved); navigate('play', saved.id, true); await loadLibrary();
-  } catch (error) { $('library-status').textContent = error.message; }
-  finally { busy = false; $('import-subtitles').value = ''; }
 };
 async function json(url, options) {
   const response = await fetch(url, options);
@@ -783,13 +761,11 @@ function clearTrack() {
 function updateTurkish() {
   const time = captionTime();
   // Source word times stay tied to the speech when Norwegian cue times are edited.
-  const active = pages.find(cue => cue.words?.length && time >= cue.words[0].start && time < cue.words.at(-1).end)
-    || pages.findLast(cue => cue.words?.length && cue.words[0].start <= time)
-    || pages.find(cue => cue.words?.length);
+  const active = captionPage(pages, time, player.paused);
   const caption = $('turkish-caption');
   void ensureEmojiHints(active);
   updateNatural(active);
-  const hasWords = cues.some(cue => cue.words?.length);
+  const hasWords = Boolean(active?.words?.length);
   caption.hidden = !hasWords || !$('show-sentence').checked;
   caption.classList.toggle('hide-gloss', !$('show-gloss').checked);
   caption.classList.toggle('show-norwegian-badge', $('show-norwegian-badge').checked);
@@ -941,27 +917,17 @@ function renderCues() {
   updatePlayButtons();
 }
 
-fileInput.addEventListener('change', () => {
-  if (!canReplace()) { fileInput.value = ''; return; }
-  savedId = undefined; sharedStory = false; dirty = false;
-  cues = []; clearTrack(); showEditor(false); $('subtitle-actions').hidden = true;
-  if (mediaUrl) URL.revokeObjectURL(mediaUrl);
-  const file = fileInput.files[0];
-  $('preview').hidden = true;
-  $('playback-selection').textContent = '';
-  $('selected-media').hidden = !file;
-  showSelection('selected-media', 'Valgt media: ', file?.name || '');
-  $('playback-label').hidden = $('playback-file').hidden = true;
-  if (file) { sourceName = file.name; $('subtitle-title').value = file.name; mediaUrl = URL.createObjectURL(file); player.src = mediaUrl; }
-  message('Klar til å lage undertekster.');
-});
 player.addEventListener('error', () => {
-  $('playback-label').hidden = $('playback-file').hidden = false;
   updatePlayButtons();
-  $('preview-help').textContent = 'Nettleseren kan ikke spille av denne filtypen. Du kan fortsatt lage og laste ned undertekster.';
+  $('preview-help').textContent = 'Kan ikke spille av videoen. Velg en annen YouTube-video.';
 });
 function updateMediaLayout() {
   player.classList.toggle('audio-only', player.readyState >= 1 && player.videoWidth === 0 && player.videoHeight === 0);
+  const overlay = $('overlay-text').checked && player.readyState >= 1 && player.videoWidth > 0;
+  const text = $('subtitle-text');
+  const parent = $(overlay ? 'video-stage' : 'subtitle-home');
+  if (text.parentElement !== parent) parent.append(text);
+  text.classList.toggle('video-overlay', overlay);
 }
 player.addEventListener('resize', updateMediaLayout);
 player.addEventListener('emptied', updateMediaLayout);
@@ -997,37 +963,66 @@ player.addEventListener('timeupdate', () => {
   });
 });
 
-$('upload-form').addEventListener('submit', async event => {
+let youtubeConfigured = false;
+let subtitleReadyThrough;
+function updateSubtitleReadiness() {
+  if (subtitleReadyThrough !== undefined) $('preview-help').textContent = player.currentTime * 1000 >= subtitleReadyThrough
+    ? 'Undertekstene for denne delen er ikke klare ennå.' : '';
+}
+player.addEventListener('timeupdate', updateSubtitleReadiness);
+async function generateSubtitles(event) {
   event.preventDefault();
-  if (!configured || !canReplace()) return;
-  const file = fileInput.files[0];
-  if (!file || !file.size) { message('Velg en fil med lyd.', true); return; }
-  if (file.size > maxBytes) { message('Filen er for stor. Grensen er 100 MB.', true); return; }
-  if (Number.isFinite(player.duration) && player.duration > 600) { message('Opptaket må være på høyst 10 minutter.', true); return; }
-  busy = true; generate.disabled = true; fileInput.disabled = true;
+  if (!youtubeConfigured || !canReplace()) return;
+  player.pause();
+  busy = true;
+  $('toggle-editor').disabled = true;
+  $('generate-youtube').disabled = $('youtube-url').disabled = true;
   cues = []; clearTrack(); showEditor(false); $('subtitle-actions').hidden = true;
   $('progress').hidden = false; $('progress').removeAttribute('value');
   controller = new AbortController();
   try {
-    message('Laster opp opptaket …');
-    savedId = undefined; sourceName = file.name; $('subtitle-title').value = file.name; dirty = false;
-    const created = await json('/api/subtitles', { method: 'POST', headers: { 'content-type': 'application/octet-stream', 'x-file-name': encodeURIComponent(file.name) }, body: file, signal: controller.signal });
+    message('Henter YouTube-video …');
+    savedId = undefined; sourceName = $('youtube-url').value.trim(); $('subtitle-title').value = sourceName; dirty = false;
+    const created = await json('/api/subtitles/youtube', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: sourceName }), signal: controller.signal });
     jobId = created.id; $('cancel').hidden = false;
+    let received = 0;
+    let previewStarted = false;
     while (true) {
       controller.signal.throwIfAborted();
-      const job = await json(`/api/subtitles/${jobId}`, { signal: controller.signal });
+      const job = await json(`/api/subtitles/${jobId}?since=${received}`, { signal: controller.signal });
+      subtitleReadyThrough = job.readyThrough;
+      updateSubtitleReadiness();
+      if (job.cues?.length) {
+        received += job.cues.length;
+        if (!previewStarted && job.audioUrl) {
+          openSaved({ id: job.savedId, title: job.title || sourceName, source: job.source, cues: [...cues, ...job.cues], audioUrl: job.audioUrl });
+          previewStarted = true;
+          $('recordings').hidden = true;
+          const url = new URL(location.href);
+          url.searchParams.set('view', 'play'); url.searchParams.set('subtitle', job.savedId); url.searchParams.delete('t');
+          history.replaceState({ subtitleCard: true }, '', url);
+        } else {
+          cues.push(...job.cues);
+          pages = sentencePages(cues);
+          for (const cue of job.cues) for (const word of cue.words || []) {
+            wordTrack.addCue(new VTTCue(word.start / 1000, word.end / 1000, word.text));
+          }
+          editorNeedsRender = true;
+          updateTurkish(); updatePlayButtons();
+        }
+      }
       if (job.state === 'error') throw new Error(job.error);
       if (job.state === 'done') {
-        cues = job.cues; renderCues();
+        subtitleReadyThrough = undefined; $('preview-help').textContent = '';
         savedId = job.savedId;
-        navigate('play', savedId, true);
         dirty = !savedId;
-        $('save-status').textContent = job.saveError || (savedId ? 'Lagret automatisk' : 'Ikke lagret. Last ned filen eller bruk Lagre.');
+        $('save-status').textContent = job.saveError || (savedId ? 'Lagret automatisk' : 'Ikke lagret. Bruk Lagre.');
         await loadLibrary();
-        message(cues.length === 1 ? 'Ferdig! Én undertekst er klar til gjennomlesing.' : `Ferdig! ${cues.length} undertekster er klare til gjennomlesing.`); break;
+        message(`Ferdig! ${cues.length} undertekster er klare.`); break;
       }
-      message(job.state === 'extracting' ? 'Henter lyden fra opptaket …' : job.state === 'transcribing'
-        ? 'Lytter til den tyrkiske talen …' : `Lager norsk tekst i tyrkisk rekkefølge: ${job.completed} av ${job.total} taledeler …`);
+      $('save-status').textContent = previewStarted ? 'Lagrer nye undertekster fortløpende' : '';
+      message(job.state === 'downloading' ? 'Henter YouTube-video …' : job.state === 'extracting' ? 'Henter lyden fra videoen …'
+        : `Undertekster: ${job.completed} av ${job.total} deler klare${previewStarted ? '. Du kan spille av nå.' : ' …'}`);
       if (job.total) { $('progress').max = job.total; $('progress').value = job.completed; }
       await new Promise(resolve => setTimeout(resolve, 1500));
     }
@@ -1035,15 +1030,19 @@ $('upload-form').addEventListener('submit', async event => {
     message(controller.signal.aborted ? 'Behandlingen er avbrutt.' : error.message, !controller.signal.aborted);
   } finally {
     if (jobId) void fetch(`/api/subtitles/${jobId}`, { method: 'DELETE' }).catch(() => {});
-    jobId = undefined; busy = false; generate.disabled = !configured; fileInput.disabled = false;
+    jobId = undefined; busy = false;
+    $('toggle-editor').disabled = false;
+    $('generate-youtube').disabled = !youtubeConfigured; $('youtube-url').disabled = false;
     $('cancel').hidden = true; $('progress').hidden = true;
   }
-});
+}
+$('youtube-form').addEventListener('submit', event => generateSubtitles(event));
 $('cancel').onclick = () => controller?.abort();
 
 $('download-zip').onclick = () => {
   try {
-    const name = (sourceName.replace(/\.[^.]+$/, '').replace(/[\\/:*?"<>|]/g, '_') || 'undertekster') + '.nb';
+    const filename = sourceName.startsWith('https://www.youtube.com/') ? $('subtitle-title').value : sourceName;
+    const name = (filename.replace(/\.[^.]+$/, '').replace(/[\\/:*?"<>|]/g, '_') || 'undertekster') + '.nb';
     const archive = zipFiles(Object.fromEntries(['srt', 'vtt'].map(format => [name + '.' + format, serializeSubtitles(cues, format)])));
     const url = URL.createObjectURL(archive);
     const link = document.createElement('a'); link.href = url;
@@ -1054,7 +1053,10 @@ $('download-zip').onclick = () => {
 
 try {
   const settings = await json('/api/subtitles');
-  configured = settings.configured; maxBytes = settings.maxBytes; generate.disabled = !configured;
+  youtubeConfigured = Boolean(settings.youtube && settings.configured && settings.storage);
+  $('generate-youtube').disabled = !youtubeConfigured;
+  $('generate-youtube').title = youtubeConfigured ? '' : 'YouTube-import er ikke konfigurert på serveren';
+  configured = settings.configured;
   storage = Boolean(settings.storage);
   await loadLibrary();
   message(configured ? '' : 'Undertekster er ikke konfigurert ennå. Serveren trenger Azure Speech.', !configured);
