@@ -4,7 +4,7 @@ import { subtitlePlayer } from './subtitles-player.js';
 
 const $ = id => document.getElementById(id);
 const settingsKey = name => `subtitles:settings:v2:${name}`;
-for (const id of ['show-sentence', 'show-gloss', 'show-norwegian-badge', 'show-natural', 'show-focus', 'show-emoji', 'overlay-text', 'show-playback-buttons']) {
+for (const id of ['show-sentence', 'show-gloss', 'norwegian-focus', 'turkish-focus', 'show-norwegian-badge', 'show-natural', 'show-focus', 'show-emoji', 'overlay-text', 'show-playback-buttons']) {
   const checkbox = $(id);
   const key = settingsKey(id);
   try {
@@ -557,6 +557,15 @@ function armAutoPause() {
 }
 $('show-sentence').onchange = updateTurkish;
 $('show-gloss').onchange = updateTurkish;
+for (const [id, other] of [['norwegian-focus', 'turkish-focus'], ['turkish-focus', 'norwegian-focus']]) {
+  $(id).onchange = () => {
+    if ($(id).checked) {
+      $(other).checked = false;
+      try { localStorage.setItem(settingsKey(other), 'false'); } catch {}
+    }
+    updateTurkish();
+  };
+}
 $('show-norwegian-badge').onchange = updateTurkish;
 $('show-natural').onchange = updateTurkish;
 $('show-focus').onchange = updateTurkish;
@@ -852,6 +861,42 @@ function clearTrack() {
   $('focus-turkish').textContent = $('focus-norwegian').textContent = '';
   $('audio-caption').textContent = ''; $('audio-caption').hidden = true;
 }
+let highlightFrame;
+function updateHighlightLayer() {
+  cancelAnimationFrame(highlightFrame);
+  const caption = $('turkish-caption');
+  let layer = caption.querySelector('.focus-highlights');
+  if (caption.hidden || !caption.matches('.norwegian-focus, .turkish-focus')) {
+    layer?.remove();
+    return;
+  }
+  const source = caption.querySelector('.source-words .spoken-word.speaking');
+  const meaning = source?.closest('.word-translation').querySelector('.word-meaning.speaking');
+  if (!source) {
+    layer?.remove();
+    return;
+  }
+  if (!layer) {
+    layer = document.createElement('span'); layer.className = 'focus-highlights';
+    layer.setAttribute('aria-hidden', 'true');
+    layer.append(document.createElement('span'), document.createElement('span'));
+    caption.append(layer);
+  }
+  const origin = caption.getBoundingClientRect();
+  const targets = [source, caption.classList.contains('turkish-focus') ? meaning?.querySelector('.meaning-text') : meaning];
+  targets.forEach((target, index) => {
+    const box = layer.children[index];
+    box.hidden = !target;
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    box.style.left = `${rect.left - origin.left - caption.clientLeft + caption.scrollLeft}px`;
+    box.style.top = `${rect.top - origin.top - caption.clientTop + caption.scrollTop}px`;
+    box.style.width = `${rect.width}px`;
+    box.style.height = `${rect.height}px`;
+  });
+  // Follow the actual animated text bounds, including wrapping and resizing.
+  highlightFrame = requestAnimationFrame(updateHighlightLayer);
+}
 function updateTurkish() {
   const time = captionTime();
   // Source word times stay tied to the speech when Norwegian cue times are edited.
@@ -862,6 +907,8 @@ function updateTurkish() {
   const hasWords = Boolean(active?.words?.length);
   caption.hidden = !hasWords || !$('show-sentence').checked;
   caption.classList.toggle('hide-gloss', !$('show-gloss').checked);
+  caption.classList.toggle('norwegian-focus', $('norwegian-focus').checked && !$('turkish-focus').checked && $('show-gloss').checked);
+  caption.classList.toggle('turkish-focus', $('turkish-focus').checked && $('show-gloss').checked);
   caption.classList.toggle('show-norwegian-badge', $('show-norwegian-badge').checked);
   $('reading-focus').hidden = !hasWords || !$('show-focus').checked;
   // Keep the last spoken group through brief pauses and single-sentence stops.
@@ -891,7 +938,11 @@ function updateTurkish() {
         group = document.createElement('span'); group.className = 'word-translation';
         const source = document.createElement('span'); source.className = 'source-words';
         const translation = document.createElement('span'); translation.className = 'word-meaning spoken-word';
-        translation.lang = 'nb'; translation.textContent = chunk?.text || '';
+        translation.lang = 'nb';
+        if (chunk?.text) {
+          const meaningText = document.createElement('span'); meaningText.className = 'meaning-text';
+          meaningText.textContent = chunk.text; translation.append(meaningText);
+        }
         appendEmojiHints(source, [chunk]);
         group.append(source, translation); caption.append(group);
       }
@@ -916,6 +967,7 @@ function updateTurkish() {
     highlightedWords = [previewWord, meaning?.textContent ? meaning : undefined, editorWord].filter(Boolean);
     for (const word of highlightedWords) word.classList.add('speaking');
   }
+  updateHighlightLayer();
   updateActiveCue();
 }
 wordTrack.addEventListener('cuechange', updateTurkish);

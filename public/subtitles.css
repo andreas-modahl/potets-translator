@@ -81,6 +81,36 @@ video.audio-only { display: block; height: 54px; background: transparent; }
 .turkish-caption { min-height: 2em; margin: 24px 0 0; padding: 12px; text-align: center; font-size: 1.2rem; line-height: 1.5; }
 .turkish-caption { display: flex; justify-content: center; align-items: start; align-content: start; flex-wrap: wrap; gap: 20px 16px; box-sizing: border-box; }
 .word-translation { display: inline-grid; grid-template-rows: auto auto; gap: 6px; align-items: start; justify-items: center; min-width: 0; max-width: 100%; }
+#turkish-caption:is(.norwegian-focus, .turkish-focus) { position: relative; isolation: isolate; }
+.focus-highlights { position: absolute; inset: 0; z-index: 0; opacity: .7; pointer-events: none; }
+.focus-highlights > span { position: absolute; background: #7763b6; border-radius: 4px; }
+#turkish-caption:is(.norwegian-focus, .turkish-focus) .word-translation { z-index: 1; }
+#turkish-caption.norwegian-focus .word-translation { position: relative; isolation: isolate; }
+#turkish-caption.norwegian-focus .word-translation:has(.source-words .speaking) { z-index: 2; }
+#turkish-caption.norwegian-focus .source-words { position: relative; }
+#turkish-caption.norwegian-focus .norwegian-word-badge { display: none; }
+#turkish-caption.norwegian-focus .source-word-unit { position: relative; }
+#turkish-caption.norwegian-focus .source-words .spoken-word { display: inline-block; transform-origin: center top; transition: transform 350ms ease-out, opacity 350ms ease-out, color 350ms ease-out; }
+#turkish-caption.norwegian-focus .source-words .spoken-word.speaking { transform: translateY(.65em) scale(1.45); opacity: .9; z-index: 2; background: transparent; box-shadow: none; color: inherit !important; }
+#turkish-caption.norwegian-focus .word-meaning { position: relative; z-index: 1; }
+#turkish-caption.norwegian-focus .word-meaning.speaking { background: transparent; box-shadow: none; color: var(--meaning-color, #a65316) !important; }
+.video-overlay #turkish-caption.norwegian-focus .word-meaning { text-shadow: 0 1px 3px #000, 0 0 5px #000; }
+.video-overlay #turkish-caption:is(.norwegian-focus, .turkish-focus) .word-meaning.speaking { color: var(--meaning-color, #ffe08a) !important; }
+#turkish-caption.turkish-focus .word-translation { position: relative; isolation: isolate; }
+#turkish-caption.turkish-focus .word-translation:has(.word-meaning.speaking) { z-index: 2; }
+#turkish-caption.turkish-focus .norwegian-word-badge { display: none; }
+#turkish-caption.turkish-focus .source-word-unit { position: relative; }
+#turkish-caption.turkish-focus .source-words .spoken-word { z-index: 3; font-weight: 400; -webkit-text-stroke: 2px #000; paint-order: stroke fill; text-shadow: 0 1px 2px #000; }
+#turkish-caption.turkish-focus .source-words .spoken-word.speaking { background: transparent; color: inherit !important; box-shadow: none; }
+#turkish-caption.turkish-focus .word-meaning { position: relative; font-weight: 400; }
+#turkish-caption.turkish-focus .meaning-text { display: inline-block; position: relative; z-index: 2; }
+#turkish-caption.turkish-focus .meaning-text { transform-origin: center bottom; transition: transform 350ms ease-out, opacity 350ms ease-out, color 350ms ease-out; }
+#turkish-caption.turkish-focus .word-meaning.speaking { background: transparent; box-shadow: none; color: var(--meaning-color, #a65316) !important; }
+#turkish-caption.turkish-focus .word-meaning.speaking .meaning-text { transform: translateY(-.65em) scale(1.3); opacity: .9; }
+@media (prefers-reduced-motion: reduce) {
+  #turkish-caption.turkish-focus .meaning-text,
+  #turkish-caption.norwegian-focus .source-words .spoken-word { transition: none; }
+}
 .source-words { overflow-wrap: anywhere; }
 .turkish-caption.hide-gloss .word-meaning { display: none; }
 .turkish-caption.hide-gloss .word-translation { grid-template-rows: auto; gap: 0; }
@@ -97,17 +127,17 @@ video.audio-only { display: block; height: 54px; background: transparent; }
 #emoji-status { margin: 0; padding: 4px 10px 10px; font-size: .8rem; }
 .word-meaning { color: var(--ink); font-size: 1.4rem; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
 #turkish-caption .source-words { color: #203b59; }
-#turkish-caption .word-meaning { font-size: 1.25rem; color: #a65316; }
+#turkish-caption .word-meaning { font-size: 1.25rem; --meaning-color: #a65316; color: var(--meaning-color); }
 .reading-focus { display: grid; gap: 10px; box-sizing: border-box; margin-top: 24px; padding: 20px 16px; background: var(--sunk); border-radius: 12px; text-align: center; }
 .reading-focus > div { min-width: 0; min-height: 1.4em; overflow-wrap: anywhere; line-height: 1.4; }
 #focus-turkish { font-size: 1.6rem; font-weight: 700; color: #203b59; }
 #focus-norwegian { font-size: 1.5rem; font-weight: 700; color: #a65316; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) #turkish-caption .source-words, :root:not([data-theme='light']) #focus-turkish { color: #c5dfff; }
-  :root:not([data-theme='light']) #turkish-caption .word-meaning, :root:not([data-theme='light']) #focus-norwegian { color: #ffc078; }
+  :root:not([data-theme='light']) #turkish-caption .word-meaning, :root:not([data-theme='light']) #focus-norwegian { --meaning-color: #ffc078; color: var(--meaning-color); }
 }
 :root[data-theme='dark'] #turkish-caption .source-words, :root[data-theme='dark'] #focus-turkish { color: #c5dfff; }
-:root[data-theme='dark'] #turkish-caption .word-meaning, :root[data-theme='dark'] #focus-norwegian { color: #ffc078; }
+:root[data-theme='dark'] #turkish-caption .word-meaning, :root[data-theme='dark'] #focus-norwegian { --meaning-color: #ffc078; color: var(--meaning-color); }
 .spoken-word { border-radius: 4px; padding: 2px 3px; }
 .spoken-word.speaking { background: var(--mark); color: var(--ink); box-shadow: 0 2px 0 var(--accent); }
 #turkish-caption .source-words { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px 3px; padding-top: 18px; }
@@ -138,7 +168,7 @@ video.audio-only { display: block; height: 54px; background: transparent; }
 .video-overlay:has(> [hidden]):not(:has(> :not([hidden]))) { display: none; }
 .video-overlay #turkish-caption { width: fit-content; max-width: 100%; min-height: 0; margin: 0 auto; padding: 2px 5px 6px; gap: 8px 12px; font-size: 1rem; background: rgb(0 0 0 / 72%); border-radius: 4px; }
 .video-overlay #turkish-caption .source-words { color: white !important; padding-top: 2px; gap: 8px 3px; }
-.video-overlay #turkish-caption .word-meaning { color: #ffe08a !important; font-size: 1rem; }
+.video-overlay #turkish-caption .word-meaning { --meaning-color: #ffe08a !important; color: var(--meaning-color) !important; font-size: 1rem; }
 .video-overlay .word-translation { gap: 2px; }
 .video-overlay .natural-caption p, .video-overlay .reading-focus > div,
 .video-overlay .audio-caption { width: fit-content; max-width: 100%; box-sizing: border-box; background: rgb(0 0 0 / 72%); border-radius: 4px; padding: 2px 5px; }
