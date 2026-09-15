@@ -131,11 +131,10 @@ video.audio-only { display: block; height: 54px; background: transparent; }
 #video-stage { position: relative; }
 .video-overlay { position: absolute; bottom: 56px; left: 3%; right: 3%; max-height: calc(100% - 68px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 4px; box-sizing: border-box; color: white; --ink: #fff; --line: #ffffff50; --accent: #ffe08a; }
 .video-overlay:has(> [hidden]):not(:has(> :not([hidden]))) { display: none; }
-.video-overlay #turkish-caption { margin: 0; padding: 0; gap: 8px 12px; font-size: 1rem; }
+.video-overlay #turkish-caption { width: fit-content; max-width: 100%; min-height: 0; margin: 0 auto; padding: 2px 5px 6px; gap: 8px 12px; font-size: 1rem; background: rgb(0 0 0 / 72%); border-radius: 4px; }
 .video-overlay #turkish-caption .source-words { color: white !important; padding-top: 2px; gap: 8px 3px; }
 .video-overlay #turkish-caption .word-meaning { color: #ffe08a !important; font-size: 1rem; }
 .video-overlay .word-translation { gap: 2px; }
-.video-overlay .source-words, .video-overlay .word-meaning,
 .video-overlay .natural-caption p, .video-overlay .reading-focus > div,
 .video-overlay .audio-caption { width: fit-content; max-width: 100%; box-sizing: border-box; background: rgb(0 0 0 / 72%); border-radius: 4px; padding: 2px 5px; }
 .video-overlay .reading-focus > div, .video-overlay .audio-caption { min-height: 0; margin-inline: auto; }
@@ -154,3 +153,43 @@ video.audio-only { display: block; height: 54px; background: transparent; }
   .video-overlay .natural-word-badge, .video-overlay .natural-badge-size, .video-overlay .norwegian-word-badge { font-size: .75rem; padding: 1px 2px; }
 }
 @media (max-width: 550px) { .card { padding: 16px; } main { padding: 16px 12px 40px; } nav { gap: 12px; } }
+
+/* A quiet, readable viewing surface for a television or fullscreen display. */
+body.tv-view:has(#preview:not([hidden])) { background: #0c1016; }
+body.tv-view:has(#preview:not([hidden])) main > nav { display: none; }
+#preview.tv-mode, #preview:fullscreen {
+  --panel: #171e28; --sunk: #253142; --ink: #f3f6fc; --muted: #b4c1d2;
+  --line: #45556d; --accent: #9acbff; --mark: #f3d98a; --teal: #80d0cb;
+  --shadow: transparent;
+  color: var(--ink); color-scheme: dark; background: #0c1016;
+  font-family: system-ui, sans-serif;
+}
+#preview.tv-mode { padding: clamp(8px, 1.5vw, 32px); border-radius: 16px; }
+#preview.tv-mode video { max-height: 78vh; }
+#preview:is(.tv-mode, :fullscreen) .playback-toolbar { align-items: center; flex-wrap: wrap; }
+#preview:is(.tv-mode, :fullscreen) #playback-heading { font-size: clamp(1.25rem, 1.6vw, 2.5rem); }
+#preview:is(.tv-mode, :fullscreen) :is(button, summary, label, input) { font-family: inherit; font-size: clamp(1rem, 1.2vw, 1.75rem); }
+#preview:is(.tv-mode, :fullscreen) :is(button, summary) { min-height: 48px; border-radius: 8px; box-shadow: none; transform: none; }
+#preview:is(.tv-mode, :fullscreen) :is(button, summary, input):focus-visible { outline: 3px solid #9acbff; outline-offset: 4px; }
+#preview:is(.tv-mode, :fullscreen) #tv-mode[aria-pressed=true] { background: #253142; color: #9acbff; }
+#preview:is(.tv-mode, :fullscreen) .subtitle-menu { left: auto; right: 0; width: min(420px, calc(100vw - 48px)); max-height: 65vh; z-index: 30; }
+#preview:is(.tv-mode, :fullscreen) .subtitle-menu label { font-size: clamp(1.1rem, 1.2vw, 1.75rem); padding-block: 14px; }
+#preview:is(.tv-mode, :fullscreen) .video-overlay { bottom: max(64px, 6vh); left: 5%; right: 5%; max-height: calc(100% - 90px); }
+#preview:is(.tv-mode, :fullscreen) .video-overlay :is(#turkish-caption, #turkish-caption .word-meaning, .natural-caption p, #focus-turkish, #focus-norwegian) { font-size: clamp(1.1rem, 2vw, 3rem); line-height: 1.45; }
+#preview:is(.tv-mode, :fullscreen) .video-overlay #turkish-caption { padding: 6px 12px 10px; }
+#preview:is(.tv-mode, :fullscreen) .video-overlay :is(.natural-word-badge, .natural-badge-size, .norwegian-word-badge) { font-size: clamp(.9rem, 1.4vw, 2rem); }
+#preview:fullscreen { display: flex; flex-direction: column; box-sizing: border-box; width: 100%; height: 100%; margin: 0; padding: clamp(12px, 2vw, 40px); overflow-y: auto; }
+#preview:fullscreen .playback-toolbar { flex-shrink: 0; }
+#preview:fullscreen #video-stage { flex: 1 1 auto; min-height: 180px; background: #000; }
+#preview:fullscreen video { position: absolute; width: 100%; height: 100%; max-height: none; object-fit: contain; }
+#preview:fullscreen #subtitle-home { flex-shrink: 0; }
+#preview:is(.tv-mode, :fullscreen) :is(.playback-toolbar, #sentence-actions) { transition: opacity 180ms ease; }
+#preview.tv-idle :is(.playback-toolbar, #sentence-actions) { opacity: 0; visibility: hidden; pointer-events: none; }
+#preview.tv-idle, #preview.tv-idle video { cursor: none; }
+@media (prefers-reduced-motion: reduce) {
+  #preview:is(.tv-mode, :fullscreen) :is(.playback-toolbar, #sentence-actions) { transition: none; }
+}
+@media (max-width: 550px) {
+  .playback-toolbar { flex-wrap: wrap; }
+  .playback-card-actions { flex-wrap: wrap; }
+}

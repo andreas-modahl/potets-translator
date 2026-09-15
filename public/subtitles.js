@@ -2,9 +2,10 @@ import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sent
 import { zipFiles } from './subtitles-zip.js';
 
 const $ = id => document.getElementById(id);
-for (const id of ['show-sentence', 'show-gloss', 'show-norwegian-badge', 'show-natural', 'show-focus', 'show-emoji', 'overlay-text']) {
+const settingsKey = name => `subtitles:settings:v2:${name}`;
+for (const id of ['show-sentence', 'show-gloss', 'show-norwegian-badge', 'show-natural', 'show-focus', 'show-emoji', 'overlay-text', 'show-playback-buttons']) {
   const checkbox = $(id);
-  const key = `subtitles:${id}`;
+  const key = settingsKey(id);
   try {
     const saved = localStorage.getItem(key);
     if (saved === 'true' || saved === 'false') checkbox.checked = saved === 'true';
@@ -15,6 +16,61 @@ for (const id of ['show-sentence', 'show-gloss', 'show-norwegian-badge', 'show-n
   });
 }
 const player = $('player');
+const preview = $('preview');
+const tvButton = $('tv-mode');
+let tvControlsTimer;
+let tvPointerDown = false;
+function revealTvControls() {
+  clearTimeout(tvControlsTimer);
+  preview.classList.remove('tv-idle');
+  player.controls = true;
+  if (preview.hidden || (!preview.classList.contains('tv-mode') && document.fullscreenElement !== preview) || player.paused || player.ended) return;
+  tvControlsTimer = setTimeout(() => {
+    // Keep menus and keyboard-focused controls usable until interaction ends.
+    if (tvPointerDown || preview.querySelector('details[open]') ||
+        preview.querySelector('.playback-toolbar :focus-visible, #sentence-actions :focus-visible') || player.seeking) {
+      revealTvControls(); return;
+    }
+    preview.classList.add('tv-idle');
+    player.controls = false;
+  }, 3000);
+}
+for (const event of ['pointermove', 'pointerup', 'pointercancel', 'keydown', 'focusin', 'wheel']) {
+  document.addEventListener(event, () => {
+    if (event === 'pointerup' || event === 'pointercancel') tvPointerDown = false;
+    if (!preview.hidden) revealTvControls();
+  }, { capture: true, passive: true });
+}
+preview.addEventListener('pointerdown', () => { tvPointerDown = true; revealTvControls(); }, { passive: true });
+preview.addEventListener('toggle', revealTvControls, true);
+for (const event of ['play', 'pause', 'ended', 'seeking', 'seeked', 'emptied', 'error']) {
+  player.addEventListener(event, revealTvControls);
+}
+window.addEventListener('blur', () => { tvPointerDown = false; revealTvControls(); });
+function setTvMode(enabled) {
+  preview.classList.toggle('tv-mode', enabled);
+  document.body.classList.toggle('tv-view', enabled);
+  tvButton.setAttribute('aria-pressed', String(enabled));
+  revealTvControls();
+}
+try { setTvMode(localStorage.getItem(settingsKey('tv-mode')) === 'true'); } catch {}
+tvButton.onclick = () => {
+  const enabled = !preview.classList.contains('tv-mode');
+  setTvMode(enabled);
+  try { localStorage.setItem(settingsKey('tv-mode'), String(enabled)); } catch {}
+};
+const fullscreenButton = $('player-fullscreen');
+fullscreenButton.hidden = !document.fullscreenEnabled;
+fullscreenButton.onclick = async () => {
+  try {
+    if (document.fullscreenElement === preview) await document.exitFullscreen();
+    else await preview.requestFullscreen();
+  } catch { $('preview-help').textContent = 'Fullskjerm er ikke tilgjengelig. Prøv TV-modus.'; }
+};
+document.addEventListener('fullscreenchange', () => {
+  fullscreenButton.textContent = document.fullscreenElement === preview ? 'Avslutt fullskjerm' : 'Fullskjerm';
+  revealTvControls();
+});
 const status = $('status');
 const track = player.addTextTrack('subtitles', 'Norsk i tyrkisk ordstilling', 'nb');
 track.mode = 'hidden';
@@ -338,11 +394,11 @@ player.addEventListener('seeking', () => resetAudioFade());
 player.addEventListener('emptied', () => resetAudioFade());
 const segmentPauseInput = $('segment-pause-seconds');
 const sentencePauseInput = $('sentence-pause-seconds');
-let sentenceDelay = 1;
+let sentenceDelay = 0;
 try {
-  const saved = Number(localStorage.getItem('subtitles:sentence-delay-seconds') ?? (localStorage.getItem('subtitles:auto-pause') === 'false' ? '0' : '1'));
+  const saved = Number(localStorage.getItem(settingsKey('sentence-delay-seconds')) ?? '0');
   if (Number.isFinite(saved) && saved >= 0 && saved <= 60) sentenceDelay = saved;
-} catch { /* Use a short sentence pause by default. */ }
+} catch { /* Leave sentence pauses off when storage is unavailable. */ }
 sentencePauseInput.value = String(sentenceDelay);
 function cancelSentenceWait() {
   clearTimeout(sentenceResumeTimer);
@@ -359,7 +415,7 @@ function waitAfterSentence() {
 }
 function applySentenceDelay() {
   sentenceDelay = sentencePauseInput.valueAsNumber;
-  try { localStorage.setItem('subtitles:sentence-delay-seconds', String(sentenceDelay)); } catch {}
+  try { localStorage.setItem(settingsKey('sentence-delay-seconds'), String(sentenceDelay)); } catch {}
   if (waitingAfterSentence) {
     if (sentenceDelay === 0) resumeAfterSentence();
     else waitAfterSentence();
@@ -377,9 +433,7 @@ sentencePauseInput.onchange = () => {
 };
 let segmentDelay = 0;
 try {
-  const enabled = localStorage.getItem('subtitles:pause-segments') ?? localStorage.getItem('subtitles:pause-words');
-  const legacy = enabled === 'true' ? localStorage.getItem('subtitles:segment-pause-seconds') ?? localStorage.getItem('subtitles:word-pause-seconds') ?? '1' : '0';
-  const saved = Number(localStorage.getItem('subtitles:segment-delay-seconds') ?? legacy);
+  const saved = Number(localStorage.getItem(settingsKey('segment-delay-seconds')) ?? '0');
   if (Number.isFinite(saved) && saved >= 0 && saved <= 10) segmentDelay = saved;
 } catch { /* Leave segment pauses off when storage is unavailable. */ }
 segmentPauseInput.value = String(segmentDelay);
@@ -423,7 +477,7 @@ function stopAtSegmentEnd() {
 }
 function applySegmentDelay() {
   segmentDelay = segmentPauseInput.valueAsNumber;
-  try { localStorage.setItem('subtitles:segment-delay-seconds', String(segmentDelay)); } catch {}
+  try { localStorage.setItem(settingsKey('segment-delay-seconds'), String(segmentDelay)); } catch {}
   if (segmentDelay === 0) {
     const waiting = Boolean(heldSegment);
     cancelSegmentPause();
@@ -482,6 +536,7 @@ $('show-gloss').onchange = updateTurkish;
 $('show-norwegian-badge').onchange = updateTurkish;
 $('show-natural').onchange = updateTurkish;
 $('show-focus').onchange = updateTurkish;
+$('show-playback-buttons').onchange = updatePlayButtons;
 $('overlay-text').onchange = updateMediaLayout;
 $('show-emoji').onchange = () => {
   shownTurkish = shownNatural = shownFocusHint = shownEmojiKey = undefined;
@@ -605,6 +660,10 @@ async function showRoute() {
   const version = ++routeVersion;
   const params = new URLSearchParams(location.search);
   const view = params.get('view');
+  if (view !== 'play' && document.fullscreenElement === preview) {
+    await document.exitFullscreen().catch(() => {});
+    if (version !== routeVersion) return;
+  }
   const id = params.get('subtitle');
   const position = Number(params.get('t'));
   pendingPosition = view === 'play' && params.has('t') && Number.isFinite(position) && position >= 0 ? position : undefined;
@@ -640,7 +699,10 @@ for (const button of document.querySelectorAll('.close-card')) button.onclick = 
   else navigate('', undefined, true);
 };
 window.addEventListener('popstate', () => void showRoute());
-$('toggle-editor').onclick = () => showEditor($('result').hidden);
+$('toggle-editor').onclick = async () => {
+  if (document.fullscreenElement === preview) await document.exitFullscreen().catch(() => {});
+  showEditor($('result').hidden);
+};
 function edited() { dirty = true; revision += 1; $('save-status').textContent = 'Ulagrede endringer'; }
 function canReplace() { return !busy && !saving && (!dirty || window.confirm('Du har ulagrede endringer. Fortsette uten å lagre?')); }
 window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
@@ -693,7 +755,7 @@ function openSaved(saved) {
   $('playback-heading').focus();
 }
 function updatePlayButtons() {
-  $('sentence-actions').hidden = !cues.length;
+  $('sentence-actions').hidden = !cues.length || !$('show-playback-buttons').checked;
   $('play-sentence').disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error) || !sentenceAt(cues, player.currentTime * 1000);
   for (const button of document.querySelectorAll('[data-sentence-speed]')) {
     button.disabled = !player.getAttribute('src') || player.readyState < 1 || Boolean(player.error) || !(lastSentence || sentenceAt(cues, player.currentTime * 1000));
@@ -741,7 +803,7 @@ function clearTrack() {
   cancelSentencePlayback();
   lastSentence = undefined;
   heldSentence = undefined;
-  $('sentence-actions').hidden = !cues.length;
+  $('sentence-actions').hidden = !cues.length || !$('show-playback-buttons').checked;
   for (const cue of Array.from(track.cues || [])) track.removeCue(cue);
   for (const cue of Array.from(wordTrack.cues || [])) wordTrack.removeCue(cue);
   shownTurkish = undefined;
