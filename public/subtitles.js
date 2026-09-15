@@ -28,7 +28,7 @@ function revealTvControls() {
   tvControlsTimer = setTimeout(() => {
     // Keep menus and keyboard-focused controls usable until interaction ends.
     if (tvPointerDown || preview.querySelector('details[open]') ||
-        preview.querySelector('.playback-toolbar :focus-visible, #sentence-actions :focus-visible') || player.seeking) {
+        preview.querySelector('.playback-toolbar :focus-visible, #sentence-actions :focus-visible, #translation-coverage :focus-visible') || player.seeking) {
       revealTvControls(); return;
     }
     preview.classList.add('tv-idle');
@@ -310,6 +310,28 @@ let cues = [];
 let pages = [];
 let savedId;
 let sharedStory = false;
+let translationSections = [];
+let sectionMonitorVersion = 0;
+let sectionWorkActive = false;
+let priorityJobId;
+let lastPrioritySection;
+let priorityTimer;
+function updateSectionPriority() {
+  if (!priorityJobId || preview.hidden) return;
+  const id = priorityJobId;
+  const position = Math.max(0, Math.min(1800000, (pendingPosition ?? player.currentTime) * 1000));
+  const section = Math.floor(position / 60000);
+  if (lastPrioritySection === `${id}:${section}`) return;
+  lastPrioritySection = `${id}:${section}`;
+  void fetch(`/api/subtitles/${id}/priority`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ position }) })
+    .then(response => { if (!response.ok && priorityJobId === id) lastPrioritySection = undefined; })
+    .catch(() => { if (priorityJobId === id) lastPrioritySection = undefined; });
+}
+player.addEventListener('timeupdate', updateSectionPriority);
+player.addEventListener('seeked', () => {
+  clearTimeout(priorityTimer);
+  priorityTimer = setTimeout(updateSectionPriority, 150);
+});
 let sourceName = '';
 let dirty = false;
 let revision = 0;
@@ -658,6 +680,9 @@ function navigate(view, id, replace = false) {
 }
 async function showRoute() {
   const version = ++routeVersion;
+  sectionMonitorVersion++;
+  sectionWorkActive = false;
+  priorityJobId = undefined; lastPrioritySection = undefined;
   const params = new URLSearchParams(location.search);
   const view = params.get('view');
   if (view !== 'play' && document.fullscreenElement === preview) {
@@ -678,8 +703,9 @@ async function showRoute() {
         if (version !== routeVersion) return;
         if (!canReplace()) { navigate('', undefined, true); return; }
         openSaved(saved);
-      } else if (!cues.length) { navigate('', undefined, true); return; }
+      } else if (!savedId) { navigate('', undefined, true); return; }
       $('preview').hidden = false;
+      if (!busy) void monitorSections(savedId, ++sectionMonitorVersion);
       restorePosition();
       $('playback-heading').focus();
     } catch (error) {
@@ -742,6 +768,9 @@ function openSaved(saved) {
   cancelSegmentPause(); cancelSentencePlayback(); player.pause(); player.removeAttribute('src'); player.load();
   savedId = saved.id; sourceName = saved.source; cues = saved.cues;
   sharedStory = Boolean(saved.shared) || saved.canEdit === false;
+  translationSections = saved.sections || [];
+  subtitleReadyThrough = undefined;
+  sectionMonitorVersion++;
   $('save-subtitles').textContent = sharedStory ? 'Lagre egen kopi' : 'Lagre endringer';
   $('subtitle-title').value = saved.title;
   dirty = false; revision += 1;
@@ -766,7 +795,7 @@ function updatePlayButtons() {
 }
 $('subtitle-title').oninput = edited;
 $('save-subtitles').onclick = async () => {
-  if (saving || busy || !storage) return;
+  if (saving || busy || sectionWorkActive || !storage) return;
   try {
     validateCues(cues); saving = true;
     const version = revision;
@@ -797,6 +826,7 @@ async function json(url, options) {
   return data;
 }
 function clearTrack() {
+  updateTranslationCoverage();
   cancelSegmentPause();
   pages = sentencePages(cues);
   cancelSentencePlayback();
@@ -1027,9 +1057,153 @@ player.addEventListener('timeupdate', () => {
 let youtubeConfigured = false;
 let subtitleReadyThrough;
 function updateSubtitleReadiness() {
+  if (translationSections.length) {
+    const section = translationSections.find(item => player.currentTime * 1000 >= item.start && player.currentTime * 1000 < item.end);
+    $('preview-help').textContent = !section || section.state === 'done' ? '' : section.state === 'error'
+      ? 'Oversettelsen for denne delen feilet. Prøv de røde delene igjen.' : 'Undertekstene for denne delen er ikke klare ennå.';
+    return;
+  }
   if (subtitleReadyThrough !== undefined) $('preview-help').textContent = player.currentTime * 1000 >= subtitleReadyThrough
     ? 'Undertekstene for denne delen er ikke klare ennå.' : '';
 }
+function coverageTime(seconds) {
+  const total = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+async function monitorSections(id, version, retry = false) {
+  if (!id || !youtubeConfigured || !isYoutubeVideo(sourceName)) return;
+  const current = () => version === sectionMonitorVersion && savedId === id;
+  let runningId;
+  let revision = -1;
+  try {
+    while (current()) {
+      if (dirty || saving || busy) return;
+      if (!runningId) {
+        const response = await fetch('/api/subtitles/ensure', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ savedId: id, retry, position: Math.max(0, Math.min(1800000, (pendingPosition ?? player.currentTime) * 1000)) }) });
+        if (!current()) return;
+        if (response.status === 429) {
+          $('coverage-status').textContent = 'Venter på at en annen video blir ferdig …';
+          await new Promise(resolve => setTimeout(resolve, 5000)); continue;
+        }
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Kunne ikke kontrollere oversettelsene.');
+        retry = false;
+        if (result.complete) {
+          const latest = await json(`/api/subtitle-library/${encodeURIComponent(id)}`);
+          if (!current()) return;
+          translationSections = latest.sections || result.sections || [];
+          if (!dirty && !saving) { cues = latest.cues; editorNeedsRender = true; updateTrack(); updatePlayButtons(); }
+          updateTranslationCoverage(); return;
+        }
+        runningId = result.id;
+        priorityJobId = runningId; updateSectionPriority();
+        sectionWorkActive = true;
+        $('save-subtitles').disabled = true;
+      }
+      const job = await json(`/api/subtitles/${runningId}`);
+      if (!current()) return;
+      translationSections = job.sections || [];
+      if (revision !== job.revision && !dirty && !saving) {
+        cues = job.cues || []; revision = job.revision;
+        editorNeedsRender = true; updateTrack(); updatePlayButtons();
+        if (job.audioUrl && !player.getAttribute('src')) player.src = job.audioUrl;
+      }
+      updateTranslationCoverage();
+      if (job.state === 'error' || job.state === 'done') {
+        if (job.error) $('coverage-status').textContent = job.error;
+        await loadLibrary(); return;
+      }
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+  } catch (error) {
+    if (current()) { $('coverage-status').textContent = error.message; $('preview-help').textContent = error.message; }
+    if (current() && !translationSections.some(section => section.state === 'error')) {
+      setTimeout(() => { if (current()) void monitorSections(id, version); }, 5000);
+    }
+  } finally {
+    if (current()) { sectionWorkActive = false; priorityJobId = undefined; $('save-subtitles').disabled = !storage; }
+  }
+}
+$('retry-sections').onclick = () => {
+  if (sectionWorkActive || busy) return;
+  void monitorSections(savedId, ++sectionMonitorVersion, true);
+};
+function updateCoveragePosition() {
+  if ($('translation-coverage').hidden) return;
+  const position = Math.max(0, Math.min(player.duration, player.currentTime));
+  $('coverage-playhead').style.left = `${position / player.duration * 100}%`;
+  $('coverage-position').textContent = `${coverageTime(position)} / ${coverageTime(player.duration)}`;
+  $('coverage-current-time').textContent = coverageTime(position);
+  $('coverage-bar').style.setProperty('--position', `${position / player.duration * 100}%`);
+  $('coverage-bar').setAttribute('aria-valuemax', String(player.duration));
+  $('coverage-bar').setAttribute('aria-valuenow', String(position));
+  $('coverage-bar').setAttribute('aria-valuetext', `${coverageTime(position)} av ${coverageTime(player.duration)}`);
+}
+function seekCoverage(seconds, play = false) {
+  if (!Number.isFinite(player.duration) || player.duration <= 0) return;
+  pendingPosition = undefined;
+  cancelSegmentPause(); cancelSentencePlayback();
+  player.currentTime = Math.max(0, Math.min(player.duration, seconds));
+  updateCoveragePosition(); updateSectionPriority(); updateTurkish();
+  if (play) void player.play().catch(() => { $('preview-help').textContent = 'Trykk på spill av for å starte videoen.'; });
+}
+$('coverage-bar').onclick = event => {
+  const bounds = $('coverage-bar').getBoundingClientRect();
+  if (bounds.width > 0) seekCoverage((event.clientX - bounds.left) / bounds.width * player.duration, true);
+};
+$('coverage-bar').onkeydown = event => {
+  const positions = { ArrowLeft: player.currentTime - 5, ArrowDown: player.currentTime - 5,
+    ArrowRight: player.currentTime + 5, ArrowUp: player.currentTime + 5,
+    PageDown: player.currentTime - 30, PageUp: player.currentTime + 30, Home: 0, End: player.duration };
+  if (Object.hasOwn(positions, event.key)) { event.preventDefault(); seekCoverage(positions[event.key]); }
+  else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); seekCoverage(player.currentTime, true); }
+};
+function updateTranslationCoverage() {
+  const duration = player.duration * 1000;
+  $('translation-coverage').hidden = !Number.isFinite(duration) || duration <= 0;
+  const container = $('coverage-ranges');
+  container.replaceChildren();
+  if ($('translation-coverage').hidden) return;
+  const ranges = [];
+  for (const cue of [...cues].sort((a, b) => a.start - b.start)) {
+    if (!cue.text?.trim() || !Number.isFinite(cue.start) || !Number.isFinite(cue.end)) continue;
+    const start = Math.max(0, cue.start);
+    const end = Math.min(duration, cue.end);
+    if (end <= start) continue;
+    const previous = ranges.at(-1);
+    if (previous && start <= previous.end) previous.end = Math.max(previous.end, end);
+    else ranges.push({ start, end });
+  }
+  const fragment = document.createDocumentFragment();
+  let covered = 0;
+  for (const { start, end } of ranges) {
+    const span = document.createElement('span');
+    span.className = 'coverage-range';
+    span.style.left = `${start / duration * 100}%`;
+    span.style.width = `${(end - start) / duration * 100}%`;
+    fragment.append(span);
+    covered += end - start;
+  }
+  for (const section of translationSections) {
+    if (!['loading', 'done', 'error'].includes(section.state)) continue;
+    const span = document.createElement('span');
+    span.className = `coverage-range ${section.state}`;
+    span.style.left = `${Math.max(0, section.start) / duration * 100}%`;
+    span.style.width = `${Math.max(0, Math.min(duration, section.end) - Math.max(0, section.start)) / duration * 100}%`;
+    span.title = `${coverageTime(section.start / 1000)}–${coverageTime(section.end / 1000)}: ${section.error || ({ done: 'Ferdig', loading: 'Behandles', error: 'Feil' })[section.state]}`;
+    fragment.append(span);
+  }
+  container.append(fragment);
+  const done = translationSections.filter(section => section.state === 'done').length;
+  const loading = translationSections.filter(section => section.state === 'loading').length;
+  const errors = translationSections.filter(section => section.state === 'error').length;
+  const summary = translationSections.length ? `${done} av ${translationSections.length} deler klare · ${loading} behandles · ${errors} med feil` : `Undertekster dekker ${Math.round(covered / duration * 100)} % av tidslinjen. Kontrollerer resten …`;
+  $('coverage-status').textContent = summary;
+  $('retry-sections').hidden = !errors;
+  updateCoveragePosition();
+}
+for (const event of ['loadedmetadata', 'durationchange', 'emptied']) player.addEventListener(event, updateTranslationCoverage);
+for (const event of ['timeupdate', 'seeking']) player.addEventListener(event, updateCoveragePosition);
 player.addEventListener('timeupdate', updateSubtitleReadiness);
 async function generateSubtitles(event) {
   event.preventDefault();
@@ -1038,6 +1212,7 @@ async function generateSubtitles(event) {
   busy = true;
   $('toggle-editor').disabled = true;
   $('generate-youtube').disabled = $('youtube-url').disabled = true;
+  translationSections = []; sectionMonitorVersion++;
   cues = []; clearTrack(); showEditor(false); $('subtitle-actions').hidden = true;
   $('progress').hidden = false; $('progress').removeAttribute('value');
   controller = new AbortController();
@@ -1046,32 +1221,31 @@ async function generateSubtitles(event) {
     savedId = undefined; sourceName = $('youtube-url').value.trim(); $('subtitle-title').value = sourceName; dirty = false;
     const created = await json('/api/subtitles/youtube', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: sourceName }), signal: controller.signal });
     jobId = created.id; $('cancel').hidden = false;
+    priorityJobId = jobId; lastPrioritySection = undefined;
     let received = 0;
     let previewStarted = false;
     while (true) {
       controller.signal.throwIfAborted();
-      const job = await json(`/api/subtitles/${jobId}?since=${received}`, { signal: controller.signal });
+      const job = await json(`/api/subtitles/${jobId}`, { signal: controller.signal });
       subtitleReadyThrough = job.readyThrough;
       updateSubtitleReadiness();
-      if (job.cues?.length) {
-        received += job.cues.length;
-        if (!previewStarted && job.audioUrl) {
-          openSaved({ id: job.savedId, title: job.title || sourceName, source: job.source, cues: [...cues, ...job.cues], audioUrl: job.audioUrl });
-          previewStarted = true;
-          $('recordings').hidden = true;
-          const url = new URL(location.href);
-          url.searchParams.set('view', 'play'); url.searchParams.set('subtitle', job.savedId); url.searchParams.delete('t');
-          history.replaceState({ subtitleCard: true }, '', url);
-        } else {
-          cues.push(...job.cues);
-          pages = sentencePages(cues);
-          for (const cue of job.cues) for (const word of cue.words || []) {
-            wordTrack.addCue(new VTTCue(word.start / 1000, word.end / 1000, word.text));
-          }
-          editorNeedsRender = true;
-          updateTurkish(); updatePlayButtons();
-        }
+      translationSections = job.sections || [];
+      if (!previewStarted && job.audioUrl) {
+        openSaved({ id: job.savedId, title: job.title || sourceName, source: job.source, cues: job.cues || [], audioUrl: job.audioUrl, sections: translationSections });
+        previewStarted = true;
+        $('recordings').hidden = true;
+        const url = new URL(location.href);
+        url.searchParams.set('view', 'play'); url.searchParams.set('subtitle', job.savedId); url.searchParams.delete('t');
+        history.replaceState({ subtitleCard: true }, '', url);
+      } else if (job.revision !== received) {
+        cues = job.cues || [];
+        pages = sentencePages(cues);
+        editorNeedsRender = true;
+        updateTrack(); updatePlayButtons();
       }
+      received = job.revision;
+      updateSectionPriority();
+      updateTranslationCoverage();
       if (job.state === 'error') throw new Error(job.error);
       if (job.state === 'done') {
         subtitleReadyThrough = undefined; $('preview-help').textContent = '';
@@ -1090,11 +1264,13 @@ async function generateSubtitles(event) {
   } catch (error) {
     message(controller.signal.aborted ? 'Behandlingen er avbrutt.' : error.message, !controller.signal.aborted);
   } finally {
-    if (jobId) void fetch(`/api/subtitles/${jobId}`, { method: 'DELETE' }).catch(() => {});
+    if (jobId && controller.signal.aborted) void fetch(`/api/subtitles/${jobId}`, { method: 'DELETE' }).catch(() => {});
     jobId = undefined; busy = false;
+    priorityJobId = undefined;
     $('toggle-editor').disabled = false;
     $('generate-youtube').disabled = !youtubeConfigured; $('youtube-url').disabled = false;
     $('cancel').hidden = true; $('progress').hidden = true;
+    updateTranslationCoverage();
   }
 }
 $('youtube-form').addEventListener('submit', event => generateSubtitles(event));

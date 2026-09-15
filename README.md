@@ -41,7 +41,21 @@ must support fast transcription in its region. FFmpeg is installed with npm to
 extract audio from video; `FFMPEG_PATH` can override its location. The Docker
 image uses Alpine's FFmpeg package. Local media uploads are disabled.
 
-Jobs run in the background, one at a time, in one-minute audio chunks with overlapping context. Each completed chunk is saved; playback is available after the first translated chunk. The open player polls for only new cues while later chunks are processed. Partial recordings are marked `(delvis)` in the library until complete. Video responses stream byte ranges instead of reading the entire media file into memory. This is progressive generation, not seek-driven transcription: the rest of the video continues processing in order.
+One video runs in the background at a time, with up to three one-minute sections processed concurrently. Each section uses overlapping audio context and owns its word timestamps, so results can finish out of order. Section status and subtitles are saved together in SQLite. The player polls for progress and displays ready sections in green, active sections in yellow, errors in red, and unchecked sections in gray. Completed silence counts as ready and is not repeatedly transcribed. Failed sections get at most three automatic attempts; **Prøv røde deler igjen** resets their retry limit. Partial recordings are marked `(delvis)` until all sections finish. Video responses stream byte ranges.
+
+Opening a saved YouTube video automatically checks and resumes unfinished sections. Multiple viewers share the same active job. Older saves without section metadata get a one-time audio scan; existing subtitle text is preserved and uncovered speech is translated. The cached video must remain available, or the server must be able to download it again. While generation is active, saving edits to that record is temporarily blocked. The translation timeline stays visible in TV mode, shows the current playback time, and supports clicking to play from a position. Arrow keys seek five seconds; Home and End move to the start and end.
+
+Pending work starts with the section being watched, continues forward, then
+fills earlier gaps. Seeking updates this priority for the next available worker;
+requests already in flight finish normally. For a shared job, the most recently
+reported viewing position determines priority. Failed sections still require
+the retry button once their automatic retry budget is exhausted.
+
+Azure Speech requests share a single queue, spaced at least one second apart,
+while translation sections still run concurrently. HTTP 429 responses honor
+`Retry-After`, or use exponential backoff starting at 30 seconds. After five
+throttled requests, processing stops without consuming later sections' retry
+budgets. Persistent throttling may require checking the Azure resource's quota.
 The server validates word timestamps and checks the meaning chunks against the
 transcribed words before constructing cues. A bad breakdown stops generation;
 it never silently substitutes natural Norwegian or omits a phrase. Subtitle
@@ -75,8 +89,9 @@ completion, failure or cancellation. Audio is sent to Azure; the transcript is
 sent to Anthropic. Original media is not retained in the library: select the
 original audio/video file again to play saved subtitles. The three local example
 stories automatically load their MP3s from `example/` when opened. No new transcription
-is needed. In-progress jobs remain in memory and are lost on server restart;
-completed database records survive restarts when the database is on persistent
+is needed. Running requests stop on server restart, but section progress and
+retry counts persist; opening the video resumes unfinished work. Completed
+database records survive restarts when the database is on persistent
 storage (as in the Render blueprint). `LESSON_DB=off` disables the library;
 downloads still work. Save edits before closing or reloading the page.
 

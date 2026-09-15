@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { MAX_SUBTITLE_MS, SubtitleError, type SubtitleCue } from './subtitles.js';
 import { validEmojiHint } from './subtitle-hints.js';
+import type { SubtitleSection } from './subtitle-sections.js';
 
 export interface SavedSubtitles { id: string; title: string; source: string; cues: SubtitleCue[]; updated: string }
 export function validateSaved(value: unknown): { title: string; source: string; cues: SubtitleCue[] } {
@@ -56,6 +57,31 @@ export class SubtitleStore {
         cues TEXT NOT NULL, updated TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS saved_subtitles_owner ON saved_subtitles(owner, updated);`);
+    this.db.exec('CREATE TABLE IF NOT EXISTS subtitle_progress (id TEXT PRIMARY KEY, sections TEXT NOT NULL)');
+  }
+  sections(id: string): SubtitleSection[] | undefined {
+    const row = this.db.prepare('SELECT sections FROM subtitle_progress WHERE id=?').get(id);
+    return row ? JSON.parse(String(row.sections)) : undefined;
+  }
+  recordOwner(id: string): string | undefined {
+    const row = this.db.prepare('SELECT owner FROM saved_subtitles WHERE id=?').get(id);
+    return row ? String(row.owner) : undefined;
+  }
+  createPending(owner: string, title: string, source: string): string {
+    const id = randomUUID();
+    this.db.prepare('INSERT INTO saved_subtitles VALUES(?,?,?,?,?,?)').run(id, owner, title, source, '[]', new Date().toISOString());
+    return id;
+  }
+  saveProgress(owner: string, id: string, value: { title: string; source: string; cues: SubtitleCue[] }, sections: SubtitleSection[]) {
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      if (this.recordOwner(id) !== owner) throw new SubtitleError('Fant ikke undertekstene.', 404);
+      if (value.cues.length) this.save(owner, value, id);
+      else this.db.prepare('UPDATE saved_subtitles SET title=?,updated=? WHERE id=?').run(value.title, new Date().toISOString(), id);
+      this.db.prepare('INSERT INTO subtitle_progress VALUES(?,?) ON CONFLICT(id) DO UPDATE SET sections=excluded.sections')
+        .run(id, JSON.stringify(sections));
+      this.db.exec('COMMIT');
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
   }
   list(owner: string) {
     return this.db.prepare('SELECT id,title,source,updated FROM saved_subtitles WHERE owner=? ORDER BY updated DESC').all(owner);

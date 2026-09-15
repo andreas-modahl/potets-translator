@@ -10,6 +10,7 @@ import { storybook, storyMedia, findStory } from './storybook.js';
 import { youtubeMedia } from './youtube.js';
 
 export const subtitleStore = config.lessonDb === 'off' ? undefined : new SubtitleStore(config.lessonDb);
+export const subtitleWriters = new Set<string>();
 export function audioRange(header: string | undefined, size: number): { start: number; end: number } | undefined {
   if (!header) return { start: 0, end: size - 1 };
   const match = /^bytes=(\d*)-(\d*)$/.exec(header);
@@ -78,12 +79,13 @@ export async function handleSubtitleLibrary(request: IncomingMessage, response: 
     if (id && request.method === 'GET') {
       const saved = findStory(stories, id) || subtitleStore?.getShared(owner, id);
       const audioUrl = saved && await sharedMedia(saved.source) ? `/api/subtitle-library/${encodeURIComponent(id)}/audio` : undefined;
-      send(response, saved ? 200 : 404, saved ? { ...saved, audioUrl } : { error: 'Fant ikke undertekstene.' }); return;
+      send(response, saved ? 200 : 404, saved ? { ...saved, audioUrl, sections: subtitleStore?.sections(id) } : { error: 'Fant ikke undertekstene.' }); return;
     }
     if ((!id && request.method === 'POST') || (id && request.method === 'PUT')) {
       if (!subtitleStore) throw new SubtitleError('Lagring er slått av på serveren.', 503);
       if (id && findStory(stories, id)) throw new SubtitleError('Lagre en egen kopi for å redigere en felles fortelling.', 403);
       if (id && !subtitleStore.get(owner, id)) throw new SubtitleError('Fant ikke undertekstene.', 404);
+      if (id && subtitleWriters.has(id)) throw new SubtitleError('Vent til oversettelsen er ferdig før du lagrer endringer.', 409);
       const buffers: Buffer[] = []; let size = 0;
       for await (const chunk of request) {
         size += chunk.length;

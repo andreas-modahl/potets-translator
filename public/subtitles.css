@@ -183,6 +183,26 @@ body.tv-view:has(#preview:not([hidden])) main > nav { display: none; }
 #preview:fullscreen #video-stage { flex: 1 1 auto; min-height: 180px; background: #000; }
 #preview:fullscreen video { position: absolute; width: 100%; height: 100%; max-height: none; object-fit: contain; }
 #preview:fullscreen #subtitle-home { flex-shrink: 0; }
+#translation-coverage { flex-shrink: 0; padding: 10px 2px 14px; }
+.coverage-legend { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 7px; color: var(--muted); font: .85rem/1.4 system-ui, sans-serif; }
+.coverage-legend { flex-wrap: wrap; justify-content: start; }
+.coverage-legend > span { display: inline-flex; align-items: center; gap: 7px; }
+.coverage-key { width: 9px; height: 9px; border-radius: 50%; background: #299c73; }
+#coverage-position { font-variant-numeric: tabular-nums; margin-left: auto; }
+#coverage-bar { position: relative; height: 32px; border-radius: 5px; background: var(--sunk); box-shadow: inset 0 0 0 1px var(--line); cursor: pointer; }
+#coverage-bar:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+#coverage-current-time { position: absolute; top: 50%; left: clamp(30px, var(--position, 0%), calc(100% - 30px)); transform: translate(-50%, -50%); padding: 1px 5px; border-radius: 4px; background: #111e; color: white; font: 600 .8rem/1.5 system-ui, sans-serif; font-variant-numeric: tabular-nums; pointer-events: none; }
+#coverage-ranges { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
+.coverage-range { position: absolute; top: 0; bottom: 0; background: #299c73; }
+.coverage-range.loading, .coverage-key.loading { background: #e6b52e; }
+.coverage-range.error, .coverage-key.error { background: #da5353; }
+.coverage-range.loading { background-image: repeating-linear-gradient(135deg, transparent 0 5px, #ffffff40 5px 8px); }
+.coverage-range.error { background-image: repeating-linear-gradient(90deg, transparent 0 6px, #0002 6px 8px); }
+#coverage-status { color: var(--muted); font-size: .9rem; margin: 8px 0 0; }
+#coverage-status:empty { display: none; }
+#coverage-playhead { position: absolute; top: -3px; bottom: -3px; width: 3px; transform: translateX(-50%); border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 1px var(--panel); }
+#preview:is(.tv-mode, :fullscreen) .coverage-legend { font-size: clamp(.9rem, 1.2vw, 1.5rem); }
+#translation-coverage { cursor: auto; }
 #preview:is(.tv-mode, :fullscreen) :is(.playback-toolbar, #sentence-actions) { transition: opacity 180ms ease; }
 #preview.tv-idle :is(.playback-toolbar, #sentence-actions) { opacity: 0; visibility: hidden; pointer-events: none; }
 #preview.tv-idle, #preview.tv-idle video { cursor: none; }

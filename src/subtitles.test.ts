@@ -20,6 +20,20 @@ const response = () => ({ durationMilliseconds: 3000, phrases: [{ text: phrase.t
 test('Azure word timestamps and Unicode survive parsing', () => {
   assert.deepEqual(transcriptPhrases(response()), [phrase]);
 });
+
+test('Azure frame rounding at a clipped audio boundary does not reject the whole section', () => {
+  const data = response();
+  data.phrases[0]!.words[2]!.durationMilliseconds = 1310;
+  assert.equal(transcriptPhrases(data)[0]!.words[2]!.end, 3000);
+  assert.equal(transcriptPhrases(data)[0]!.words[2]!.start, 1700);
+  data.phrases[0]!.words[2]!.durationMilliseconds = 1380;
+  assert.equal(transcriptPhrases(data)[0]!.words[2]!.end, 3000);
+  data.phrases[0]!.words[2]!.durationMilliseconds = 1401;
+  assert.throws(() => transcriptPhrases(data));
+  data.phrases[0]!.words[2]!.offsetMilliseconds = 3000;
+  data.phrases[0]!.words[2]!.durationMilliseconds = 10;
+  assert.throws(() => transcriptPhrases(data));
+});
 test('reject empty, missing, invalid, overlapping and overlong transcription results', () => {
   for (const input of [null, {}, { durationMilliseconds: 5, phrases: [] },
     { durationMilliseconds: 1800001, phrases: [] }, { durationMilliseconds: 100, phrases: [{}] }]) {

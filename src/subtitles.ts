@@ -32,10 +32,13 @@ export function transcriptPhrases(value: unknown): SubtitlePhrase[] {
       const duration = word.durationMilliseconds;
       if (typeof word.text !== 'string' || !word.text.trim() || !Number.isInteger(start) ||
           !Number.isInteger(duration) || start! < previousEnd || duration! <= 0 ||
-          start! + duration! > data.durationMilliseconds!) {
+          start! >= data.durationMilliseconds! || start! + duration! > data.durationMilliseconds! + 100) {
         throw new SubtitleError('Talegjenkjenningen ga ugyldige eller overlappende ordtider.');
       }
-      previousEnd = start! + duration!;
+      // Speech can extrapolate the final word beyond a precisely cut clip
+      // (observed overruns: 10 ms and 80 ms). Allow at most 100 ms at the tail.
+      // Clamp only this small tail overrun; overlaps and larger errors still fail.
+      previousEnd = Math.min(start! + duration!, data.durationMilliseconds!);
       return { text: word.text.trim(), start: start!, end: previousEnd };
     });
     const text = words.map(word => word.text).join(' ');
