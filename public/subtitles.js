@@ -1,4 +1,4 @@
-import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentencePages, captionPage, naturalSegments, pauseSegments, SUFFIX_HINTS, validEmojiHint } from './subtitles-format.js';
+import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentencePages, captionPage, naturalSegments, pauseSegments, SUFFIX_HINTS, validEmojiHint, repetitionGroups } from './subtitles-format.js';
 import { zipFiles } from './subtitles-zip.js';
 import { subtitlePlayer } from './subtitles-player.js';
 
@@ -860,6 +860,8 @@ function clearTrack() {
   $('reading-focus').hidden = true;
   $('focus-turkish').textContent = $('focus-norwegian').textContent = '';
   $('audio-caption').textContent = ''; $('audio-caption').hidden = true;
+  $('word-repetitions').hidden = true;
+  repetitionInput = undefined;
 }
 let highlightFrame;
 function updateHighlightLayer() {
@@ -897,10 +899,27 @@ function updateHighlightLayer() {
   // Follow the actual animated text bounds, including wrapping and resizing.
   highlightFrame = requestAnimationFrame(updateHighlightLayer);
 }
+let repetitionInput;
+function updateRepetitions(active, time) {
+  const panel = $('word-repetitions');
+  panel.hidden = !player.paused || !active?.words?.length;
+  if (panel.hidden) return;
+  if (repetitionInput?.cues === cues && repetitionInput.active === active && repetitionInput.time === time) return;
+  repetitionInput = { cues, active, time };
+  const counts = $('word-repetition-counts'); counts.replaceChildren();
+  for (const group of repetitionGroups(cues, active.words, time)) {
+    const badge = document.createElement('span'); badge.className = 'repetition-count';
+    const emoji = group.count >= 5 ? '🔥' : group.count >= 2 ? '🔁' : '🌱';
+    badge.textContent = `${emoji} ${group.word} ×${group.count}`;
+    badge.title = `${group.variants.join(' / ')} — ${group.count} forekomster i tilgjengelige undertekster hittil. Omtrentlig gruppering.`;
+    counts.append(badge);
+  }
+}
 function updateTurkish() {
   const time = captionTime();
   // Source word times stay tied to the speech when Norwegian cue times are edited.
   const active = captionPage(pages, time, player.paused);
+  updateRepetitions(active, time);
   const caption = $('turkish-caption');
   void ensureEmojiHints(active);
   updateNatural(active);
@@ -971,6 +990,8 @@ function updateTurkish() {
   updateActiveCue();
 }
 wordTrack.addEventListener('cuechange', updateTurkish);
+player.addEventListener('pause', updateTurkish);
+player.addEventListener('play', () => { $('word-repetitions').hidden = true; });
 player.addEventListener('seeked', updateTurkish);
 function updateActiveCue() {
   const time = captionTime();

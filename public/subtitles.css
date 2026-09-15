@@ -84,6 +84,10 @@ video.audio-only { display: block; height: 54px; background: transparent; }
 #turkish-caption:is(.norwegian-focus, .turkish-focus) { position: relative; isolation: isolate; }
 .focus-highlights { position: absolute; inset: 0; z-index: 0; opacity: .7; pointer-events: none; }
 .focus-highlights > span { position: absolute; background: #7763b6; border-radius: 4px; }
+#word-repetitions { margin: 10px auto 0; padding: 8px 12px; max-width: 100%; box-sizing: border-box; border-radius: 8px; background: #161b26eb; color: #fff; font-size: .9rem; }
+#word-repetitions > p { margin: 0 0 6px; font-size: .85em; color: #ccd4e2; }
+#word-repetition-counts { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.repetition-count { padding: 3px 8px; border: 1px solid #ffffff38; border-radius: 6px; white-space: nowrap; }
 #turkish-caption:is(.norwegian-focus, .turkish-focus) .word-translation { z-index: 1; }
 #turkish-caption.norwegian-focus .word-translation { position: relative; isolation: isolate; }
 #turkish-caption.norwegian-focus .word-translation:has(.source-words .speaking) { z-index: 2; }

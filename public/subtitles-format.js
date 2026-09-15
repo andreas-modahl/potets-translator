@@ -1,3 +1,35 @@
+/** Approximate word families, using only common endings and an observed base form. */
+export function repetitionGroups(cues, currentWords, time) {
+  const normalize = text => text.normalize('NFC').toLocaleLowerCase('tr')
+    .replace(/[’']/gu, "'").replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '').split("'")[0];
+  const counts = new Map();
+  const seen = new Set();
+  for (const cue of cues) for (const word of cue.words || []) {
+    if (word.start > time) continue;
+    const text = normalize(word.text);
+    const key = `${word.start}:${word.end}:${text}`;
+    if (!text || seen.has(key)) continue;
+    seen.add(key); counts.set(text, (counts.get(text) || 0) + 1);
+  }
+  const visible = [...new Set(currentWords.map(word => normalize(word.text)).filter(Boolean))];
+  const forms = [...new Set([...counts.keys(), ...visible])].sort((a, b) => a.length - b.length);
+  const suffix = /^(?:lar|ler|ları|leri|larda|lerde|lardan|lerden|ın|in|un|ün|nın|nin|nun|nün|ı|i|u|ü|yı|yi|yu|yü|a|e|ya|ye|da|de|ta|te|dan|den|tan|ten|la|le)$/u;
+  const roots = new Map();
+  for (const form of forms) {
+    const base = forms.find(candidate => candidate.length >= 3 && candidate.length < form.length
+      && form.startsWith(candidate) && suffix.test(form.slice(candidate.length)));
+    roots.set(form, base ? roots.get(base) : form);
+  }
+  const result = new Map();
+  for (const form of visible) {
+    const root = roots.get(form);
+    if (result.has(root)) continue;
+    const variants = forms.filter(candidate => roots.get(candidate) === root);
+    result.set(root, { word: root, variants, count: variants.reduce((total, candidate) => total + (counts.get(candidate) || 0), 0) });
+  }
+  return [...result.values()];
+}
+
 /** Stable visual vocabulary for optional hints about Turkish endings. */
 export const SUFFIX_HINTS = {
   past: { emoji: '⏪', label: 'Fortid' },
