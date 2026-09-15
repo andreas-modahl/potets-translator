@@ -714,13 +714,12 @@ async function loadLibrary() {
     $('library-status').textContent = '';
     $('library').replaceChildren();
     $('translated-videos').replaceChildren();
-    if (!data.items.length) $('library-status').textContent = 'Ingen lagrede oversettelser ennå.';
-    for (const item of data.items) {
+    if (!videos.length) $('library-status').textContent = 'Ingen oversatte YouTube-videoer ennå.';
+    for (const item of videos) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'ghost';
-      button.textContent = item.shared ? `${item.title} · Fortelling` : `${item.title} · ${new Date(item.updated).toLocaleDateString('nb-NO')}`;
+      button.textContent = `${item.title} · ${new Date(item.updated).toLocaleDateString('nb-NO')}`;
       button.onclick = () => { if (!busy && !saving) navigate('play', item.id); };
       $('library').append(button);
-      if (!videos.includes(item)) continue;
       const choice = button.cloneNode(true);
       choice.textContent = item.title;
       choice.onclick = () => { if (!busy && !saving) navigate('play', item.id); };
