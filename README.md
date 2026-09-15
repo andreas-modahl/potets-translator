@@ -63,10 +63,12 @@ open one, edit its title/text/times, and choose **Lagre endringer**. Turkish wor
 and Norwegian meaning chunks keep their original timings. `.translation.json`
 files can also be imported. Local development requests from the same machine
 share a local library, which imports the three translations in `example/` once.
-In production, libraries belong to the signed-in account, or to a persistent
-browser cookie for guests. Guest and account libraries are separate; clearing
-the guest cookie loses access to that guest library. Sign in on the learning
-page before creating a library you want to access on other devices.
+Saved translations and their YouTube links are shared with all visitors, including
+existing saves. Anyone can open a recording or its direct page link. Only the
+account or browser that created a save can update it; other visitors save edits
+as a separate shared copy. Sign in before creating translations to keep editing
+access on other devices. Clearing a guest cookie loses editing access, but the
+saved translations remain visible.
 
 Media is temporarily written to the system temp directory and removed after
 completion, failure or cancellation. Audio is sent to Azure; the transcript is
@@ -266,7 +268,7 @@ after the model choice.
 
 The subtitle page includes the shared [storybook](storybook-translations/README.md) for all
 visitors. Its files ship with the repository and Docker image; no production
-transcription is needed. Saving edits to a shared story creates a private copy.
+transcription is needed. Saving edits to a shared story creates a separate shared copy.
 
 YouTube links can also be imported from the subtitle upload page. Watch, youtu.be,
 mobile, and Shorts links are accepted; playlist parameters are ignored. Videos
@@ -288,6 +290,7 @@ data/tools/ytdlp/Scripts/python.exe -m pip install "yt-dlp[default]==2026.8.19"
 
 On other hosts, install `yt-dlp[default]`, FFmpeg and Node, and set `YTDLP_PATH`
 if the executable is not on PATH. Downloaded videos are kept under `data/youtube`
-(override with `YOUTUBE_MEDIA_DIR`), scoped to the importing account/browser.
+(override with `YOUTUBE_MEDIA_DIR`). Existing account/browser cache paths are
+reused to serve playback to all visitors, including copies of shared translations.
 Persist this directory alongside the subtitle database so saved videos reopen.
 The extractor is pinned in Docker; update it when YouTube changes its delivery.

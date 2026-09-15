@@ -35,6 +35,14 @@ function send(response: ServerResponse, status: number, body: unknown) {
   response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
   response.end(JSON.stringify(body));
 }
+async function sharedMedia(source: string) {
+  const story = await storyMedia(source);
+  if (story) return story;
+  for (const owner of subtitleStore?.mediaOwners(source) || []) {
+    const video = await youtubeMedia(source, owner);
+    if (video) return video;
+  }
+}
 export async function handleSubtitleLibrary(request: IncomingMessage, response: ServerResponse, path: string, owner: string) {
   try {
     const stories = await storybook();
@@ -42,14 +50,14 @@ export async function handleSubtitleLibrary(request: IncomingMessage, response: 
       send(response, 403, { error: 'Lagring må skje fra denne siden.' }); return;
     }
     if (path === '/api/subtitle-library' && request.method === 'GET') {
-      const personal = (subtitleStore?.list(owner) || []).filter(item => !findStory(stories, String(item.id)));
-      send(response, 200, { items: [...stories.map(({ cues, ...item }) => item), ...personal], storage: Boolean(subtitleStore), scope: owner === 'local' ? 'local' : owner.startsWith('user:') ? 'account' : 'browser' }); return;
+      const saved = (subtitleStore?.listShared() || []).filter(item => !findStory(stories, String(item.id)));
+      send(response, 200, { items: [...stories.map(({ cues, ...item }) => item), ...saved], storage: Boolean(subtitleStore), scope: 'shared' }); return;
     }
     const id = path.startsWith('/api/subtitle-library/') ? path.slice('/api/subtitle-library/'.length) : undefined;
     if (id?.endsWith('/audio') && (request.method === 'GET' || request.method === 'HEAD')) {
       const recordId = id.slice(0, -'/audio'.length);
-      const saved = findStory(stories, recordId) || subtitleStore?.get(owner, recordId);
-      const file = saved && (await storyMedia(saved.source) || await youtubeMedia(saved.source, owner));
+      const saved = findStory(stories, recordId) || subtitleStore?.getShared(owner, recordId);
+      const file = saved && await sharedMedia(saved.source);
       if (!file) { send(response, 404, { error: 'Velg originalfilen for å spille av undertekstene.' }); return; }
       const { size } = await stat(file);
       const range = audioRange(request.headers.range, size);
@@ -68,8 +76,8 @@ export async function handleSubtitleLibrary(request: IncomingMessage, response: 
       stream.pipe(response); return;
     }
     if (id && request.method === 'GET') {
-      const saved = findStory(stories, id) || subtitleStore?.get(owner, id);
-      const audioUrl = saved && (await storyMedia(saved.source) || await youtubeMedia(saved.source, owner)) ? `/api/subtitle-library/${encodeURIComponent(id)}/audio` : undefined;
+      const saved = findStory(stories, id) || subtitleStore?.getShared(owner, id);
+      const audioUrl = saved && await sharedMedia(saved.source) ? `/api/subtitle-library/${encodeURIComponent(id)}/audio` : undefined;
       send(response, saved ? 200 : 404, saved ? { ...saved, audioUrl } : { error: 'Fant ikke undertekstene.' }); return;
     }
     if ((!id && request.method === 'POST') || (id && request.method === 'PUT')) {

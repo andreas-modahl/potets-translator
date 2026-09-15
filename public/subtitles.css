@@ -129,22 +129,26 @@ video.audio-only { display: block; height: 54px; background: transparent; }
 #library-status:empty, #status:empty, #preview-help:empty { display: none; }
 [hidden] { display: none !important; }
 #video-stage { position: relative; }
-.video-overlay { position: absolute; bottom: 56px; left: 3%; right: 3%; max-height: calc(100% - 68px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; background: rgb(0 0 0 / 72%); border-radius: 6px; padding: 8px 12px; box-sizing: border-box; color: white; --ink: #fff; --line: #ffffff50; --accent: #ffe08a; }
+.video-overlay { position: absolute; bottom: 56px; left: 3%; right: 3%; max-height: calc(100% - 68px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 4px; box-sizing: border-box; color: white; --ink: #fff; --line: #ffffff50; --accent: #ffe08a; }
 .video-overlay:has(> [hidden]):not(:has(> :not([hidden]))) { display: none; }
 .video-overlay #turkish-caption { margin: 0; padding: 0; gap: 8px 12px; font-size: 1rem; }
 .video-overlay #turkish-caption .source-words { color: white !important; padding-top: 2px; gap: 8px 3px; }
 .video-overlay #turkish-caption .word-meaning { color: #ffe08a !important; font-size: 1rem; }
 .video-overlay .word-translation { gap: 2px; }
+.video-overlay .source-words, .video-overlay .word-meaning,
+.video-overlay .natural-caption p, .video-overlay .reading-focus > div,
+.video-overlay .audio-caption { width: fit-content; max-width: 100%; box-sizing: border-box; background: rgb(0 0 0 / 72%); border-radius: 4px; padding: 2px 5px; }
+.video-overlay .reading-focus > div, .video-overlay .audio-caption { min-height: 0; margin-inline: auto; }
+.video-overlay .reading-focus > div:empty { display: none; }
 .video-overlay .spoken-word.speaking { color: #211b0b !important; background: #ffe08a; }
 .video-overlay #turkish-caption .word-meaning.speaking { color: #211b0b !important; }
-.video-overlay .natural-caption { margin: 8px 0 0; padding-top: 6px; }
-.video-overlay .natural-caption p { margin: 0; padding: 0; font-size: 1rem; }
+.video-overlay .natural-caption { margin: 8px 0 0; padding-top: 0; border-top: 0; }
+.video-overlay .natural-caption p { margin: 0 auto; font-size: 1rem; }
 .video-overlay .natural-phrase { margin-top: 2px; }
 .video-overlay .natural-word-badge, .video-overlay .natural-badge-size, .video-overlay .norwegian-word-badge { font-size: .85rem; padding: 2px 4px; }
 .video-overlay .reading-focus { margin: 0 0 8px; padding: 4px; background: transparent; gap: 2px; }
 .video-overlay #focus-turkish, .video-overlay #focus-norwegian { font-size: 1.1rem; color: white !important; }
 @media (max-width: 550px) {
-  .video-overlay { padding: 6px 8px; }
   .video-overlay #turkish-caption, .video-overlay #turkish-caption .word-meaning, .video-overlay .natural-caption p { font-size: .85rem; }
   .video-overlay #turkish-caption { gap: 4px 6px; }
   .video-overlay .natural-word-badge, .video-overlay .natural-badge-size, .video-overlay .norwegian-word-badge { font-size: .75rem; padding: 1px 2px; }

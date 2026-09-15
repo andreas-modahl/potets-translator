@@ -652,12 +652,13 @@ async function loadLibrary() {
     $('library-status').textContent = '';
     $('library').replaceChildren();
     $('translated-videos').replaceChildren();
-    if (!videos.length) $('library-status').textContent = 'Ingen oversatte YouTube-videoer ennå.';
-    for (const item of videos) {
+    if (!data.items.length) $('library-status').textContent = 'Ingen lagrede oversettelser ennå.';
+    for (const item of data.items) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'ghost';
       button.textContent = item.shared ? `${item.title} · Fortelling` : `${item.title} · ${new Date(item.updated).toLocaleDateString('nb-NO')}`;
       button.onclick = () => { if (!busy && !saving) navigate('play', item.id); };
       $('library').append(button);
+      if (!videos.includes(item)) continue;
       const choice = button.cloneNode(true);
       choice.textContent = item.title;
       choice.onclick = () => { if (!busy && !saving) navigate('play', item.id); };
@@ -677,10 +678,9 @@ function showPlaybackSelection(title, filename) {
 
 }
 function openSaved(saved) {
-  if (!isYoutubeVideo(saved.source)) throw new Error('Velg en YouTube-video.');
   cancelSegmentPause(); cancelSentencePlayback(); player.pause(); player.removeAttribute('src'); player.load();
   savedId = saved.id; sourceName = saved.source; cues = saved.cues;
-  sharedStory = Boolean(saved.shared);
+  sharedStory = Boolean(saved.shared) || saved.canEdit === false;
   $('save-subtitles').textContent = sharedStory ? 'Lagre egen kopi' : 'Lagre endringer';
   $('subtitle-title').value = saved.title;
   dirty = false; revision += 1;

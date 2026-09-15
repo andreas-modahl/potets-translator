@@ -60,6 +60,21 @@ export class SubtitleStore {
   list(owner: string) {
     return this.db.prepare('SELECT id,title,source,updated FROM saved_subtitles WHERE owner=? ORDER BY updated DESC').all(owner);
   }
+  listShared() {
+    return this.db.prepare('SELECT id,title,source,updated FROM saved_subtitles ORDER BY updated DESC').all();
+  }
+  getShared(viewer: string, id: string): (SavedSubtitles & { canEdit: boolean }) | undefined {
+    const row = this.db.prepare('SELECT id,owner,title,source,cues,updated FROM saved_subtitles WHERE id=?').get(id) as
+      | { id: string; owner: string; title: string; source: string; cues: string; updated: string }
+      | undefined;
+    if (!row) return;
+    const { owner, cues, ...saved } = row;
+    return { ...saved, cues: JSON.parse(cues), canEdit: owner === viewer };
+  }
+  mediaOwners(source: string): string[] {
+    return this.db.prepare('SELECT DISTINCT owner FROM saved_subtitles WHERE source=?').all(source)
+      .map(row => String(row.owner));
+  }
   get(owner: string, id: string): SavedSubtitles | undefined {
     const row = this.db.prepare('SELECT id,title,source,cues,updated FROM saved_subtitles WHERE owner=? AND id=?').get(owner, id) as
       | { id: string; title: string; source: string; cues: string; updated: string }
