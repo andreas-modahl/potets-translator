@@ -1,24 +1,17 @@
-import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createRequire } from 'node:module';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { promisify } from 'node:util';
 import { config } from './config.js';
-import { downloadYoutube, youtubeAvailable, youtubeUrl, youtubeMedia } from './youtube.js';
-import { fileURLToPath } from 'node:url';
+import { youtubeAudio, youtubeAudioSection, youtubeAvailable, youtubeUrl } from './youtube.js';
 import { translateSubtitlePhrase } from './subtitle-translation.js';
 import { audioClip } from './subtitle-chunks.js';
-import { fillSections, makeSections, sectionPhrases, type SubtitleSection } from './subtitle-sections.js';
+import { fillSections, makeSections, sectionClipPhrases, type SubtitleSection } from './subtitle-sections.js';
 import { recoverTranscriptGaps } from './subtitle-recovery.js';
 import { subtitleStore, subtitleWriters } from './subtitle-library.js';
 import { validateSaved } from './subtitle-store.js';
 import { SpeechRequests } from './speech-requests.js';
 import { MAX_SUBTITLE_BYTES, MAX_SUBTITLE_MS, SubtitleError, transcriptPhrases, type SubtitleCue } from './subtitles.js';
 
-const execute = promisify(execFile);
 const speechRequests = new SpeechRequests();
 const ffmpeg: string | null = process.env.FFMPEG_PATH || createRequire(import.meta.url)('ffmpeg-static');
 const jobs = new Map<string, Job>();
@@ -56,43 +49,13 @@ function sweep(): void {
 }
 setInterval(sweep, 60_000).unref();
 
-async function run(job: Job, media: Buffer | string): Promise<void> {
-  let directory: string | undefined;
+async function run(job: Job, media: string): Promise<void> {
   const signal = AbortSignal.any([job.controller.signal, AbortSignal.timeout(60 * 60_000)]);
   try {
-    directory = await mkdtemp(join(tmpdir(), 'languageballs-subtitles-'));
-    let input = join(directory, 'upload');
-    const output = join(directory, 'audio.pcm');
     if (!ffmpeg) throw new SubtitleError('Videobehandling er ikke tilgjengelig på serveren.', 503);
-    if (typeof media === 'string') {
-      job.state = 'downloading';
-      let cached: URL | undefined;
-      for (const mediaOwner of subtitleStore?.mediaOwners(media) || []) {
-        cached = await youtubeMedia(media, mediaOwner);
-        if (cached) break;
-      }
-      if (cached) input = fileURLToPath(cached);
-      else {
-        const video = await downloadYoutube(media, job.owner, directory, ffmpeg, signal);
-        input = video.file; job.title ||= video.title; job.source = video.source;
-      }
-      job.state = 'extracting';
-    } else await writeFile(input, media);
-    try {
-      await execute(ffmpeg, ['-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
-        '-protocol_whitelist', 'file,pipe', '-format_whitelist', 'mov,matroska,webm,wav,mp3,flac,ogg,aac,avi',
-        '-i', input, '-map', '0:a:0', '-vn',
-        '-t', String(MAX_SUBTITLE_MS / 1000 + 1), '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', '-f', 's16le', output],
-      { signal, timeout: 120_000, windowsHide: true, maxBuffer: 1024 * 1024 });
-    } catch {
-      throw new SubtitleError('Kunne ikke lese lydsporet. Prøv en MP4-, WebM-, MP3- eller WAV-fil.');
-    }
-    const audio = await readFile(output);
-    // PCM is 16,000 samples/sec, two bytes/sample. Reject overlong media before a paid call.
-    if (audio.length > MAX_SUBTITLE_MS / 1000 * 32000) {
-      throw new SubtitleError('Opptaket må være på høyst 2 timer.');
-    }
-    signal.throwIfAborted();
+    job.state = 'downloading';
+    const audio = await youtubeAudio(media, signal);
+    job.title ||= audio.title; job.source = audio.source;
     job.state = 'transcribing';
     const transcribe = async (audio: Buffer, allowEmpty = false) => {
       const form = new FormData();
@@ -113,7 +76,7 @@ async function run(job: Job, media: Buffer | string): Promise<void> {
         phrases: allowEmpty && Array.isArray(raw.phrases) && !raw.phrases.length ? [] : transcriptPhrases(raw) };
     };
     if (!subtitleStore) throw new SubtitleError('Lagring er slått av.', 503);
-    job.sections = subtitleStore.sections(job.savedId || '') || makeSections(audio.length / 32);
+    job.sections = subtitleStore.sections(job.savedId || '') || makeSections(audio.duration);
     job.total = job.sections.length;
     job.savedId ||= subtitleStore.createPending(job.owner, job.title || job.source, job.source);
     subtitleWriters.add(job.savedId);
@@ -132,7 +95,10 @@ async function run(job: Job, media: Buffer | string): Promise<void> {
     persist();
     const existing = [...job.cues];
     await fillSections(job.sections, signal, async section => {
-      const phrases = await sectionPhrases(audio, section, async wav => {
+      const offset = Math.max(0, section.start - 1000);
+      const end = Math.min(audio.duration, section.end + 1000);
+      const clip = await youtubeAudioSection(audio, offset, end, ffmpeg, signal);
+      const phrases = await sectionClipPhrases(audioClip(clip, 0, clip.length / 32), offset, section, async wav => {
         const initial = await transcribe(wav, true);
         const pcm = wav.subarray(44);
         return recoverTranscriptGaps(initial.phrases, pcm.length / 32, async (start, end) => {
@@ -172,7 +138,6 @@ async function run(job: Job, media: Buffer | string): Promise<void> {
     if (!(error instanceof SubtitleError) && !signal.aborted) console.error('Subtitle generation failed:', error);
   } finally {
     if (job.savedId) subtitleWriters.delete(job.savedId);
-    if (directory) await rm(directory, { recursive: true, force: true }).catch(() => {});
     job.expires = Date.now() + TTL;
     busy = false;
   }
@@ -297,7 +262,7 @@ export async function handleSubtitles(request: IncomingMessage, response: Server
     send(response, 200, { state: job.state, completed: job.completed, total: job.total,
       error: job.error, cues: job.cues, replaceCues: true, revision: job.revision, sections: job.sections, cueCount: job.cues.length, readyThrough: job.readyThrough,
       savedId: job.savedId, saveError: job.saveError, title: job.title, source: job.source,
-      audioUrl: job.savedId ? `/api/subtitle-library/${job.savedId}/audio` : undefined });
+      playbackUrl: youtubeUrl(job.source) });
   } else if (job && request.method === 'DELETE') {
     job.controller.abort(); jobs.delete(id); send(response, 200, { ok: true });
   } else send(response, 404, { error: 'Jobben finnes ikke lenger. Last opp filen på nytt.' });

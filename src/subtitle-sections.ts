@@ -29,7 +29,13 @@ export function nextSection(sections: SubtitleSection[], position: number): Subt
 export async function sectionPhrases(pcm: Buffer, section: SubtitleSection,
   transcribe: (wav: Buffer) => Promise<SubtitlePhrase[]>, existing: SubtitleCue[]): Promise<SubtitlePhrase[]> {
   const offset = Math.max(0, section.start - 1000);
-  const result = await transcribe(audioClip(pcm, offset, Math.min(pcm.length / 32, section.end + 1000)));
+  return sectionClipPhrases(audioClip(pcm, offset, Math.min(pcm.length / 32, section.end + 1000)), offset, section, transcribe, existing);
+}
+
+/** A fetched audio section has a local clock; restore absolute video timestamps. */
+export async function sectionClipPhrases(wav: Buffer, offset: number, section: SubtitleSection,
+  transcribe: (wav: Buffer) => Promise<SubtitlePhrase[]>, existing: SubtitleCue[]): Promise<SubtitlePhrase[]> {
+  const result = await transcribe(wav);
   const phrases: SubtitlePhrase[] = [];
   for (const phrase of result) {
     let group: SubtitlePhrase | undefined;

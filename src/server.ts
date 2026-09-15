@@ -66,6 +66,7 @@ const ASSETS = new Map<string, Asset>(
       ['/translate', 'index.html', HTML],
       ['/subtitles', 'subtitles.html', HTML],
       ['/subtitles.js', 'subtitles.js', JS],
+      ['/subtitles-player.js', 'subtitles-player.js', JS],
       ['/subtitles-format.js', 'subtitles-format.js', JS],
       ['/subtitles-zip.js', 'subtitles-zip.js', JS],
       ['/subtitles.css', 'subtitles.css', CSS],

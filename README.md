@@ -29,7 +29,7 @@ to show, the lesson pool, the picture lookup, and the session and user stores.
 
 ## Subtitles from Turkish speech
 
-Open `/subtitles`, enter a YouTube link (up to 500 MB and 2 hours),
+Open `/subtitles`, enter a YouTube link (up to 2 hours),
 then review the timed Norwegian text and download SRT or WebVTT. The Norwegian
 meaning chunks stay in Turkish order, like the learning page. This deliberately
 produces a learning gloss rather than natural Norwegian sentence order.
@@ -41,9 +41,9 @@ must support fast transcription in its region. FFmpeg is installed with npm to
 extract audio from video; `FFMPEG_PATH` can override its location. The Docker
 image uses Alpine's FFmpeg package. Local media uploads are disabled.
 
-One video runs in the background at a time, with up to three one-minute sections processed concurrently. Each section uses overlapping audio context and owns its word timestamps, so results can finish out of order. Section status and subtitles are saved together in SQLite. The player polls for progress and displays ready sections in green, active sections in yellow, errors in red, and unchecked sections in gray. Completed silence counts as ready and is not repeatedly transcribed. Failed sections get at most three automatic attempts; **Prøv røde deler igjen** resets their retry limit. Partial recordings are marked `(delvis)` until all sections finish. Video responses stream byte ranges.
+One video runs in the background at a time, with up to three one-minute sections processed concurrently. Each section uses overlapping audio context and owns its word timestamps, so results can finish out of order. Section status and subtitles are saved together in SQLite. The player polls for progress and displays ready sections in green, active sections in yellow, errors in red, and unchecked sections in gray. Completed silence counts as ready and is not repeatedly transcribed. Failed sections get at most three automatic attempts; **Prøv røde deler igjen** resets their retry limit. Partial recordings are marked `(delvis)` until all sections finish. Playback streams directly from YouTube through its embedded player. The server fetches the audio range for each section with overlapping context instead of downloading the full video.
 
-Opening a saved YouTube video automatically checks and resumes unfinished sections. Multiple viewers share the same active job. Older saves without section metadata get a one-time audio scan; existing subtitle text is preserved and uncovered speech is translated. The cached video must remain available, or the server must be able to download it again. While generation is active, saving edits to that record is temporarily blocked. The translation timeline stays visible in TV mode, shows the current playback time, and supports clicking to play from a position. Arrow keys seek five seconds; Home and End move to the start and end.
+Opening a saved YouTube video automatically checks and resumes unfinished sections. Multiple viewers share the same active job. Older saves without section metadata get a one-time audio scan; existing subtitle text is preserved and uncovered speech is translated. YouTube must allow embedding for playback, and the server must be able to fetch audio for unfinished sections. Translations overlay the embedded player when the video-text setting is enabled; disabling it places them below the video. Word timings come from transcription; highlights follow the iframe playback clock. While generation is active, saving edits to that record is temporarily blocked. The translation timeline stays visible in TV mode, shows the current playback time, and supports clicking to play from a position. Arrow keys seek five seconds; Home and End move to the start and end.
 
 Pending work starts with the section being watched, continues forward, then
 fills earlier gaps. Seeking updates this priority for the next available worker;
@@ -287,12 +287,14 @@ transcription is needed. Saving edits to a shared story creates a separate share
 
 YouTube links can also be imported from the subtitle upload page. Watch, youtu.be,
 mobile, and Shorts links are accepted; playlist parameters are ignored. Videos
-must be non-live, at most two hours, and at most 500 MB. The importer selects
-a rendition up to 720p whose estimated combined video and audio size fits the
-limit, reducing resolution when necessary. The server downloads
-up to 720p MP4 and uses the same transcription, highlighting and smooth pause
-controls as uploaded files. Imports do not use browser cookies or YouTube logins;
-YouTube can reject videos or server IPs, in which case file upload remains available.
+must be non-live and at most two hours. The browser streams video directly from
+YouTube. New imports do not download a complete MP4 or apply a video-size cap.
+yt-dlp resolves the audio stream; FFmpeg seeks to and decodes each requested
+section into temporary in-memory mono PCM. At most three sections are in flight.
+Pause, replay, speed and timeline controls use the YouTube IFrame API. Audio
+fades are available only for local media; embedded controls stay available.
+Imports do not use browser cookies or YouTube logins. YouTube may reject server
+IPs or disable embedding for a video; these errors are shown in the player.
 
 Subtitle translations refer to numbered whole words from the transcript. The
 server constructs Turkish chunks from those original words and validates complete,
@@ -306,8 +308,8 @@ data/tools/ytdlp/Scripts/python.exe -m pip install "yt-dlp[default]==2026.8.19"
 ```
 
 On other hosts, install `yt-dlp[default]`, FFmpeg and Node, and set `YTDLP_PATH`
-if the executable is not on PATH. Downloaded videos are kept under `data/youtube`
-(override with `YOUTUBE_MEDIA_DIR`). Existing account/browser cache paths are
-reused to serve playback to all visitors, including copies of shared translations.
-Persist this directory alongside the subtitle database so saved videos reopen.
+if the executable is not on PATH. Existing files in `data/youtube` (overridden
+with `YOUTUBE_MEDIA_DIR`) remain readable through the legacy media endpoint,
+but new imports do not create video cache files. Persist the subtitle database
+to retain translations and section progress across restarts.
 The extractor is pinned in Docker; update it when YouTube changes its delivery.

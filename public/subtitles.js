@@ -1,5 +1,6 @@
 import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentencePages, captionPage, naturalSegments, pauseSegments, SUFFIX_HINTS, validEmojiHint } from './subtitles-format.js';
 import { zipFiles } from './subtitles-zip.js';
+import { subtitlePlayer } from './subtitles-player.js';
 
 const $ = id => document.getElementById(id);
 const settingsKey = name => `subtitles:settings:v2:${name}`;
@@ -15,7 +16,7 @@ for (const id of ['show-sentence', 'show-gloss', 'show-norwegian-badge', 'show-n
     catch { /* The control still works when browser storage is unavailable. */ }
   });
 }
-const player = $('player');
+const player = subtitlePlayer($('player'), $('youtube-player'));
 const preview = $('preview');
 const tvButton = $('tv-mode');
 let tvControlsTimer;
@@ -391,6 +392,7 @@ function schedulePauseFade() {
   smoothGainRamp(gain, 1, 0, fadeStart, fadeDuration);
 }
 async function startPlaybackAudio() {
+  if (player.embedded) return;
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   if (!AudioContext) return;
   try {
@@ -401,7 +403,7 @@ async function startPlaybackAudio() {
     if (!playbackGain) {
       const gain = playbackAudio.createGain();
       gain.connect(playbackAudio.destination);
-      playbackAudio.createMediaElementSource(player).connect(gain);
+      playbackAudio.createMediaElementSource(player.native).connect(gain);
       playbackGain = gain;
     }
     resetAudioFade(true);
@@ -776,7 +778,8 @@ function openSaved(saved) {
   dirty = false; revision += 1;
   renderCues(); $('preview').hidden = false;
   showPlaybackSelection(saved.title, sourceName, Boolean(saved.audioUrl));
-  if (saved.audioUrl) player.src = saved.audioUrl;
+  if (isYoutubeVideo(saved.source)) player.src = saved.source;
+  else if (saved.audioUrl) player.src = saved.audioUrl;
   $('preview-help').textContent = '';
   message('');
   $('save-status').textContent = 'Lagret';
@@ -1010,8 +1013,9 @@ function renderCues() {
 
 player.addEventListener('error', () => {
   updatePlayButtons();
-  $('preview-help').textContent = 'Kan ikke spille av videoen. Velg en annen YouTube-video.';
+  $('preview-help').textContent = player.error?.message || 'Kan ikke spille av videoen. Velg en annen YouTube-video.';
 });
+player.addEventListener('autoplayblocked', () => { $('preview-help').textContent = 'Trykk spill av i YouTube-spilleren for å starte.'; });
 function updateMediaLayout() {
   player.classList.toggle('audio-only', player.readyState >= 1 && player.videoWidth === 0 && player.videoHeight === 0);
   const overlay = $('overlay-text').checked && player.readyState >= 1 && player.videoWidth > 0;
@@ -1106,7 +1110,7 @@ async function monitorSections(id, version, retry = false) {
       if (revision !== job.revision && !dirty && !saving) {
         cues = job.cues || []; revision = job.revision;
         editorNeedsRender = true; updateTrack(); updatePlayButtons();
-        if (job.audioUrl && !player.getAttribute('src')) player.src = job.audioUrl;
+        if (!player.getAttribute('src') && (job.playbackUrl || job.audioUrl)) player.src = job.playbackUrl || job.audioUrl;
       }
       updateTranslationCoverage();
       if (job.state === 'error' || job.state === 'done') {
@@ -1230,7 +1234,7 @@ async function generateSubtitles(event) {
       subtitleReadyThrough = job.readyThrough;
       updateSubtitleReadiness();
       translationSections = job.sections || [];
-      if (!previewStarted && job.audioUrl) {
+      if (!previewStarted && job.savedId) {
         openSaved({ id: job.savedId, title: job.title || sourceName, source: job.source, cues: job.cues || [], audioUrl: job.audioUrl, sections: translationSections });
         previewStarted = true;
         $('recordings').hidden = true;

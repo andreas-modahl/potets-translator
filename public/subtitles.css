@@ -129,6 +129,11 @@ video.audio-only { display: block; height: 54px; background: transparent; }
 #library-status:empty, #status:empty, #preview-help:empty { display: none; }
 [hidden] { display: none !important; }
 #video-stage { position: relative; }
+#youtube-player { width: 100%; height: min(56.25vw, 60vh); min-height: 200px; background: #111; }
+#preview.tv-mode #youtube-player { height: min(56.25vw, 72vh); }
+#youtube-player iframe { display: block; width: 100%; height: 100%; min-height: 200px; border: 0; }
+.video-overlay { z-index: 1; }
+#preview:fullscreen #youtube-player { height: 100%; position: absolute; inset: 0; }
 .video-overlay { position: absolute; bottom: 56px; left: 3%; right: 3%; max-height: calc(100% - 68px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 4px; box-sizing: border-box; color: white; --ink: #fff; --line: #ffffff50; --accent: #ffe08a; }
 .video-overlay:has(> [hidden]):not(:has(> :not([hidden]))) { display: none; }
 .video-overlay #turkish-caption { width: fit-content; max-width: 100%; min-height: 0; margin: 0 auto; padding: 2px 5px 6px; gap: 8px 12px; font-size: 1rem; background: rgb(0 0 0 / 72%); border-radius: 4px; }
@@ -175,9 +180,9 @@ body.tv-view:has(#preview:not([hidden])) main > nav { display: none; }
 #preview:is(.tv-mode, :fullscreen) .subtitle-menu { left: auto; right: 0; width: min(420px, calc(100vw - 48px)); max-height: 65vh; z-index: 30; }
 #preview:is(.tv-mode, :fullscreen) .subtitle-menu label { font-size: clamp(1.1rem, 1.2vw, 1.75rem); padding-block: 14px; }
 #preview:is(.tv-mode, :fullscreen) .video-overlay { bottom: max(64px, 6vh); left: 5%; right: 5%; max-height: calc(100% - 90px); }
-#preview:is(.tv-mode, :fullscreen) .video-overlay :is(#turkish-caption, #turkish-caption .word-meaning, .natural-caption p, #focus-turkish, #focus-norwegian) { font-size: clamp(1.1rem, 2vw, 3rem); line-height: 1.45; }
+#preview:is(.tv-mode, :fullscreen) .video-overlay :is(#turkish-caption, #turkish-caption .word-meaning, .natural-caption p, #focus-turkish, #focus-norwegian) { font-size: clamp(1rem, 1.4vw, 2rem); line-height: 1.45; }
 #preview:is(.tv-mode, :fullscreen) .video-overlay #turkish-caption { padding: 6px 12px 10px; }
-#preview:is(.tv-mode, :fullscreen) .video-overlay :is(.natural-word-badge, .natural-badge-size, .norwegian-word-badge) { font-size: clamp(.9rem, 1.4vw, 2rem); }
+#preview:is(.tv-mode, :fullscreen) .video-overlay :is(.natural-word-badge, .natural-badge-size, .norwegian-word-badge) { font-size: clamp(.8rem, 1vw, 1.4rem); }
 #preview:fullscreen { display: flex; flex-direction: column; box-sizing: border-box; width: 100%; height: 100%; margin: 0; padding: clamp(12px, 2vw, 40px); overflow-y: auto; }
 #preview:fullscreen .playback-toolbar { flex-shrink: 0; }
 #preview:fullscreen #video-stage { flex: 1 1 auto; min-height: 180px; background: #000; }

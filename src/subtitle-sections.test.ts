@@ -1,11 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { fillSections, makeSections, nextSection, sectionPhrases } from './subtitle-sections.js';
+import { fillSections, makeSections, nextSection, sectionPhrases, sectionClipPhrases } from './subtitle-sections.js';
 import { SubtitleStore } from './subtitle-store.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SubtitleError } from './subtitles.js';
+
+test('downloaded sections restore the video clock and exclude overlapping context', async () => {
+  const section = makeSections(180000)[1]!;
+  const phrases = await sectionClipPhrases(Buffer.alloc(44), 59000, section, async () => [{
+    text: 'before inside', words: [{ text: 'before', start: 0, end: 500 }, { text: 'inside', start: 1500, end: 2000 }],
+  }], []);
+  assert.deepEqual(phrases, [{ text: 'inside', words: [{ text: 'inside', start: 60500, end: 61000 }] }]);
+});
 
 test('prioritize the viewed section, then following sections, then earlier gaps', () => {
   const sections = makeSections(300000);

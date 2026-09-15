@@ -1,10 +1,10 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { access, copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
-import { MAX_SUBTITLE_BYTES, MAX_SUBTITLE_MS, SubtitleError } from './subtitles.js';
+import { MAX_SUBTITLE_MS, SubtitleError } from './subtitles.js';
 
 const execute = promisify(execFile);
 const binary = process.env.YTDLP_PATH || (process.platform === 'win32' ? resolve('data/tools/ytdlp/Scripts/yt-dlp.exe') : 'yt-dlp');
@@ -40,61 +40,46 @@ export function validateYoutubeMetadata(metadata: { duration?: unknown; is_live?
     throw new SubtitleError('Velg en video på høyst 2 timer, ikke en direktesending.', 400);
   }
 }
-interface YoutubeFormat {
-  format_id: string; ext?: string; vcodec?: string; acodec?: string;
-  height?: number; filesize?: number; filesize_approx?: number; tbr?: number;
-}
-/** yt-dlp lists formats from worst to best. Budget the merged audio and video. */
-export function youtubeDownloadFormat(metadata: { duration: number; formats?: YoutubeFormat[] }): string {
-  const formats = [...(metadata.formats || [])].reverse();
-  const size = (format: YoutubeFormat) => format.filesize || format.filesize_approx ||
-    (format.tbr ? format.tbr * 1000 / 8 * metadata.duration : Infinity);
-  const audio = formats.find(format => format.ext === 'm4a' && format.vcodec === 'none');
-  for (const video of formats) {
-    if (video.ext !== 'mp4' || !video.height || video.height > 720 || !video.vcodec?.startsWith('avc1')) continue;
-    if (video.acodec && video.acodec !== 'none') {
-      if (size(video) <= MAX_SUBTITLE_BYTES) return video.format_id;
-    } else if (audio && size(video) + size(audio) <= MAX_SUBTITLE_BYTES) {
-      return `${video.format_id}+${audio.format_id}`;
-    }
-  }
-  throw new SubtitleError('Fant ingen videokvalitet innenfor grensen på 500 MB.', 413);
-}
-export async function downloadYoutube(url: string, owner: string, temporary: string, ffmpeg: string, signal: AbortSignal) {
-  const canonical = youtubeUrl(url);
-  if (!canonical) throw new SubtitleError('Lim inn en gyldig YouTube-lenke.', 400);
-  const final = mediaPath(canonical, owner);
+export interface YoutubeAudio { source: string; title: string; duration: number; audioUrl: string }
+export async function youtubeAudio(source: string, signal: AbortSignal): Promise<YoutubeAudio> {
+  const canonical = youtubeUrl(source);
+  if (!canonical) throw new SubtitleError('Ugyldig YouTube-lenke.', 400);
   try {
-    await access(final);
-    const metadata = JSON.parse(await readFile(final + '.json', 'utf8'));
-    return { file: final, title: String(metadata.title).slice(0, 200), source: canonical };
-  } catch { /* Fetch clips that are not cached for this owner. */ }
-  const args = ['--ignore-config', '--no-playlist', '--no-progress', '--no-warnings', '--no-plugin-dirs',
-    '--js-runtimes', `node:${process.execPath}`, '--socket-timeout', '20', '--retries', '1', '--fragment-retries', '1'];
-  try {
-    const result = await execute(binary, [...args, '--skip-download', '--dump-single-json', '--', canonical],
-      { signal, windowsHide: true, timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
+    const result = await execute(binary, ['--ignore-config', '--no-playlist', '--no-warnings', '--no-plugin-dirs',
+      '--js-runtimes', `node:${process.execPath}`, '--socket-timeout', '20', '--retries', '1',
+      '--skip-download', '-f', 'bestaudio[ext=m4a]/bestaudio', '--dump-single-json', '--', canonical],
+    { signal, windowsHide: true, timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
     const metadata = JSON.parse(result.stdout);
     validateYoutubeMetadata(metadata);
-    const format = youtubeDownloadFormat(metadata);
-    const output = join(temporary, 'youtube.mp4');
-    await execute(binary, [...args, '--ffmpeg-location', ffmpeg, '--max-filesize', String(MAX_SUBTITLE_BYTES),
-      '--match-filters', `duration <= ${MAX_SUBTITLE_MS / 1000} & !is_live`, '--abort-on-unavailable-fragments',
-      '-f', format,
-      '--merge-output-format', 'mp4', '-o', output, '--', canonical],
-      { signal, windowsHide: true, timeout: 600000, maxBuffer: 1024 * 1024 });
-    if ((await stat(output)).size > MAX_SUBTITLE_BYTES) throw new SubtitleError('Videoen er for stor. Grensen er 500 MB.', 413);
-    signal.throwIfAborted();
-    await mkdir(directory, { recursive: true });
-    // The media directory may be a mounted volume on a different filesystem.
-    await copyFile(output, final + '.tmp');
-    await rename(final + '.tmp', final);
-    const title = String(metadata.title || 'YouTube-video').slice(0, 200);
-    await writeFile(final + '.json', JSON.stringify({ title, source: canonical }));
-    return { file: final, title, source: canonical };
+    const url = new URL(metadata.url);
+    if (url.protocol !== 'https:' || !url.hostname.endsWith('.googlevideo.com') || url.username || url.password) {
+      throw new SubtitleError('YouTube ga en ukjent lydkilde.', 502);
+    }
+    return { source: canonical, title: String(metadata.title || 'YouTube-video').slice(0, 200),
+      duration: metadata.duration * 1000, audioUrl: url.href };
   } catch (error) {
-    await rm(final + '.tmp', { force: true }).catch(() => {});
     if (error instanceof SubtitleError || signal.aborted) throw error;
-    throw new SubtitleError('Kunne ikke hente YouTube-videoen. Den kan være utilgjengelig, kreve innlogging eller være blokkert av YouTube. Prøv en annen lenke.', 502);
+    throw new SubtitleError('Kunne ikke hente lydinformasjon fra YouTube. Prøv igjen senere.', 502);
+  }
+}
+
+/** Input seeking lets FFmpeg request only the audio range needed for this section. */
+export async function youtubeAudioSection(audio: YoutubeAudio, start: number, end: number,
+  ffmpeg: string, signal: AbortSignal): Promise<Buffer> {
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end > audio.duration || end <= start || end - start > 62000) {
+    throw new SubtitleError('Ugyldig lyddel.', 400);
+  }
+  try {
+    const result = await execute(ffmpeg, ['-nostdin', '-hide_banner', '-loglevel', 'error',
+      '-rw_timeout', '20000000', '-protocol_whitelist', 'https,http,tcp,tls,crypto',
+      '-ss', String(start / 1000), '-i', audio.audioUrl, '-t', String((end - start) / 1000),
+      '-map', '0:a:0', '-vn', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', '-f', 's16le', 'pipe:1'],
+    { signal, windowsHide: true, timeout: 120000, encoding: 'buffer', maxBuffer: 3 * 1024 * 1024 });
+    const expected = Math.round((end - start) * 32);
+    if (!result.stdout.length || result.stdout.length < expected - 3200) throw new Error('Incomplete audio section');
+    return result.stdout.subarray(0, expected);
+  } catch (error) {
+    if (signal.aborted) throw error;
+    throw new SubtitleError('Kunne ikke hente denne lyddelen fra YouTube. Prøv delen igjen.', 502);
   }
 }
