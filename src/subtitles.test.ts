@@ -36,7 +36,7 @@ test('Azure frame rounding at a clipped audio boundary does not reject the whole
 });
 test('reject empty, missing, invalid, overlapping and overlong transcription results', () => {
   for (const input of [null, {}, { durationMilliseconds: 5, phrases: [] },
-    { durationMilliseconds: 1800001, phrases: [] }, { durationMilliseconds: 100, phrases: [{}] }]) {
+    { durationMilliseconds: 7200001, phrases: [] }, { durationMilliseconds: 100, phrases: [{}] }]) {
     assert.throws(() => transcriptPhrases(input));
   }
   for (const timing of [NaN, Infinity, -1, 5000]) {

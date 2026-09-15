@@ -30,9 +30,10 @@ test('chunks preserve absolute times and yield early without duplicate boundary 
   assert.equal(calls, 3);
 });
 
-test('30 minute limit is accepted and longer audio rejected before transcription', async () => {
+test('2 hour limit is accepted and longer audio rejected before transcription', async () => {
   let calls = 0;
-  for await (const _ of subtitleChunks(Buffer.alloc(1800000 * 32), async () => { calls++; return []; })) {}
-  assert.equal(calls, 30);
-  await assert.rejects(async () => { for await (const _ of subtitleChunks(Buffer.alloc(1800001 * 32), async () => { throw Error('must not transcribe'); })) {} }, /30 minutter/);
+  const pcm = Buffer.alloc(7200001 * 32);
+  for await (const _ of subtitleChunks(pcm.subarray(0, 7200000 * 32), async () => { calls++; return []; })) {}
+  assert.equal(calls, 120);
+  await assert.rejects(async () => { for await (const _ of subtitleChunks(pcm, async () => { throw Error('must not transcribe'); })) {} }, /2 timer/);
 });

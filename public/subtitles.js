@@ -319,7 +319,7 @@ let priorityTimer;
 function updateSectionPriority() {
   if (!priorityJobId || preview.hidden) return;
   const id = priorityJobId;
-  const position = Math.max(0, Math.min(1800000, (pendingPosition ?? player.currentTime) * 1000));
+  const position = Math.max(0, Math.min(7200000, (pendingPosition ?? player.currentTime) * 1000));
   const section = Math.floor(position / 60000);
   if (lastPrioritySection === `${id}:${section}`) return;
   lastPrioritySection = `${id}:${section}`;
@@ -1079,7 +1079,7 @@ async function monitorSections(id, version, retry = false) {
     while (current()) {
       if (dirty || saving || busy) return;
       if (!runningId) {
-        const response = await fetch('/api/subtitles/ensure', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ savedId: id, retry, position: Math.max(0, Math.min(1800000, (pendingPosition ?? player.currentTime) * 1000)) }) });
+        const response = await fetch('/api/subtitles/ensure', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ savedId: id, retry, position: Math.max(0, Math.min(7200000, (pendingPosition ?? player.currentTime) * 1000)) }) });
         if (!current()) return;
         if (response.status === 429) {
           $('coverage-status').textContent = 'Venter på at en annen video blir ferdig …';

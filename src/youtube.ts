@@ -37,8 +37,28 @@ export async function youtubeAvailable(): Promise<boolean> {
 }
 export function validateYoutubeMetadata(metadata: { duration?: unknown; is_live?: unknown }) {
   if (typeof metadata?.duration !== 'number' || !Number.isFinite(metadata.duration) || metadata.duration <= 0 || metadata.duration > MAX_SUBTITLE_MS / 1000 || metadata.is_live) {
-    throw new SubtitleError('Velg en video på høyst 30 minutter, ikke en direktesending.', 400);
+    throw new SubtitleError('Velg en video på høyst 2 timer, ikke en direktesending.', 400);
   }
+}
+interface YoutubeFormat {
+  format_id: string; ext?: string; vcodec?: string; acodec?: string;
+  height?: number; filesize?: number; filesize_approx?: number; tbr?: number;
+}
+/** yt-dlp lists formats from worst to best. Budget the merged audio and video. */
+export function youtubeDownloadFormat(metadata: { duration: number; formats?: YoutubeFormat[] }): string {
+  const formats = [...(metadata.formats || [])].reverse();
+  const size = (format: YoutubeFormat) => format.filesize || format.filesize_approx ||
+    (format.tbr ? format.tbr * 1000 / 8 * metadata.duration : Infinity);
+  const audio = formats.find(format => format.ext === 'm4a' && format.vcodec === 'none');
+  for (const video of formats) {
+    if (video.ext !== 'mp4' || !video.height || video.height > 720 || !video.vcodec?.startsWith('avc1')) continue;
+    if (video.acodec && video.acodec !== 'none') {
+      if (size(video) <= MAX_SUBTITLE_BYTES) return video.format_id;
+    } else if (audio && size(video) + size(audio) <= MAX_SUBTITLE_BYTES) {
+      return `${video.format_id}+${audio.format_id}`;
+    }
+  }
+  throw new SubtitleError('Fant ingen videokvalitet innenfor grensen på 500 MB.', 413);
 }
 export async function downloadYoutube(url: string, owner: string, temporary: string, ffmpeg: string, signal: AbortSignal) {
   const canonical = youtubeUrl(url);
@@ -56,10 +76,11 @@ export async function downloadYoutube(url: string, owner: string, temporary: str
       { signal, windowsHide: true, timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
     const metadata = JSON.parse(result.stdout);
     validateYoutubeMetadata(metadata);
+    const format = youtubeDownloadFormat(metadata);
     const output = join(temporary, 'youtube.mp4');
     await execute(binary, [...args, '--ffmpeg-location', ffmpeg, '--max-filesize', String(MAX_SUBTITLE_BYTES),
       '--match-filters', `duration <= ${MAX_SUBTITLE_MS / 1000} & !is_live`, '--abort-on-unavailable-fragments',
-      '-f', 'bv*[height<=720][ext=mp4][vcodec^=avc1]+ba[ext=m4a]/b[height<=720][ext=mp4]',
+      '-f', format,
       '--merge-output-format', 'mp4', '-o', output, '--', canonical],
       { signal, windowsHide: true, timeout: 600000, maxBuffer: 1024 * 1024 });
     if ((await stat(output)).size > MAX_SUBTITLE_BYTES) throw new SubtitleError('Videoen er for stor. Grensen er 500 MB.', 413);

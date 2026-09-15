@@ -2,7 +2,7 @@ import { align } from './align.js';
 import type { Lesson } from './lesson.js';
 
 export const MAX_SUBTITLE_BYTES = 500 * 1024 * 1024;
-export const MAX_SUBTITLE_MS = 30 * 60 * 1000;
+export const MAX_SUBTITLE_MS = 2 * 60 * 60 * 1000;
 export interface EmojiHint { emoji: string; suffixes: Array<{ kind: string; form: string }> }
 export interface TimedWord { text: string; start: number; end: number; hint?: EmojiHint }
 export interface SubtitlePhrase { text: string; words: TimedWord[] }
@@ -19,7 +19,7 @@ export function transcriptPhrases(value: unknown): SubtitlePhrase[] {
     text?: string; offsetMilliseconds?: number; durationMilliseconds?: number;
   }> }> } | null;
   if (!data || !Number.isFinite(data.durationMilliseconds) || data.durationMilliseconds! <= 0 || data.durationMilliseconds! > MAX_SUBTITLE_MS) {
-    throw new SubtitleError('Opptaket må være på høyst 30 minutter.');
+    throw new SubtitleError('Opptaket må være på høyst 2 timer.');
   }
   if (!Array.isArray(data.phrases) || !data.phrases.length) throw new SubtitleError('Fant ingen tale i opptaket.');
   let previousEnd = 0;

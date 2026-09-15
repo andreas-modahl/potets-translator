@@ -29,7 +29,7 @@ to show, the lesson pool, the picture lookup, and the session and user stores.
 
 ## Subtitles from Turkish speech
 
-Open `/subtitles`, enter a YouTube link (up to 500 MB and 30 minutes),
+Open `/subtitles`, enter a YouTube link (up to 500 MB and 2 hours),
 then review the timed Norwegian text and download SRT or WebVTT. The Norwegian
 meaning chunks stay in Turkish order, like the learning page. This deliberately
 produces a learning gloss rather than natural Norwegian sentence order.
@@ -287,7 +287,9 @@ transcription is needed. Saving edits to a shared story creates a separate share
 
 YouTube links can also be imported from the subtitle upload page. Watch, youtu.be,
 mobile, and Shorts links are accepted; playlist parameters are ignored. Videos
-must be non-live, at most thirty minutes, and at most 500 MB. The server downloads
+must be non-live, at most two hours, and at most 500 MB. The importer selects
+a rendition up to 720p whose estimated combined video and audio size fits the
+limit, reducing resolution when necessary. The server downloads
 up to 720p MP4 and uses the same transcription, highlighting and smooth pause
 controls as uploaded files. Imports do not use browser cookies or YouTube logins;
 YouTube can reject videos or server IPs, in which case file upload remains available.

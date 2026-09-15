@@ -16,7 +16,7 @@ export function audioClip(pcm: Buffer, start: number, end: number): Buffer {
 
 export async function* subtitleChunks(pcm: Buffer, transcribe: (audio: Buffer) => Promise<SubtitlePhrase[]>) {
   const duration = pcm.length / 32;
-  if (!duration || duration > MAX_SUBTITLE_MS) throw new SubtitleError('Velg en video på høyst 30 minutter.');
+  if (!duration || duration > MAX_SUBTITLE_MS) throw new SubtitleError('Velg en video på høyst 2 timer.');
   let previousEnd = 0;
   for (let start = 0; start < duration; start += SUBTITLE_CHUNK_MS) {
     const end = Math.min(start + SUBTITLE_CHUNK_MS, duration);

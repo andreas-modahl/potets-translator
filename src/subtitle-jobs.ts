@@ -90,7 +90,7 @@ async function run(job: Job, media: Buffer | string): Promise<void> {
     const audio = await readFile(output);
     // PCM is 16,000 samples/sec, two bytes/sample. Reject overlong media before a paid call.
     if (audio.length > MAX_SUBTITLE_MS / 1000 * 32000) {
-      throw new SubtitleError('Opptaket må være på høyst 30 minutter.');
+      throw new SubtitleError('Opptaket må være på høyst 2 timer.');
     }
     signal.throwIfAborted();
     job.state = 'transcribing';
