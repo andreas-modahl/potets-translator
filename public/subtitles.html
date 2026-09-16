@@ -77,10 +77,17 @@
           <button class="ghost close-card icon-button" type="button" aria-label="Lukk avspilling" title="Lukk avspilling"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
         </div>
         </div>
-        <div id="video-stage"><video id="player" controls preload="metadata" playsinline></video><div id="youtube-player" hidden></div></div>
+        <div id="video-stage"><video id="player" controls preload="metadata" playsinline></video><div id="youtube-player" hidden></div>
+          <section id="word-repetitions" aria-label="Ord i videoen" hidden>
+            <button id="show-known-words" type="button" aria-expanded="false" aria-controls="known-word-list">Kjente ord (0)</button>
+            <div id="known-word-list" hidden></div>
+            <div id="all-video-words"></div>
+            <p id="known-word-status" role="status"></p>
+          </section>
+        </div>
         <div id="translation-coverage" hidden>
-          <div class="coverage-legend"><span><i class="coverage-key" aria-hidden="true"></i>Klart</span><span><i class="coverage-key loading" aria-hidden="true"></i>Laster</span><span><i class="coverage-key error" aria-hidden="true"></i>Feil</span><span id="coverage-position"></span></div>
-          <div id="coverage-bar" role="slider" tabindex="0" aria-label="Avspillingsposisjon" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-describedby="coverage-status" title="Klikk for å spille herfra. Grønt: ferdig. Gult: behandles. Rødt: feil. Grått: ikke kontrollert ennå.">
+          <div class="coverage-legend"><span><i class="coverage-key" aria-hidden="true"></i>Klart</span><span><i class="coverage-key known" aria-hidden="true"></i>Kjente ord</span><span><i class="coverage-key loading" aria-hidden="true"></i>Laster</span><span><i class="coverage-key error" aria-hidden="true"></i>Feil</span><span id="coverage-position"></span></div>
+          <div id="coverage-bar" role="slider" tabindex="0" aria-label="Avspillingsposisjon" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-describedby="coverage-status" title="Klikk for å spille herfra. Lilla: ferdig. Grønt: kjente ord. Gult: behandles. Rødt: feil. Grått: ikke kontrollert ennå.">
             <div id="coverage-ranges"></div><span id="coverage-playhead" aria-hidden="true"></span><span id="coverage-current-time" aria-hidden="true">0:00</span>
           </div>
           <p id="coverage-status" role="status"></p>
@@ -103,10 +110,6 @@
           <button id="retry-natural" class="ghost" type="button" hidden>Prøv igjen</button>
         </section>
         <p id="audio-caption" class="audio-caption" aria-label="Norsk undertekst" hidden></p>
-        <section id="word-repetitions" aria-label="Ordgjentakelser hittil" hidden>
-          <p>⏸️ 🔁 Forekomster hittil · lignende ordformer gruppert</p>
-          <div id="word-repetition-counts"></div>
-        </section>
         </div></div>
         <p class="muted" id="preview-help" role="status"></p>
       </section>

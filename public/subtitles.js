@@ -1,4 +1,4 @@
-import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentencePages, captionPage, naturalSegments, pauseSegments, SUFFIX_HINTS, validEmojiHint, repetitionGroups } from './subtitles-format.js';
+import { cueText, serializeSubtitles, validateCues, wrapText, mappedChunks, sentencePages, captionPage, naturalSegments, pauseSegments, SUFFIX_HINTS, validEmojiHint, topVideoWords, normalizeWord, wordMeanings } from './subtitles-format.js';
 import { zipFiles } from './subtitles-zip.js';
 import { subtitlePlayer } from './subtitles-player.js';
 
@@ -900,26 +900,160 @@ function updateHighlightLayer() {
   highlightFrame = requestAnimationFrame(updateHighlightLayer);
 }
 let repetitionInput;
-function updateRepetitions(active, time) {
+let knownWords = [];
+let knownWordsReady = false;
+let savingKnownWord = false;
+function createVocabularyRow(group) {
+  const known = knownWords.find(item => item.variants.some(form => group.variants.includes(form)));
+  const row = document.createElement('div'); row.className = `repetition-count ${known ? 'is-known' : 'is-new'}`;
+  const tooltip = [...(group.translations || []), ...(group.examples || []).map(example => `I uttrykk: ${example}`)].join('\n') || 'Ingen ordoversettelse ennå';
+  row.title = tooltip;
+  const label = document.createElement('span'); label.textContent = `${group.emoji || '💬'} ${group.word}`;
+  const count = document.createElement('strong'); count.textContent = group.count === undefined ? '' : `×${group.count}`;
+  const mark = document.createElement('button'); mark.type = 'button'; mark.className = 'mark-word-known';
+  mark.textContent = 'Kan'; mark.setAttribute('aria-pressed', String(Boolean(known)));
+  mark.setAttribute('aria-label', `Kan ${group.word}`);
+  mark.setAttribute('aria-description', tooltip);
+  mark.title = tooltip;
+  mark.disabled = !knownWordsReady || savingKnownWord;
+  mark.onclick = () => saveKnownWords(known || group, Boolean(known));
+  row.append(label, count, mark); group.counter = count;
+  return row;
+}
+let knownListState;
+function renderKnownWords(time = captionTime()) {
+  const forms = new Set(knownWords.flatMap(group => group.variants));
+  const visible = (videoVocabulary?.cues === cues ? videoVocabulary.groups : [])
+    .filter(group => group.times[0] <= time && group.variants.some(form => forms.has(form)))
+    .sort((a, b) => wordOccurrencesSoFar(b, time) - wordOccurrencesSoFar(a, time) || a.word.localeCompare(b.word, 'tr'));
+  const key = visible.map(group => group.word).join('\0');
+  $('show-known-words').textContent = `Kjente ord (${visible.length})`;
+  if (knownListState?.key !== key || knownListState.known !== knownWords || knownListState.cues !== cues) {
+    const list = $('known-word-list'); list.replaceChildren();
+    const groups = visible.map(group => ({ ...group }));
+    knownListState = { key, known: knownWords, cues, groups };
+    if (!groups.length) list.textContent = 'Ingen kjente ord hittil i videoen.';
+    for (const group of groups) list.append(createVocabularyRow(group));
+  }
+  for (const group of knownListState.groups) {
+    const value = `×${wordOccurrencesSoFar(group, time)}`;
+    if (group.counter.textContent !== value) group.counter.textContent = value;
+  }
+}
+async function saveKnownWords(group, remove = false) {
+  if (savingKnownWord || !knownWordsReady) return;
+  const focusedWordIndex = document.activeElement?.closest('#all-video-words .repetition-count')?.dataset.wordIndex;
+  savingKnownWord = true;
+  $('known-word-status').textContent = '';
+  document.querySelectorAll('#word-repetitions button').forEach(button => { button.disabled = true; });
+  try {
+    const result = await json('/api/subtitle-known-words', { method: remove ? 'DELETE' : 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ word: group.word, variants: group.variants, emoji: group.emoji || '💬', translations: group.translations || [] }) });
+    knownWords = result.words;
+  } catch (error) { $('known-word-status').textContent = error.message; }
+  finally {
+    savingKnownWord = false;
+    knownListState = undefined;
+    $('show-known-words').disabled = false;
+    repetitionInput = undefined; renderKnownWords(); renderAllVideoWords(true); updateTurkish(); updateTranslationCoverage();
+    if (focusedWordIndex !== undefined) allWordRows.get(Number(focusedWordIndex))?.querySelector('button')?.focus({ preventScroll: true });
+  }
+}
+$('show-known-words').onclick = () => {
+  const list = $('known-word-list'); list.hidden = !list.hidden;
+  $('show-known-words').setAttribute('aria-expanded', String(!list.hidden));
+};
+const allWordsPerPage = 10;
+let allWordPage = 0;
+let allWordData;
+let videoVocabulary;
+const allWordRows = new Map();
+function wordOccurrencesSoFar(group, time) {
+  let low = 0, high = group.times.length;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    if (group.times[mid] <= time) low = mid + 1;
+    else high = mid;
+  }
+  return low;
+}
+function encounteredWords(time) {
+  return allWordData.allGroups.map(group => ({ group, count: wordOccurrencesSoFar(group, time) }))
+    .filter(item => item.count > 0)
+    .sort((a, b) => b.count - a.count || a.group.word.localeCompare(b.group.word, 'tr'))
+    .map(item => item.group);
+}
+function renderAllVideoWords(force = false) {
+  const list = $('all-video-words');
+  if (list.hidden) return;
+  if (!force && allWordRows.size && list.matches(':hover')) return;
+  if (allWordData?.cues !== cues || allWordData.known !== knownWords) {
+    if (allWordData?.cues !== cues) allWordPage = 0;
+    if (videoVocabulary?.cues !== cues) videoVocabulary = { cues, groups: topVideoWords(cues, new Set(), Infinity) };
+    const excluded = new Set(knownWords.flatMap(group => group.variants));
+    allWordData = { cues, known: knownWords, allGroups: videoVocabulary.groups.filter(group => !group.variants.some(form => excluded.has(form))), groups: [] };
+  }
+  allWordData.groups = encounteredWords(captionTime());
+  const groups = allWordData.groups;
+  const pages = Math.max(1, Math.ceil(groups.length / allWordsPerPage));
+  allWordPage = Math.min(allWordPage, pages - 1);
+  list.replaceChildren(); allWordRows.clear();
+  const rows = document.createElement('div'); rows.setAttribute('role', 'list');
+  const start = allWordPage * allWordsPerPage;
+  for (let index = start; index < Math.min(start + allWordsPerPage, groups.length); index++) {
+    const row = createVocabularyRow(groups[index]);
+    row.dataset.wordIndex = String(index);
+    row.setAttribute('role', 'listitem'); row.setAttribute('aria-posinset', String(index + 1)); row.setAttribute('aria-setsize', String(groups.length));
+    rows.append(row); allWordRows.set(index, row);
+  }
+  if (!groups.length) rows.textContent = 'Ingen ukjente ord hittil.';
+  const navigation = document.createElement('div'); navigation.className = 'word-pagination';
+  const previous = document.createElement('button'); previous.type = 'button'; previous.textContent = 'Forrige'; previous.dataset.page = 'previous'; previous.disabled = allWordPage === 0;
+  const position = document.createElement('span'); position.textContent = `Side ${allWordPage + 1} / ${pages}`; position.setAttribute('aria-live', 'polite');
+  const next = document.createElement('button'); next.type = 'button'; next.textContent = 'Neste'; next.dataset.page = 'next'; next.disabled = allWordPage === pages - 1;
+  const turnPage = direction => {
+    allWordPage += direction;
+    renderAllVideoWords(true);
+    updateRepetitions(captionTime());
+    list.querySelector(`button[data-page="${direction > 0 ? 'next' : 'previous'}"]:not(:disabled)`)?.focus({ preventScroll: true });
+  };
+  previous.onclick = () => turnPage(-1); next.onclick = () => turnPage(1);
+  navigation.append(previous, position, next); list.append(rows, navigation);
+  list.scrollTop = 0;
+}
+$('all-video-words').addEventListener('mouseleave', () => {
+  renderAllVideoWords();
+  updateRepetitions(captionTime());
+});
+renderKnownWords();
+void json('/api/subtitle-known-words').then(result => {
+  knownWords = Array.isArray(result.words) ? result.words : [];
+  knownWordsReady = true;
+  repetitionInput = undefined; renderKnownWords(); updateTurkish(); updateTranslationCoverage();
+}).catch(() => { $('known-word-status').textContent = 'Kunne ikke hente kjente ord. Last siden på nytt for å prøve igjen.'; });
+function updateRepetitions(time) {
   const panel = $('word-repetitions');
-  panel.hidden = !player.paused || !active?.words?.length;
-  if (panel.hidden) return;
-  if (repetitionInput?.cues === cues && repetitionInput.active === active && repetitionInput.time === time) return;
-  repetitionInput = { cues, active, time };
-  const counts = $('word-repetition-counts'); counts.replaceChildren();
-  for (const group of repetitionGroups(cues, active.words, time)) {
-    const badge = document.createElement('span'); badge.className = 'repetition-count';
-    const emoji = group.count >= 5 ? '🔥' : group.count >= 2 ? '🔁' : '🌱';
-    badge.textContent = `${emoji} ${group.word} ×${group.count}`;
-    badge.title = `${group.variants.join(' / ')} — ${group.count} forekomster i tilgjengelige undertekster hittil. Omtrentlig gruppering.`;
-    counts.append(badge);
+  if (repetitionInput?.cues !== cues) {
+    repetitionInput = { cues };
+    renderAllVideoWords();
+  } else if (allWordData && !$('all-video-words').matches(':hover')) {
+    const visible = encounteredWords(time);
+    if (visible.length !== allWordData.groups.length || visible.some((group, index) => group !== allWordData.groups[index])) renderAllVideoWords();
+  }
+  panel.hidden = !cues.length && !knownWords.length;
+  renderKnownWords(time);
+  for (const index of allWordRows.keys()) {
+    const group = allWordData.groups[index];
+    const value = `×${wordOccurrencesSoFar(group, time)}`;
+    if (group.counter.textContent !== value) group.counter.textContent = value;
   }
 }
 function updateTurkish() {
   const time = captionTime();
   // Source word times stay tied to the speech when Norwegian cue times are edited.
   const active = captionPage(pages, time, player.paused);
-  updateRepetitions(active, time);
+  updateRepetitions(time);
   const caption = $('turkish-caption');
   void ensureEmojiHints(active);
   updateNatural(active);
@@ -955,6 +1089,8 @@ function updateTurkish() {
       const chunk = chunks.find(chunk => word.start >= chunk.start && word.end <= chunk.end);
       if (!group || !chunk || chunk !== previousChunk) {
         group = document.createElement('span'); group.className = 'word-translation';
+        group.dataset.segmentStart = String(chunk?.start ?? word.start);
+        group.dataset.segmentEnd = String(chunk?.end ?? word.end);
         const source = document.createElement('span'); source.className = 'source-words';
         const translation = document.createElement('span'); translation.className = 'word-meaning spoken-word';
         translation.lang = 'nb';
@@ -976,6 +1112,13 @@ function updateTurkish() {
   }
   for (const word of highlightedWords) word.classList.remove('speaking');
   highlightedWords = [];
+  const known = new Set(knownWords.flatMap(item => item.variants));
+  for (const group of caption.querySelectorAll('.word-translation')) {
+    group.classList.toggle('segment-active', time >= Number(group.dataset.segmentStart) && time < Number(group.dataset.segmentEnd));
+    const sourceWords = [...group.querySelectorAll('.source-words .spoken-word')];
+    for (const word of sourceWords) word.classList.toggle('known-word', known.has(normalizeWord(word.textContent)));
+    group.querySelector('.word-meaning')?.classList.toggle('known-word', sourceWords.length > 0 && sourceWords.every(word => word.classList.contains('known-word')));
+  }
   const wordIndex = heldSentence ? -1 : active?.words.findIndex(word => time >= word.start && time < word.end) ?? -1;
   if (wordIndex >= 0) {
     const previewWord = caption.querySelectorAll('.source-words .spoken-word')[wordIndex];
@@ -991,7 +1134,6 @@ function updateTurkish() {
 }
 wordTrack.addEventListener('cuechange', updateTurkish);
 player.addEventListener('pause', updateTurkish);
-player.addEventListener('play', () => { $('word-repetitions').hidden = true; });
 player.addEventListener('seeked', updateTurkish);
 function updateActiveCue() {
   const time = captionTime();
@@ -1270,10 +1412,29 @@ function updateTranslationCoverage() {
     span.title = `${coverageTime(section.start / 1000)}–${coverageTime(section.end / 1000)}: ${section.error || ({ done: 'Ferdig', loading: 'Behandles', error: 'Feil' })[section.state]}`;
     fragment.append(span);
   }
+  const known = new Set(knownWords.flatMap(group => group.variants));
+  const knownRanges = [];
+  for (const word of cues.flatMap(cue => cue.words || []).filter(word => known.has(normalizeWord(word.text))).sort((a, b) => a.start - b.start)) {
+    const start = Math.max(0, word.start), end = Math.min(duration, word.end);
+    if (end <= start) continue;
+    const previous = knownRanges.at(-1);
+    if (previous && start <= previous.end) previous.end = Math.max(previous.end, end);
+    else knownRanges.push({ start, end });
+  }
+  for (const { start, end } of knownRanges) {
+    const span = document.createElement('span'); span.className = 'coverage-range known';
+    span.style.left = `${start / duration * 100}%`;
+    span.style.width = `${(end - start) / duration * 100}%`;
+    span.title = `${coverageTime(start / 1000)}–${coverageTime(end / 1000)}: Kjent ord`;
+    fragment.append(span);
+  }
   container.append(fragment);
   const done = translationSections.filter(section => section.state === 'done').length;
   const loading = translationSections.filter(section => section.state === 'loading').length;
   const errors = translationSections.filter(section => section.state === 'error').length;
+  const complete = translationSections.length > 0 && done === translationSections.length;
+  $('translation-coverage').querySelector('.coverage-legend').hidden = complete;
+  $('coverage-status').hidden = complete;
   const summary = translationSections.length ? `${done} av ${translationSections.length} deler klare · ${loading} behandles · ${errors} med feil` : `Undertekster dekker ${Math.round(covered / duration * 100)} % av tidslinjen. Kontrollerer resten …`;
   $('coverage-status').textContent = summary;
   $('retry-sections').hidden = !errors;

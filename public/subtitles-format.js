@@ -1,7 +1,27 @@
+export const normalizeWord = text => {
+  const normalized = text.normalize('NFC').toLocaleLowerCase('tr').replace(/[’']/gu, "'")
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+  return /^\p{N}/u.test(normalized) ? '' : normalized.split("'")[0];
+};
+export function wordMeanings(cues, variants) {
+  const forms = new Set(variants), meanings = new Map(), examples = new Set();
+  for (const cue of cues) for (const chunk of cue.chunks || []) {
+    const words = (cue.words || []).filter(word => word.start >= chunk.start && word.end <= chunk.end);
+    if (!words.some(word => forms.has(normalizeWord(word.text))) || !chunk.text?.trim()) continue;
+    if (words.length !== 1) {
+      examples.add(`${words.map(word => word.text).join(' ')} → ${chunk.text.trim()}`);
+      continue;
+    }
+    const text = chunk.text.trim().replace(/[.,;:!?]+$/u, '');
+    const key = text.toLocaleLowerCase('nb');
+    const entry = meanings.get(key) || { text, count: 0 };
+    entry.count++; meanings.set(key, entry);
+  }
+  return { translations: [...meanings.values()].sort((a, b) => b.count - a.count).map(entry => entry.text), examples: [...examples] };
+}
 /** Approximate word families, using only common endings and an observed base form. */
 export function repetitionGroups(cues, currentWords, time) {
-  const normalize = text => text.normalize('NFC').toLocaleLowerCase('tr')
-    .replace(/[’']/gu, "'").replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '').split("'")[0];
+  const normalize = normalizeWord;
   const counts = new Map();
   const seen = new Set();
   for (const cue of cues) for (const word of cue.words || []) {
@@ -28,6 +48,60 @@ export function repetitionGroups(cues, currentWords, time) {
     result.set(root, { word: root, variants, count: variants.reduce((total, candidate) => total + (counts.get(candidate) || 0), 0) });
   }
   return [...result.values()];
+}
+
+export function topVideoWords(cues, knownWords = new Set(), limit = 5) {
+  const words = cues.flatMap(cue => cue.words || []);
+  const top = repetitionGroups(cues, words, Infinity)
+    .filter(group => !group.variants.some(form => knownWords.has(form)))
+    .sort((a, b) => b.count - a.count || a.word.localeCompare(b.word, 'tr')).slice(0, limit);
+  const symbols = { bir: '1️⃣', ve: '➕', bu: '👇', o: '👉', ben: '🙋', sen: '🫵', biz: '👥',
+    siz: '👥', onlar: '👥', değil: '🚫', ne: '❓', neden: '❓', nasıl: '❓', var: '✅', yok: '❌',
+    çok: '📈', daha: '➕', evet: '👍', hayır: '👎', ama: '↔️', için: '🎯', ile: '🤝',
+    zaman: '⏰', gün: '☀️', yıl: '📅', insan: '🧑', çocuk: '🧒', anne: '👩', baba: '👨',
+    ev: '🏠', su: '💧', kitap: '📚', okul: '🏫', güzel: '✨', iyi: '👍', aynı: '🟰' };
+  const byForm = new Map(), details = new Map(), normalized = new Map(), seen = new Set();
+  const formOf = word => {
+    if (!normalized.has(word.text)) normalized.set(word.text, normalizeWord(word.text));
+    return normalized.get(word.text);
+  };
+  for (const group of top) {
+    group.times = []; group.emoji = symbols[group.word] || '💬';
+    details.set(group, { meanings: new Map(), examples: new Set() });
+    for (const form of group.variants) byForm.set(form, group);
+  }
+  for (const cue of cues) {
+    for (const word of cue.words || []) {
+      const form = formOf(word), group = byForm.get(form);
+      const key = `${word.start}:${word.end}:${form}`;
+      if (!group || seen.has(key)) continue;
+      seen.add(key); group.times.push(word.start);
+    }
+    for (const chunk of cue.chunks || []) {
+      if (!chunk.text?.trim()) continue;
+      const words = (cue.words || []).filter(word => word.start >= chunk.start && word.end <= chunk.end);
+      const groups = new Set(words.map(word => byForm.get(formOf(word))).filter(Boolean));
+      for (const group of groups) {
+        const data = details.get(group);
+        if (words.length !== 1) {
+          data.examples.add(`${words.map(word => word.text).join(' ')} → ${chunk.text.trim()}`);
+          continue;
+        }
+        const text = chunk.text.trim().replace(/[.,;:!?]+$/u, '');
+        const key = text.toLocaleLowerCase('nb');
+        const entry = data.meanings.get(key) || { text, count: 0 };
+        entry.count++; data.meanings.set(key, entry);
+        if (group.emoji === '💬' && validEmojiHint(chunk.hint) && chunk.hint.emoji) group.emoji = chunk.hint.emoji;
+      }
+    }
+  }
+  for (const group of top) {
+    const data = details.get(group);
+    group.translations = [...data.meanings.values()].sort((a, b) => b.count - a.count).map(entry => entry.text);
+    group.examples = [...data.examples];
+    group.times.sort((a, b) => a - b);
+  }
+  return top;
 }
 
 /** Stable visual vocabulary for optional hints about Turkish endings. */

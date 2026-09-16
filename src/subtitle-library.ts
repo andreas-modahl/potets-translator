@@ -20,8 +20,8 @@ export function audioRange(header: string | undefined, size: number): { start: n
   if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start > end || start >= size) return;
   return { start, end };
 }
-export function subtitleOwner(request: IncomingMessage, response: ServerResponse, userId?: string): string {
-  if (process.env.NODE_ENV !== 'production' && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(request.socket.remoteAddress ?? '')) return 'local';
+export function subtitleOwner(request: IncomingMessage, response: ServerResponse, userId?: string, allowLocal = true): string {
+  if (allowLocal && process.env.NODE_ENV !== 'production' && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(request.socket.remoteAddress ?? '')) return 'local';
   if (userId) return `user:${userId}`;
   let token = parseCookies(request.headers.cookie).get('lb_subtitles');
   if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
@@ -42,6 +42,27 @@ async function sharedMedia(source: string) {
   for (const owner of subtitleStore?.mediaOwners(source) || []) {
     const video = await youtubeMedia(source, owner);
     if (video) return video;
+  }
+}
+export async function handleKnownWords(request: IncomingMessage, response: ServerResponse, owner: string) {
+  try {
+    if (!subtitleStore) throw new SubtitleError('Lagring er slått av.', 503);
+    if (request.method === 'GET') { send(response, 200, { words: subtitleStore.knownWords(owner) }); return; }
+    if (!['POST', 'DELETE'].includes(request.method || '')) { send(response, 405, { error: 'Ugyldig metode.' }); return; }
+    if (request.headers.origin && new URL(request.headers.origin).host !== request.headers.host)
+      throw new SubtitleError('Lagring må skje fra denne siden.', 403);
+    const buffers: Buffer[] = []; let size = 0;
+    for await (const chunk of request) {
+      size += chunk.length;
+      if (size > 16000) throw new SubtitleError('Ordgruppen er for stor.', 413);
+      buffers.push(chunk);
+    }
+    let data: unknown;
+    try { data = JSON.parse(Buffer.concat(buffers).toString('utf8')); }
+    catch { throw new SubtitleError('Ugyldig JSON.', 400); }
+    send(response, 200, { words: subtitleStore.setKnownWord(owner, data, request.method === 'DELETE') });
+  } catch (error) {
+    send(response, error instanceof SubtitleError ? error.status : 500, { error: error instanceof SubtitleError ? error.message : 'Kunne ikke lagre ord.' });
   }
 }
 export async function handleSubtitleLibrary(request: IncomingMessage, response: ServerResponse, path: string, owner: string) {

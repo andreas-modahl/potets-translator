@@ -36,7 +36,7 @@ import { translate } from './translate.js';
 import { alignmentInput, alignNatural } from './subtitle-alignment.js';
 import { emojiHints } from './subtitle-hints.js';
 import { handleSubtitles } from './subtitle-jobs.js';
-import { handleSubtitleLibrary, subtitleOwner } from './subtitle-library.js';
+import { handleSubtitleLibrary, handleKnownWords, subtitleOwner } from './subtitle-library.js';
 
 interface Asset {
   file: string;
@@ -607,6 +607,10 @@ const server = createServer((request, response) => {
           model: config.model,
           login: LOGIN_ENABLED,
         });
+        return;
+      }
+      if (path === '/api/subtitle-known-words') {
+        await handleKnownWords(request, response, subtitleOwner(request, response, currentUser(request)?.id, false));
         return;
       }
       if (path === '/api/subtitles' || path.startsWith('/api/subtitles/')) {

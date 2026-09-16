@@ -58,6 +58,28 @@ export class SubtitleStore {
       );
       CREATE INDEX IF NOT EXISTS saved_subtitles_owner ON saved_subtitles(owner, updated);`);
     this.db.exec('CREATE TABLE IF NOT EXISTS subtitle_progress (id TEXT PRIMARY KEY, sections TEXT NOT NULL)');
+    this.db.exec('CREATE TABLE IF NOT EXISTS subtitle_known_words (owner TEXT NOT NULL, word TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(owner, word))');
+  }
+  knownWords(owner: string) {
+    return this.db.prepare('SELECT data FROM subtitle_known_words WHERE owner=? ORDER BY word').all(owner)
+      .map(row => JSON.parse(String(row.data)));
+  }
+  setKnownWord(owner: string, value: unknown, remove = false) {
+    const data = value as { word?: unknown; variants?: unknown; emoji?: unknown; translations?: unknown } | null;
+    if (!data || typeof data.word !== 'string' || !data.word.trim() || data.word.length > 100)
+      throw new SubtitleError('Ugyldig ord.', 400);
+    if (remove) this.db.prepare('DELETE FROM subtitle_known_words WHERE owner=? AND word=?').run(owner, data.word);
+    else {
+      if (!Array.isArray(data.variants) || data.variants.length > 100 || !data.variants.length
+        || !data.variants.every(form => typeof form === 'string' && form.length > 0 && form.length <= 100)
+        || typeof data.emoji !== 'string' || data.emoji.length > 32) throw new SubtitleError('Ugyldig ordgruppe.', 400);
+      if (data.translations !== undefined && (!Array.isArray(data.translations) || data.translations.length > 100
+        || !data.translations.every(text => typeof text === 'string' && text.length <= 1000))) throw new SubtitleError('Ugyldige oversettelser.', 400);
+      this.db.prepare('INSERT INTO subtitle_known_words VALUES(?,?,?) ON CONFLICT(owner,word) DO UPDATE SET data=excluded.data')
+        .run(owner, data.word, JSON.stringify({ word: data.word, variants: data.variants, emoji: data.emoji,
+          ...(data.translations === undefined ? {} : { translations: data.translations }) }));
+    }
+    return this.knownWords(owner);
   }
   sections(id: string): SubtitleSection[] | undefined {
     const row = this.db.prepare('SELECT sections FROM subtitle_progress WHERE id=?').get(id);

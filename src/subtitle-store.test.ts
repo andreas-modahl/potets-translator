@@ -6,6 +6,24 @@ import { join } from 'node:path';
 import { SubtitleStore, validateSaved } from './subtitle-store.js';
 const data = () => ({ title: 'Story', source: 'story.mp3', cues: [{ start: 100, end: 900, text: 'I morgen', turkish: 'Yarın',
   words: [{ start: 100, end: 900, text: 'Yarın' }], chunks: [{ start: 100, end: 900, text: 'I morgen' }] }] });
+
+test('known words persist per owner and cannot be removed by another user', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'known-words-test-'));
+  const path = join(dir, 'library.db');
+  let store = new SubtitleStore(path);
+  const word = { word: 'kitap', variants: ['kitap', 'kitaplar'], emoji: '📚' };
+  try {
+    store.setKnownWord('user:alice', word);
+    assert.deepEqual(store.knownWords('user:bob'), []);
+    store.setKnownWord('user:bob', { word: 'kitap' }, true);
+    assert.deepEqual(store.knownWords('user:alice'), [word]);
+    store.close(); store = new SubtitleStore(path);
+    assert.deepEqual(store.knownWords('user:alice'), [word]);
+    assert.throws(() => store.setKnownWord('user:alice', { word: 'bad', variants: [42], emoji: '' }));
+    store.setKnownWord('user:alice', { word: 'kitap' }, true);
+    assert.deepEqual(store.knownWords('user:alice'), []);
+  } finally { store.close(); rmSync(dir, { recursive: true, force: true }); }
+});
 test('saved subtitles and edits survive reopening SQLite with all highlighting timestamps', () => {
   const dir = mkdtempSync(join(tmpdir(), 'subtitle-store-test-'));
   let store = new SubtitleStore(join(dir, 'library.db'));
