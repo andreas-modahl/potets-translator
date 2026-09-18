@@ -31,7 +31,7 @@ import {
 } from './session.js';
 import { UserStore, type User } from './users.js';
 import { picture, pictureFingerprint, picturesConfigured, PictureUnavailable } from './pictures.js';
-import { speak, speechConfigured, speechFingerprint, SpeechUnavailable, voiceChoices } from './speech.js';
+import { speak, speakClip, speechTimings, speechConfigured, speechFingerprint, SpeechUnavailable, voiceChoices } from './speech.js';
 import { translate } from './translate.js';
 import { alignmentInput, alignNatural } from './subtitle-alignment.js';
 import { emojiHints } from './subtitle-hints.js';
@@ -77,6 +77,7 @@ const ASSETS = new Map<string, Asset>(
       ['/learn.js', 'learn.js', JS],
       ['/learn/strings.js', 'learn/strings.js', JS],
       ['/learn/fold.js', 'learn/fold.js', JS],
+      ['/learn/speech-timing.js', 'learn/speech-timing.js', JS],
       ['/learn/rarity.js', 'learn/rarity.js', JS],
       ['/learn/builder-art.js', 'learn/builder-art.js', JS],
     ] satisfies Array<[string, string, string]>
@@ -401,7 +402,13 @@ async function handleSpeak(url: URL, response: ServerResponse): Promise<void> {
   const voice = url.searchParams.get('voice') ?? '';
   let audio: Buffer;
   try {
-    audio = await speak(text, lang, voice);
+    if (url.searchParams.get('timings') === '1') {
+      send(response, 200, { words: await speechTimings(text, lang, voice) });
+      return;
+    }
+    audio = url.searchParams.has('at') || url.searchParams.has('end')
+      ? await speakClip(text, Number(url.searchParams.get('at') ?? NaN), Number(url.searchParams.get('end') ?? NaN), lang, voice)
+      : await speak(text, lang, voice);
   } catch (error) {
     if (error instanceof SpeechUnavailable) throw new BadRequest(error.message);
     throw error;

@@ -27,6 +27,15 @@ the compiled version.
 name handling, the checks that decide whether a breakdown is trustworthy enough
 to show, the lesson pool, the picture lookup, and the session and user stores.
 
+Lesson word playback cuts the selected word or phrase from the cached full-sentence
+recording, preserving its pronunciation in context. Sentence playback also moves
+the language ball to the chunk currently being spoken. The first playback uses
+[Azure fast transcription](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/fast-transcription-create)
+to measure word timings, which adds latency and a transcription charge once per
+sentence recording. Timings and FFmpeg-generated clips are cached beside the MP3.
+If timings cannot be matched safely, the player reads the whole sentence instead.
+Standalone vocabulary entries still use individual-word synthesis.
+
 ## Subtitles from Turkish speech
 
 Open `/subtitles`, enter a YouTube link (up to 2 hours),
@@ -155,14 +164,19 @@ puts it back together.
   on the grammar it shows.
 - **Skjul norsk** hides every Norwegian word, the sentence underneath included,
   and leaves the spacing. Click a word to check yourself one at a time.
-- **The chest** keeps every word typed without a hint. It lives in the
-  browser's local storage and is per-browser. Each request sends a few of the
-  least practised chest words along, and the next sentence brings one or two
-  of them back; typing one unaided again raises its tally, and every two
-  tallies lift the badge a rarity tier. Longer words start a tier higher.
-  Words that needed a hint are remembered too and come back first, until one
-  is typed unaided and earned. Every 25 words fill a chest and put a star on
-  the lid.
+- **Difficulty and XP** share a button in the top right, showing the current
+  difficulty above `XP (x/y)`. Open it to change difficulty or view stats. Each distinct word typed
+  without a hint earns one XP; the next target increases in steps of 25.
+  Reaching a new 25-XP milestone opens a short mini-game, rotating word
+  matching, translation quizzes, letter building, and memory cards using saved
+  vocabulary. Finish or skip to
+  return to the lesson. Existing progress does not open games retroactively.
+  Click the counter for earned words, correct answers without hints, repeat
+  practice, and the word bank. Progress uses the existing saved words, per
+  language direction. Removing a word also removes its XP and answer tally.
+  Requests bring back less practised words; typing one unaided again raises
+  its tally and badge rarity. Words that needed a hint come back first until
+  they are earned without help.
 - **Logg inn** (shown when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are
   set) signs in with Google. The chest, history and hinted words are then
   kept on the server too, merged with whatever the browser already had, and

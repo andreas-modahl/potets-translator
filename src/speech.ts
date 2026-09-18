@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { config } from './config.js';
 import type { Learning } from './lesson.js';
+import { sentenceClip, sentenceWordTimes } from './speech-clips.js';
 
 /**
  * The language being learned, read aloud by Azure Speech.
@@ -162,6 +163,8 @@ async function synthesise(text: string, lang: SpeechLang, voice: string): Promis
 }
 
 /** MP3 bytes for the text, from the cache when it has been asked for before. */
+const pendingSpeech = new Map<string, Promise<Buffer>>();
+
 export async function speak(text: string, lang: SpeechLang = 'tr', requestedVoice = ''): Promise<Buffer> {
   if (!speechConfigured) throw new SpeechUnavailable('Azure Speech is not configured.');
   const trimmed = text.trim();
@@ -178,8 +181,29 @@ export async function speak(text: string, lang: SpeechLang = 'tr', requestedVoic
     // Not cached yet.
   }
 
-  const audio = await synthesise(trimmed, lang, voice);
-  await mkdir(config.speechCacheDir, { recursive: true });
-  await writeFile(file, audio);
-  return audio;
+  let pending = pendingSpeech.get(file);
+  if (!pending) {
+    pending = (async () => {
+      const audio = await synthesise(trimmed, lang, voice);
+      await mkdir(config.speechCacheDir, { recursive: true });
+      await writeFile(file, audio);
+      return audio;
+    })();
+    pendingSpeech.set(file, pending);
+  }
+  try { return await pending; } finally { if (pendingSpeech.get(file) === pending) pendingSpeech.delete(file); }
+}
+
+/** Cut a word or phrase from the exact recording used for sentence playback. */
+export async function speakClip(sentence: string, at: number, end: number, lang: SpeechLang, requestedVoice = ''): Promise<Buffer> {
+  if (!Number.isInteger(at) || !Number.isInteger(end) || at < 0 || end <= at || end > sentence.length) {
+    throw new SpeechUnavailable('Invalid speech clip range.');
+  }
+  const audio = await speak(sentence, lang, requestedVoice);
+  return sentenceClip(cachePath(sentence.trim(), voiceFor(lang, requestedVoice)), audio, sentence, at, end, VOICES[lang].locale);
+}
+
+export async function speechTimings(sentence: string, lang: SpeechLang, requestedVoice = '') {
+  const audio = await speak(sentence, lang, requestedVoice);
+  return sentenceWordTimes(cachePath(sentence.trim(), voiceFor(lang, requestedVoice)), audio, VOICES[lang].locale);
 }

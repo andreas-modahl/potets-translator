@@ -1,5 +1,6 @@
 import { DIRECTIONS } from './learn/strings.js';
 import { fold, hintFold, sameWord } from './learn/fold.js';
+import { speechTimeline, spokenChunk } from './learn/speech-timing.js';
 import { rarityOf, rarityTier } from './learn/rarity.js';
 import { BUILDER_ART, BUILDER_ICONS, BUILDER_VIEWS } from './learn/builder-art.js';
 
@@ -12,7 +13,8 @@ const bankEmpty = document.querySelector('#bank-empty');
 const topicField = document.querySelector('#topic');
 const topicBox = document.querySelector('#topic-box');
 const chipsRow = document.querySelector('#chips');
-const steeringLabel = document.querySelector('#steering-label');
+const autoChipsToggle = document.querySelector('#auto-chips-toggle');
+const autoChipsRow = document.querySelector('#auto-chips');
 const addChipButton = document.querySelector('#add-chip');
 const classesButton = document.querySelector('#classes');
 const classesName = document.querySelector('#classes-name');
@@ -49,14 +51,10 @@ const speakButton = document.querySelector('#speak');
 const speakBall = document.querySelector('#speak-ball');
 const detail = document.querySelector('#detail');
 const explanations = document.querySelector('#explanations');
-const bank = document.querySelector('#bank');
 const bankList = document.querySelector('#bank-list');
-const bankCount = document.querySelector('#bank-count');
-const chestStars = document.querySelector('#chest-stars');
-const chestRow = document.querySelector('#group');
-const chestToggle = document.querySelector('#chest-toggle');
-const chestWrap = document.querySelector('.chest-wrap');
-const chest = document.querySelector('#chest');
+const xpToggle = document.querySelector('#xp-toggle');
+const statsPanel = document.querySelector('#stats-panel');
+const statsClose = document.querySelector('#stats-close');
 const fireworksBox = document.querySelector('#fireworks');
 const flagFrom = document.querySelector('#flag-from');
 const flagTo = document.querySelector('#flag-to');
@@ -673,7 +671,6 @@ function checkField(field, chunk) {
   // A word solved again after the arrows took it apart is not earned twice.
   if (solvedNow && !box.classList.contains('helped') && !box.classList.contains('earned')) {
     box.classList.add('earned');
-    viewGroup = -1;
     bankEarned(chunk);
   }
   // Getting it right unmasks the word in the panel underneath, and puts
@@ -686,7 +683,7 @@ function checkField(field, chunk) {
   // the next button, so Enter carries on.
   if (sentenceDone()) {
     renderExplanations();
-    setReady(true, chestFilled);
+    setReady(true);
     countSentence();
     markDone();
     // A word finished with an arrow keeps the caret: the arrows are for
@@ -1064,9 +1061,9 @@ function paintWord(box, field, chunk) {
   );
 }
 
-function setReady(ready, filledChest = false) {
+function setReady(ready) {
   submitButton.classList.toggle('ready', ready);
-  stepLabel.textContent = ready ? (filledChest ? D.chestFull : D.done) : D.fresh;
+  stepLabel.textContent = ready ? D.done : D.fresh;
   // Nothing left to hint at or type once every word is in place.
   hintButton.hidden = ready;
   specialKeys.hidden = ready;
@@ -1265,10 +1262,17 @@ function addTopic(text) {
 
 function renderChips() {
   orderChips();
-  steeringLabel.textContent = D.nextPractice;
-  steeringLabel.hidden = chips.length === 0;
-  chipsRow.replaceChildren(
-    ...chips.map((chip) => {
+  topicBox.title = D.nextPractice;
+  chipsRow.setAttribute('aria-label', D.nextPractice);
+  autoChipsRow.setAttribute('aria-label', D.autoChips);
+  autoChipsToggle.title = D.autoChips;
+  autoChipsToggle.setAttribute('aria-label', D.autoChips);
+  autoChipsToggle.hidden = !chips.some((chip) => chip.kind === 'word' && chip.hinted);
+  if (autoChipsToggle.hidden) autoChipsToggle.setAttribute('aria-expanded', 'false');
+  autoChipsRow.hidden = autoChipsToggle.getAttribute('aria-expanded') !== 'true';
+  chipsRow.replaceChildren();
+  autoChipsRow.replaceChildren();
+  chips.forEach((chip) => {
       const box = document.createElement('span');
       box.className = `chip ${chip.kind}`;
       box.setAttribute('role', 'listitem');
@@ -1293,28 +1297,18 @@ function renderChips() {
       x.setAttribute('aria-label', D.chipRemove(chip.text));
       x.addEventListener('click', () => removeChip(chip));
 
-      // A word earned into the chest carries a tiny one. A word that
-      // needed a hint is not in the chest yet, so it goes without.
-      if (chip.kind === 'word' && !chip.hinted) box.prepend(chipChest());
       box.append(text, x);
-      return box;
-    }),
-  );
+      (chip.kind === 'word' && chip.hinted ? autoChipsRow : chipsRow).append(box);
+    });
 }
 
-/** The chest drawing, small enough for a chip. */
-function chipChest() {
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('class', 'chip-chest');
-  svg.setAttribute('viewBox', '0 0 60 50');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('focusable', 'false');
-  const use = document.createElementNS(ns, 'use');
-  use.setAttribute('href', '#chest-shape');
-  svg.append(use);
-  return svg;
-}
+autoChipsToggle.addEventListener('click', () => {
+  const expanded = autoChipsToggle.getAttribute('aria-expanded') !== 'true';
+  autoChipsToggle.setAttribute('aria-expanded', String(expanded));
+  autoChipsRow.hidden = !expanded;
+});
+
+
 
 /* The field is shown only while a chip is being written: the + opens it,
    and it closes again once the chip is made or the field is left. */
@@ -1515,7 +1509,7 @@ function chunkField(chunk, index) {
   native.addEventListener('mousedown', (event) => event.preventDefault());
   native.addEventListener('click', () => {
     select(index);
-    speak(chunk.target);
+    speak(chunk.target, index);
   });
 
   // A tiny speaker ball beside the word, shown for the blank in focus.
@@ -1535,7 +1529,7 @@ function chunkField(chunk, index) {
   waves.append(path);
   say.append(waves);
   say.addEventListener('mousedown', (event) => event.preventDefault());
-  say.addEventListener('click', () => speak(chunk.target));
+  say.addEventListener('click', () => speak(chunk.target, index));
 
   const under = document.createElement('span');
   under.className = 'under';
@@ -1790,10 +1784,21 @@ function bankEarned(chunk) {
       ...(typeof chunk.english === 'string' && chunk.english ? { english: chunk.english } : {}),
     },
   ]);
-  // A chest filled to 25 gets a bigger show, and a star on the lid.
-  const filled = (words.length + 1) % CHEST_SIZE === 0;
-  if (filled) chestFilled = true;
-  fireworks(chunk, filled ? 3 : 1);
+  // Every 25 earned words celebrate an XP milestone.
+  const filled = (words.length + 1) % XP_STEP === 0;
+  if (filled) {
+    const milestone = (words.length + 1) / XP_STEP;
+    if (milestone > gameMilestone) {
+      gameMilestone = milestone;
+      remember(keyFor('minigame-level'), String(milestone));
+      const direction = learning;
+      // Let the current input handler finish before the dialog takes focus.
+      queueMicrotask(() => {
+        if (learning === direction) startLevelGame(milestone);
+      });
+    }
+  } else fireworks(chunk);
+
 }
 
 /* Fireworks -------------------------------------------------------- */
@@ -1849,12 +1854,12 @@ function fireworks(chunk, scale = 1, box = fireworksBox) {
 }
 
 function hop() {
-  chest.classList.remove('hop');
-  void chest.getBBox();
-  chest.classList.add('hop');
+  xpToggle.classList.remove('hop');
+  void xpToggle.offsetWidth;
+  xpToggle.classList.add('hop');
 }
 
-chest.addEventListener('animationend', () => chest.classList.remove('hop'));
+xpToggle.addEventListener('animationend', () => xpToggle.classList.remove('hop'));
 
 document.addEventListener('keydown', (event) => {
   if (event.ctrlKey || event.altKey || event.metaKey || lessonCard.hidden) return;
@@ -1883,11 +1888,12 @@ document.addEventListener('keydown', (event) => {
     return;
   }
   const word = current.chunks[selected]?.target;
-  if (word) speak(word);
+  if (word) speak(word, selected);
 });
 
 /** The shape of a lesson with nothing in it, shown while one is fetched. */
 function renderSkeleton() {
+  stopSpeech();
   current = { chunks: [] };
   selected = -1;
   setHelping(null);
@@ -1932,10 +1938,10 @@ function bone(width) {
  * not let play unprompted anyway.
  */
 function renderLesson(result, { read = false } = {}) {
+  stopSpeech();
   current = result;
   selected = -1;
   setHelping(null);
-  chestFilled = false;
   comparator.replaceChildren();
   detail.replaceChildren();
   explanations.replaceChildren();
@@ -1978,6 +1984,37 @@ let lastPipe = 0;
 /** Flipped off the first time the server says it has no voice. */
 let serverSpeech = true;
 const player = new Audio();
+let spokenTimeline = [];
+let spokenLesson = null;
+let speechFrame = 0;
+
+function showSpokenChunk(index, active = false) {
+  comparator.classList.toggle('speaking', active);
+  Array.from(comparator.children).forEach((chunk, at) => chunk.classList.toggle('spoken', at === index));
+}
+
+function clearSpokenChunk() {
+  cancelAnimationFrame(speechFrame);
+  showSpokenChunk(-1);
+}
+
+function stopSpeech() {
+  speakTurn++;
+  player.pause();
+  if (canSpeakLocally) speechSynthesis.cancel();
+  clearSpokenChunk();
+  saying = '';
+}
+
+function trackSpokenChunk() {
+  clearSpokenChunk();
+  if (player.paused || player.ended || current !== spokenLesson || muted) return;
+  showSpokenChunk(spokenChunk(spokenTimeline, player.currentTime * 1000), spokenTimeline.length > 0);
+  speechFrame = requestAnimationFrame(trackSpokenChunk);
+}
+
+player.addEventListener('playing', trackSpokenChunk);
+for (const event of ['pause', 'ended', 'error', 'emptied']) player.addEventListener(event, clearSpokenChunk);
 
 function localVoice() {
   const voices = speechSynthesis.getVoices();
@@ -2050,18 +2087,36 @@ function focusedWord() {
 
 function speakOnDone(chunk) {
   if (heardInFocus && fold(chunk.target) === focusedWord()) return;
-  speak(chunk.target);
+  speak(chunk.target, current.chunks.indexOf(chunk));
 }
 
 /** Counts the readings asked for, so one overtaken while its audio was
     on its way is dropped rather than played over the newer one. */
 let speakTurn = 0;
 
-async function speak(text) {
+function speechContext(index) {
+  if (!Number.isInteger(index) || index < 0 || !current.target) return null;
+  let cursor = 0;
+  for (let i = 0; i <= index; i++) {
+    const text = current.chunks[i]?.target.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+    if (!text) return null;
+    const at = current.target.indexOf(text, cursor);
+    if (at < 0 || /[\p{L}\p{N}]/u.test(current.target.slice(cursor, at))) return null;
+    cursor = at + text.length;
+    if (i === index) return { sentence: current.target, at, end: cursor };
+  }
+  return null;
+}
+
+async function speak(text, chunkIndex) {
   if (!text || muted) return;
+  const context = speechContext(chunkIndex);
   if (fold(text) === focusedWord()) heardInFocus = true;
   const tempo = tempoFor(text);
   const turn = ++speakTurn;
+  clearSpokenChunk();
+  spokenTimeline = [];
+  spokenLesson = null;
   player.pause();
   if (canSpeakLocally) speechSynthesis.cancel();
   // A sentence cut short by a word counts as heard up to here.
@@ -2072,14 +2127,32 @@ async function speak(text) {
     let blob = null;
     try {
       const voice = chosenVoice();
-      const response = await fetch(
-        `/api/speak?lang=${D.target}&v=${speechVersion}${voice ? `&voice=${encodeURIComponent(voice)}` : ''}&text=${encodeURIComponent(text)}`,
-      );
+      const url = `/api/speak?lang=${D.target}&v=${speechVersion}${voice ? `&voice=${encodeURIComponent(voice)}` : ''}&text=${encodeURIComponent(context?.sentence ?? text)}`;
+      let response = await fetch(url + (context ? `&at=${context.at}&end=${context.end}&clip=2` : ''));
+      // If timings cannot be matched safely, preserve pronunciation by
+      // reading the sentence instead of generating an isolated word.
+      if (!response.ok && context && turn === speakTurn) {
+        response = await fetch(url);
+        if (turn === speakTurn) saying = fold(context.sentence);
+      }
       if (turn !== speakTurn) return;
       if (response.status === 503) {
         serverSpeech = false;
       } else if (response.ok) {
         blob = await response.blob();
+        if (saying === fold(current.target ?? '') && turn === speakTurn) {
+          const lesson = current;
+          try {
+            const timingResponse = await fetch(`${url}&timings=1`);
+            if (timingResponse.ok) {
+              const { words } = await timingResponse.json();
+              if (turn === speakTurn && current === lesson) {
+                spokenTimeline = speechTimeline(lesson.target, lesson.chunks, words, D.targetLocale);
+                spokenLesson = lesson;
+              }
+            }
+          } catch { /* Audio still plays if word timings are unavailable. */ }
+        }
       } else {
         saying = '';
         return;
@@ -2106,7 +2179,7 @@ async function speak(text) {
     }
   }
   if (turn !== speakTurn) return;
-  if (canSpeakLocally) speakLocally(text, tempo);
+  if (canSpeakLocally) speakLocally(context?.sentence ?? text, tempo);
   else saying = '';
 }
 
@@ -2168,128 +2241,325 @@ lessonCard.addEventListener('mousedown', (event) => {
   focusNextOpen();
 });
 
-/* Word bank -------------------------------------------------------- */
+/* Level-up mini-games ---------------------------------------------- */
+const levelGame = document.querySelector('#level-game');
+const gameBoard = document.querySelector('#game-board');
+const gameFeedback = document.querySelector('#game-feedback');
+const gameProgress = document.querySelector('#game-progress');
+const gameNext = document.querySelector('#game-next');
+const gameSkip = document.querySelector('#game-skip');
+let gameMilestone = 0;
+let game = null;
 
-/** Words per chest. */
-const CHEST_SIZE = 25;
-/** Which chest is listed; -1 means the one being filled. */
-let viewGroup = -1;
-/** Closed: the newest few words. Open: a whole chest, with the picker. */
-let chestOpen = false;
-const PEEK = 5;
-/** The word whose badge just rose a tier, folded; its badge gets a flourish once. */
-let upgraded = '';
-/** Whether a word in the sentence on screen filled a chest. */
-let chestFilled = false;
+function shuffled(items) {
+  const result = [...items];
+  for (let at = result.length - 1; at > 0; at -= 1) {
+    const other = Math.floor(Math.random() * (at + 1));
+    [result[at], result[other]] = [result[other], result[at]];
+  }
+  return result;
+}
 
-chestToggle.addEventListener('click', () => {
-  chestOpen = !chestOpen;
-  renderBank(loadBank());
+/** Keep both sides unique so a visible translation always has one answer. */
+function gameVocabulary(words) {
+  const targets = new Set();
+  const natives = new Set();
+  return shuffled(words).filter(word => {
+    if (!word.target?.trim() || !word.native?.trim()) return false;
+    const target = fold(word.target), native = fold(word.native);
+    if (targets.has(target) || natives.has(native)) return false;
+    targets.add(target);
+    natives.add(native);
+    return true;
+  }).slice(0, 4);
+}
+
+function levelGameMode(milestone) {
+  return ['match', 'quiz', 'build', 'memory'][(milestone - 1) % 4];
+}
+
+function startLevelGame(milestone) {
+  const words = gameVocabulary(loadBank());
+  if (words.length < 2) return;
+  stopSpeech();
+  openStats(false);
+  closeMenu();
+  game = { words, mode: levelGameMode(milestone), solved: 0, selected: null, mistakes: 0 };
+  document.querySelector('#game-title').textContent = D.gameLevel(milestone + 1);
+  document.querySelector('#game-instructions').textContent = ({ match: D.gameMatch, quiz: D.gameQuiz, build: D.gameBuild, memory: D.gameMemory })[game.mode];
+  gameSkip.textContent = D.gameSkip;
+  gameNext.hidden = true;
+  gameFeedback.textContent = '';
+  renderGame();
+  if (!levelGame.open) levelGame.showModal();
+  gameBoard.querySelector('button')?.focus();
+}
+
+function finishGameAnswer() {
+  game.solved += 1;
+  gameProgress.textContent = `${game.solved}/${game.words.length}`;
+  if (game.solved === game.words.length) {
+    gameFeedback.textContent = D.gameComplete(game.mistakes);
+    gameNext.textContent = D.gameContinue;
+    gameNext.hidden = false;
+    gameNext.focus();
+  } else if (game.mode === 'quiz' || game.mode === 'build') {
+    gameNext.textContent = D.gameNext;
+    gameNext.hidden = false;
+    gameNext.focus();
+  } else gameBoard.querySelector('button:not(:disabled)')?.focus();
+}
+
+function renderGame() {
+  gameBoard.replaceChildren();
+  gameFeedback.textContent = '';
+  gameNext.hidden = true;
+  gameProgress.textContent = `${game.solved}/${game.words.length}`;
+  gameBoard.className = `game-${game.mode}`;
+  if (game.mode === 'build') {
+    renderLetterGame();
+  } else if (game.mode === 'memory') {
+    renderMemoryGame();
+  } else if (game.mode === 'quiz') {
+    const word = game.words[game.solved];
+    const prompt = document.createElement('h3');
+    prompt.textContent = word.native;
+    prompt.lang = D.native;
+    gameBoard.append(prompt);
+    for (const option of shuffled(game.words)) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = option.target;
+      button.lang = D.target;
+      button.addEventListener('click', () => {
+        if (option !== word) {
+          game.mistakes += 1;
+          gameFeedback.textContent = D.gameTryAgain;
+          button.disabled = true;
+          gameBoard.querySelector('button:not(:disabled)')?.focus();
+          return;
+        }
+        gameBoard.querySelectorAll('button').forEach(choice => { choice.disabled = true; });
+        button.classList.add('game-correct');
+        gameFeedback.textContent = D.gameCorrect;
+        finishGameAnswer();
+      });
+      gameBoard.append(button);
+    }
+  } else {
+    for (const side of ['target', 'native']) {
+      const column = document.createElement('div');
+      for (const word of shuffled(game.words)) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = word[side];
+        button.lang = side === 'target' ? D.target : D.native;
+        button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', () => {
+          const previous = game.selected;
+          if (previous) previous.button.setAttribute('aria-pressed', 'false');
+          game.selected = null;
+          if (previous?.button === button) return;
+          if (!previous || previous.side === side) {
+            game.selected = { word, side, button };
+            button.setAttribute('aria-pressed', 'true');
+          } else if (previous.word === word) {
+            previous.button.disabled = button.disabled = true;
+            previous.button.classList.add('game-correct');
+            button.classList.add('game-correct');
+            gameFeedback.textContent = D.gameCorrect;
+            finishGameAnswer();
+          } else {
+            game.mistakes += 1;
+            gameFeedback.textContent = D.gameTryAgain;
+          }
+        });
+        column.append(button);
+      }
+      gameBoard.append(column);
+    }
+  }
+}
+
+/** Build a translation one letter at a time; spaces and punctuation stay visible. */
+function renderLetterGame() {
+  const word = game.words[game.solved];
+  const characters = Array.from(word.target.normalize('NFC'));
+  const isLetter = character => /[\p{L}\p{N}]/u.test(character);
+  const letters = characters.filter(isLetter);
+  let placed = 0;
+  const clue = document.createElement('h3');
+  clue.textContent = word.native;
+  clue.lang = D.native;
+  const answer = document.createElement('p');
+  answer.className = 'game-built-word';
+  answer.lang = D.target;
+  answer.setAttribute('aria-live', 'polite');
+  const update = () => {
+    let at = 0;
+    answer.textContent = characters.map(character => !isLetter(character) || at++ < placed ? character : '_').join('');
+  };
+  update();
+  const tiles = document.createElement('div');
+  tiles.className = 'game-letters';
+  for (const letter of shuffled(letters)) {
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.textContent = letter;
+    tile.lang = D.target;
+    tile.addEventListener('click', () => {
+      if (letter !== letters[placed]) {
+        game.mistakes += 1;
+        gameFeedback.textContent = D.gameTryAgain;
+        return;
+      }
+      tile.disabled = true;
+      placed += 1;
+      update();
+      gameFeedback.textContent = D.gameCorrect;
+      if (placed === letters.length) finishGameAnswer();
+      else tiles.querySelector('button:not(:disabled)')?.focus();
+    });
+    tiles.append(tile);
+  }
+  gameBoard.append(clue, answer, tiles);
+  // Nonalphabetic saved entries still have a valid way to finish the round.
+  if (!letters.length) finishGameAnswer();
+}
+
+/** Turn over two cards, remembering both the word and its translation. */
+function renderMemoryGame() {
+  const cards = shuffled(game.words.flatMap(word => ['target', 'native'].map(side => ({ word, side }))));
+  game.selected = null;
+  for (const [index, card] of cards.entries()) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    const hide = () => {
+      button.textContent = '?';
+      button.setAttribute('aria-label', D.gameCard(index + 1));
+      button.removeAttribute('lang');
+      button.setAttribute('aria-pressed', 'false');
+    };
+    hide();
+    button.addEventListener('click', () => {
+      if (game.memoryReset || game.selected?.button === button) return;
+      button.textContent = card.word[card.side];
+      button.lang = card.side === 'target' ? D.target : D.native;
+      button.removeAttribute('aria-label');
+      button.setAttribute('aria-pressed', 'true');
+      const previous = game.selected;
+      if (!previous) {
+        game.selected = { ...card, button, hide };
+        return;
+      }
+      game.selected = null;
+      if (previous.word === card.word) {
+        previous.button.disabled = button.disabled = true;
+        previous.button.classList.add('game-correct');
+        button.classList.add('game-correct');
+        gameFeedback.textContent = D.gameCorrect;
+        finishGameAnswer();
+      } else {
+        game.mistakes += 1;
+        gameFeedback.textContent = D.gameTryAgain;
+        // A button lets players study the pair for as long as they need.
+        game.memoryReset = () => { previous.hide(); hide(); previous.button.focus(); };
+        gameNext.textContent = D.gameTurnBack;
+        gameNext.hidden = false;
+        gameNext.focus();
+      }
+    });
+    gameBoard.append(button);
+  }
+}
+
+gameNext.addEventListener('click', () => {
+  if (game.memoryReset) {
+    game.memoryReset();
+    game.memoryReset = null;
+    gameNext.hidden = true;
+    gameFeedback.textContent = '';
+    return;
+  }
+  if (game.solved === game.words.length) levelGame.close();
+  else {
+    renderGame();
+    gameBoard.querySelector('button')?.focus();
+  }
+});
+gameSkip.addEventListener('click', () => levelGame.close());
+// Keep lesson keyboard shortcuts out of the modal; Escape retains its native action.
+levelGame.addEventListener('keydown', event => event.stopPropagation());
+levelGame.addEventListener('close', () => {
+  game = null;
+  if (sentenceDone()) submitButton.focus();
+  else focusNextOpen();
 });
 
-/** How many words the chest being filled holds, out of 25. A bank of
-    exactly 25 is a full chest, not an empty new one. */
-function inChest(total) {
-  const full = total > 0 && total % CHEST_SIZE === 0 ? total / CHEST_SIZE - 1 : Math.floor(total / CHEST_SIZE);
-  return total - full * CHEST_SIZE;
-}
+/* Word bank -------------------------------------------------------- */
 
-/** One star on the chest's lid for every chest filled; past five, a
-    count instead of a row. */
-function renderStars(total) {
-  const full = Math.floor(total / CHEST_SIZE);
-  chestStars.textContent = full === 0 ? '' : full <= 5 ? '⭐'.repeat(full) : `⭐×${full}`;
-  chestStars.title = full ? D.fullChests(full) : '';
-}
+/** One XP per distinct word earned without a hint; milestones every 25 XP. */
+const XP_STEP = 25;
+let upgraded = '';
 
-/** A small chest: the same drawing, with its count on the front and a star on a full lid. */
-function smallChest(count, full) {
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('class', 'chest');
-  svg.setAttribute('viewBox', '0 0 60 50');
-  svg.setAttribute('width', '38');
-  svg.setAttribute('height', '32');
-  svg.setAttribute('aria-hidden', 'true');
-  const use = document.createElementNS(ns, 'use');
-  use.setAttribute('href', '#chest-shape');
-  svg.append(use);
-  const stars = document.createElement('span');
-  stars.className = 'chest-stars';
-  stars.textContent = full ? '⭐' : '';
-  const tally = document.createElement('span');
-  tally.className = 'bank-count';
-  tally.textContent = `${count}/${CHEST_SIZE}`;
-  return [svg, stars, tally];
-}
-
-/** Up to this many, the small chests are full size; past it they shrink. */
-const CHESTS_FULL_SIZE = 5;
-
-/** How big the small chests are drawn, 1 down to a bit under half: the
-    more there are, the smaller each, so the row keeps its width. */
-function chestScale(groups) {
-  return Math.max(0.45, Math.min(1, Math.sqrt(CHESTS_FULL_SIZE / groups)));
-}
-
-/** The chest row: one small chest per 25 words, the newest last, there
-    whenever there is more than one, every one of them, drawn smaller
-    the more there are. A small chest opens the bank on that chest; the
-    one open is raised. */
-function renderGroups(total) {
-  const groups = Math.max(1, Math.ceil(total / CHEST_SIZE));
-  if (viewGroup < 0 || viewGroup >= groups) viewGroup = groups - 1;
-  chestRow.hidden = groups < 2;
-  chestRow.setAttribute('aria-label', D.chest);
-  chestRow.style.setProperty('--chest-scale', chestScale(groups).toFixed(3));
-  chestRow.replaceChildren();
-  for (let at = 0; at < groups; at += 1) {
-    const from = at * CHEST_SIZE + 1;
-    const to = Math.min(total, (at + 1) * CHEST_SIZE);
-    const pick = document.createElement('button');
-    pick.type = 'button';
-    pick.className = 'chest-pick';
-    pick.title = `${D.chest} ${at + 1} · ${from}–${to}`;
-    pick.setAttribute('aria-label', pick.title);
-    pick.setAttribute('aria-pressed', String(chestOpen && at === viewGroup));
-    pick.append(...smallChest(to - from + 1, to - from + 1 === CHEST_SIZE));
-    pick.addEventListener('click', () => {
-      viewGroup = at;
-      chestOpen = true;
-      renderBank(loadBank());
-    });
-    chestRow.append(pick);
+function openStats(open) {
+  statsPanel.hidden = !open;
+  xpToggle.setAttribute('aria-expanded', String(open));
+  if (open) {
+    closeMenu();
+    renderBank(loadBank());
   }
-  return viewGroup;
+}
+xpToggle.addEventListener('click', () => openStats(statsPanel.hidden));
+statsClose.addEventListener('click', () => {
+  openStats(false);
+  xpToggle.focus();
+});
+document.addEventListener('click', (event) => {
+  if (!statsPanel.hidden && !event.target.closest('.xp-wrap')) openStats(false);
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !statsPanel.hidden) {
+    openStats(false);
+    xpToggle.focus();
+  }
+});
+
+function renderProgress(xp) {
+  const target = (Math.floor(xp / XP_STEP) + 1) * XP_STEP;
+  const [, label] = D.levels.find(([key]) => key === level) ?? D.levels[0];
+  document.querySelector('#xp-difficulty').textContent = label;
+  document.querySelector('#xp-count').textContent = `XP (${xp}/${target})`;
+  xpToggle.setAttribute('aria-label', `${D.levelLabel}: ${label}, XP (${xp}/${target}) · ${D.stats}`);
+  xpToggle.title = `${D.stats} · ${D.switchLevel}`;
+  document.querySelector('#difficulty-label').textContent = D.levelLabel;
 }
 
 function renderBank(words) {
   bankList.replaceChildren();
-  bankCount.textContent = `${inChest(words.length)}/${CHEST_SIZE}`;
-  renderStars(words.length);
-  // The chest is there from the start, with a line on what fills it.
-  bank.hidden = false;
+  const xp = words.length;
+  renderProgress(xp);
+  document.querySelector('#stats-title').textContent = D.stats;
+  statsClose.setAttribute('aria-label', D.close);
+  document.querySelector('#xp-help').textContent = D.xpHelp;
+  document.querySelector('#bank-title').textContent = D.bank;
+  const answers = words.reduce((total, word) => total + (word.count ?? 1), 0);
+  document.querySelector('#stats-values').replaceChildren(...[
+    [D.earnedWords, xp],
+    [D.correctAnswers, answers],
+    [D.repeatPractice, answers - xp],
+  ].map(([label, value]) => {
+    const row = document.createElement('div');
+    const term = document.createElement('dt');
+    term.textContent = label;
+    const count = document.createElement('dd');
+    count.textContent = String(value);
+    row.append(term, count);
+    return row;
+  }));
   bankEmpty.hidden = words.length > 0;
   bankEmpty.textContent = D.bankEmpty;
-  chestWrap.dataset.open = String(chestOpen);
-  chestToggle.setAttribute('aria-expanded', String(chestOpen));
-  chestToggle.setAttribute('aria-label', chestOpen ? D.chestClose : D.chestOpen);
-  chestToggle.title = chestOpen ? D.chestClose : D.chestOpen;
-
-  const indexed = words.map((word, index) => [index, word]);
-  const group = renderGroups(words.length);
-  let shown;
-  if (chestOpen) {
-    const start = group * CHEST_SIZE;
-    shown = indexed.slice(start, start + CHEST_SIZE);
-  } else {
-    // The most recently touched, so a comeback surfaces its badge.
-    shown = indexed
-      .map((entry, order) => [entry, entry[1].at ?? order])
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, PEEK)
-      .map(([entry]) => entry);
-  }
+  const shown = words.map((word, index) => [index, word]).reverse();
 
   for (const [index, word] of shown) {
     const item = document.createElement('li');
@@ -2331,8 +2601,10 @@ function renderBank(words) {
     });
 
     // The badge reads its word out, and for a word that inflects opens its
-    // forms below the chest. The minus is the one part that does neither.
+    // forms below the lesson. The minus only removes the word.
     const open = () => {
+      openStats(false);
+      xpToggle.focus();
       speak(word.target);
       if (inflects(word.pos)) {
         openForms(word.target, word.pos, {
@@ -3401,6 +3673,7 @@ function setLevel(value) {
   levelName.textContent = label;
   levelButton.setAttribute('aria-label', `${D.levelLabel}: ${label}`);
   remember(keyFor('niva'), key);
+  renderProgress(loadBank().length);
 }
 
 levelButton.addEventListener('click', () => {
@@ -3557,6 +3830,8 @@ function setDirection(value) {
   applyDirection();
   setLevel(recall(keyFor('niva')) ?? 'start');
   renderBank(loadBank());
+  gameMilestone = Math.max(Math.floor(loadBank().length / XP_STEP), Number(recall(keyFor('minigame-level'))) || 0);
+  if (levelGame.open) levelGame.close();
   streak = 0;
   renderStreak();
   // Left behind by the short-lived XP bar.
@@ -3634,8 +3909,7 @@ muteButton.addEventListener('click', () => {
   muted = !muted;
   remember(MUTE_KEY, String(muted));
   if (muted) {
-    player.pause();
-    if (canSpeakLocally) speechSynthesis.cancel();
+    stopSpeech();
   }
   renderMute();
   closeMenu();

@@ -298,12 +298,6 @@
   flex-wrap: wrap;
   gap: 0.25rem;
 }
-.steering-label {
-  flex-basis: 100%;
-  color: var(--ink);
-  font-size: 0.75rem;
-  margin-bottom: 0.15rem;
-}
 .topic-box {
   flex: 0 1 auto;
   display: flex;
@@ -338,6 +332,16 @@
 .chip-add:active {
   transform: translate(1px, 1px);
   box-shadow: none;
+}
+.auto-chips-toggle {
+  border-style: dashed;
+  border-color: var(--faint);
+  color: var(--muted);
+  box-shadow: none;
+}
+.auto-chips-toggle[hidden],
+#auto-chips[hidden] {
+  display: none;
 }
 /* The field for a new chip, shaped like the chip it becomes. */
 .topic-box input {
@@ -414,15 +418,6 @@
 }
 .chip.hinted {
   border-style: dashed;
-}
-/* The tiny chest on a word chip: the same drawing as the bank's. */
-.chip .chip-chest {
-  --chest-line: var(--line);
-  --chest-latch: var(--ochre);
-  flex: 0 0 auto;
-  width: 0.95rem;
-  height: 0.8rem;
-  margin-right: 0.05rem;
 }
 .chip .chip-x {
   flex: 0 0 auto;
@@ -846,6 +841,12 @@
 .chunk.open .say {
   visibility: visible;
 }
+.comparator.speaking .chunk .say {
+  visibility: hidden;
+}
+.comparator.speaking .chunk.spoken .say {
+  visibility: visible;
+}
 .chunk .say svg:first-child {
   width: 1.15rem;
   height: 1.15rem;
@@ -946,13 +947,51 @@
   gap: 0.35rem 0.75rem;
   margin: 1.1rem 0 0.2rem;
 }
-/* The chips, the next button and the sentence they got, on one sunken
-   tray: no line around it, just a step down from the page. */
+/* The controls and original sentence share a wrapping row. */
 .ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.75rem;
   padding: 0.7rem 0.9rem 0.8rem;
   margin-bottom: 1.25rem;
-  background: var(--sunk);
   border-radius: var(--wobble);
+}
+.ask > form {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.ask > .natural {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ask > .natural[hidden] {
+  display: none;
+}
+.ask > .status {
+  order: 1;
+  flex-basis: 100%;
+  margin: 0;
+}
+@media (max-width: 40rem) {
+  body {
+    background: var(--panel);
+  }
+  #lesson {
+    background: transparent;
+  }
+  .ask,
+  #lesson {
+    margin-inline: -1.25rem;
+    padding-inline: 0.75rem;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
 }
 /* The speaker: the target ball with a couple of sound waves beside it. */
 .speak {
@@ -1816,103 +1855,6 @@ body.muted .chunk .say {
 #bank h2 {
   flex: 0 0 auto;
 }
-/* The small chests, one for every 25 words: the one open is raised and
-   at full colour, the rest sit back a little. */
-.chests {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  align-items: flex-end;
-}
-.chests[hidden] {
-  display: none;
-}
-.chest-pick {
-  position: relative;
-  padding: 0.2rem 0.15rem 0;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  opacity: 0.55;
-  transition:
-    opacity 0.15s,
-    transform 0.2s cubic-bezier(0.2, 1.4, 0.4, 1);
-}
-.chest-pick:hover {
-  opacity: 0.85;
-  transform: translateY(-2px) rotate(-2deg);
-  box-shadow: none;
-}
-.chest-pick:active {
-  transform: none;
-  box-shadow: none;
-}
-.chest-pick[aria-pressed='true'] {
-  opacity: 1;
-  transform: translateY(-3px) rotate(2deg);
-}
-/* Every chest is in the row; the more there are, the smaller each is
-   drawn. The scale is set on the row by the script. */
-.chests {
-  --chest-scale: 1;
-}
-.chest-pick .chest {
-  width: calc(38px * var(--chest-scale));
-  height: calc(32px * var(--chest-scale));
-  filter: drop-shadow(2px 2px 0 var(--shadow));
-}
-.chest-pick .bank-count {
-  font-size: calc(0.5rem * var(--chest-scale));
-}
-.chest-pick .chest-stars {
-  font-size: calc(0.45rem * var(--chest-scale));
-}
-@media (max-width: 40rem) {
-  #bank header {
-    flex-wrap: wrap;
-  }
-  .chests {
-    flex: 1 0 100%;
-  }
-}
-#bank h2,
-.chests {
-  --chest-line: var(--line);
-  --chest-latch: var(--ochre);
-}
-#bank h2 {
-  display: inline-flex;
-  align-items: center;
-  margin: 0;
-}
-.chest {
-  display: block;
-  filter: drop-shadow(3px 3px 0 var(--shadow));
-  transition: transform 0.2s cubic-bezier(0.2, 1.4, 0.4, 1);
-}
-/* An invisible button laid over the chest, so the drawing is the control. */
-.chest-toggle {
-  position: absolute;
-  inset: -0.25rem;
-  z-index: 1;
-  padding: 0;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-radius: 12px;
-  cursor: pointer;
-}
-.chest-toggle:hover,
-.chest-toggle:active {
-  transform: none;
-  box-shadow: none;
-}
-.chest-wrap:hover .chest {
-  transform: translateY(-2px) rotate(-2deg);
-}
-.chest-wrap[data-open='true'] .chest {
-  transform: rotate(2deg);
-}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1920,35 +1862,6 @@ body.muted .chunk .say {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
-}
-/* A star on the lid for every level gained. */
-.chest-stars {
-  position: absolute;
-  left: 50%;
-  top: 18%;
-  transform: translate(-50%, -50%);
-  font-size: 0.6rem;
-  letter-spacing: -0.1em;
-  white-space: nowrap;
-  color: var(--chest-latch, #e9c46a);
-  font-weight: 800;
-  pointer-events: none;
-}
-/* How full this chest is, painted on its front in the latch's gold. */
-.bank-count {
-  position: absolute;
-  left: 50%;
-  top: 70%;
-  transform: translate(-50%, -50%);
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.8rem;
-  white-space: nowrap;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  color: var(--chest-latch, #e9c46a);
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
-  pointer-events: none;
 }
 /* The words as badges: painted tags that wrap across the row, each
    with the word, its gloss underneath, a tally, and a tiny remove. */
@@ -2103,7 +2016,7 @@ body.muted .chunk .say {
    A word earned outright sends a burst of emoji out of the chest, and
    the chest gives a little hop. Each piece is scattered by custom
    properties set when it is made, so the CSS stays one keyframe. */
-.chest-wrap {
+.xp-wrap {
   position: relative;
 }
 .fireworks {
@@ -2132,7 +2045,7 @@ body.muted .chunk .say {
   height: 1.6em;
   object-fit: contain;
 }
-.chest.hop {
+.xp-toggle.hop {
   animation: chest-hop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1);
 }
 @keyframes firework {
@@ -2158,7 +2071,80 @@ body.muted .chunk .say {
 }
 @media (prefers-reduced-motion: reduce) {
   .fireworks span,
-  .chest.hop {
+  .xp-toggle.hop {
     animation: none;
   }
 }
+
+/* XP and its expandable stats panel. */
+.xp-wrap { flex: 0 0 auto; }
+.xp-toggle {
+  flex-direction: column;
+  gap: 0.1rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  height: auto;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.85rem;
+}
+#xp-count { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.7rem; line-height: 1.2; }
+.stats-difficulty { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 1rem 0; }
+.stats-difficulty .level { min-height: 2.75rem; height: auto; }
+.stats-panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  z-index: 30;
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: min(36rem, 75dvh);
+  overflow: auto;
+  padding: 1.1rem;
+  background: var(--panel);
+  color: var(--ink);
+  border: 2px solid var(--line);
+  border-radius: var(--wobble-small);
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+.stats-panel[hidden] { display: none; }
+.stats-panel > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.stats-panel h2, .stats-panel h3 { margin: 0; }
+.stats-help { color: var(--muted); font-size: 0.85rem; line-height: 1.5; }
+#stats-values { margin: 1rem 0; }
+#stats-values > div { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; }
+#stats-values dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stats-panel #bank { margin-top: 1rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+@media (max-width: 30rem) {
+  .topbar { flex-wrap: wrap; }
+  .topbar .direction { flex: 1 0 100%; }
+  .topbar .xp-wrap { margin-left: auto; }
+}
+
+/* A level reward sits above the lesson and keeps its place underneath. */
+.level-game {
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: 85dvh;
+  overflow: auto;
+  padding: 1.5rem;
+  color: var(--ink);
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: var(--wobble-small);
+  box-shadow: 5px 5px 0 var(--shadow);
+}
+.level-game::backdrop { background: rgb(0 0 0 / 45%); }
+.level-game header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.level-game h2 { margin: 0; }
+.game-progress { color: var(--muted); font-variant-numeric: tabular-nums; }
+.game-match { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.game-match > div, .game-quiz { display: grid; gap: 0.75rem; }
+#game-board button { min-height: 3.5rem; overflow-wrap: anywhere; }
+#game-board button[aria-pressed='true'] { background: var(--mark); outline: 2px solid var(--ink); outline-offset: 2px; }
+#game-board .game-correct { background: var(--accent-soft); opacity: 0.55; }
+#game-feedback { min-height: 1.5em; }
+#game-next { width: 100%; }
+
+.game-memory { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+#game-board.game-memory button { min-height: 5rem; }
+.game-letters { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.game-letters button { min-width: 2.75rem; font-size: 1.3rem; }
+.game-built-word { font-size: 1.6rem; letter-spacing: 0.15em; white-space: pre-wrap; overflow-wrap: anywhere; }

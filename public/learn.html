@@ -34,11 +34,6 @@
           <span class="flag" id="flag-to" aria-hidden="true"></span>
           <span class="direction-label" id="direction-label"></span>
         </div>
-        <!-- The level, a chip in the marker tint that cycles on click. It
-             sets the whole session, so it sits up here by the direction. -->
-        <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
-          <span id="level-name">Nybegynner</span>
-        </button>
         <!-- The menu: theme, and login or logout. Once signed in the button
              wears the learner's picture. -->
         <div class="menu-wrap">
@@ -90,6 +85,26 @@
             </button>
           </div>
         </div>
+        <div class="xp-wrap">
+          <button type="button" id="xp-toggle" class="xp-toggle level" aria-expanded="false" aria-controls="stats-panel"><span id="xp-difficulty">Nybegynner</span><span id="xp-count">XP (0/25)</span></button>
+          <span class="fireworks" id="fireworks" aria-hidden="true"></span>
+          <section id="stats-panel" class="stats-panel" aria-labelledby="stats-title" hidden>
+            <header><h2 id="stats-title">Statistikk</h2><button type="button" id="stats-close" class="ghost" aria-label="Lukk">&times;</button></header>
+            <div class="stats-difficulty">
+              <span id="difficulty-label"></span>
+        <button type="button" id="level" class="level" aria-label="Nivå: Nybegynner" title="Bytt nivå">
+          <span id="level-name">Nybegynner</span>
+        </button>
+            </div>
+            <p id="xp-help" class="stats-help"></p>
+            <dl id="stats-values"></dl>
+            <section id="bank">
+              <h3 id="bank-title">Ordbank</h3>
+              <ul class="bank-list" id="bank-list"></ul>
+              <p class="bank-empty" id="bank-empty" hidden></p>
+            </section>
+          </section>
+        </div>
       </div>
 
       <!-- Norwayball, Turkeyball and UKball: the flags as countryballs, drawn
@@ -101,21 +116,6 @@
           <ellipse cx="14.5" cy="17" rx="4.2" ry="5" fill="#fff" stroke="#111" stroke-width="1.6" />
           <ellipse cx="26.5" cy="17" rx="4.2" ry="5" fill="#fff" stroke="#111" stroke-width="1.6" />
         </g>
-        <!-- The chest, drawn once: the big one that opens the bank, and the
-             small ones that pick a chest, all use it. Painted like the rest:
-             ink outline with a little wobble, flat gouache fills. -->
-        <symbol id="chest-shape" viewBox="0 0 60 50">
-          <!-- body -->
-          <path d="M5 21 Q3.5 32 5.5 45 Q30 47.5 54.5 45 Q56.5 32 55 21 Z" fill="var(--chest-body)" stroke="var(--chest-line)" stroke-width="2.4" stroke-linejoin="round" />
-          <!-- lid -->
-          <path d="M4.5 21.5 C3 9 14 2.5 30 2.5 S57 9 55.5 21.5 Q30 23.5 4.5 21.5 Z" fill="var(--chest-lid)" stroke="var(--chest-line)" stroke-width="2.4" stroke-linejoin="round" />
-          <path d="M18.5 4.2 Q17.3 12.5 18.2 21.6 M41.5 4.2 Q42.7 12.5 41.8 21.6" fill="none" stroke="var(--chest-line)" stroke-width="2" stroke-linecap="round" />
-          <!-- a lighter brush stroke along the lid's top -->
-          <path d="M12 10 Q30 5 48 10" fill="none" stroke="var(--chest-light)" stroke-width="2.2" stroke-linecap="round" />
-          <!-- latch, on the lid's edge -->
-          <path d="M24.5 17.5 h11 q1.5 0 1.5 1.5 v5.5 q0 1.5 -1.5 1.5 h-11 q-1.5 0 -1.5 -1.5 v-5.5 q0 -1.5 1.5 -1.5 z" fill="var(--chest-latch)" stroke="var(--chest-line)" stroke-width="2" stroke-linejoin="round" />
-          <circle cx="30" cy="21.5" r="1.3" fill="var(--chest-line)" />
-        </symbol>
         <symbol id="flag-no" viewBox="0 0 40 40">
           <g clip-path="url(#ball-clip)">
             <rect width="40" height="40" fill="#ba0c2f" />
@@ -153,12 +153,13 @@
       <div class="ask">
       <form id="form">
         <div class="topic-wrap">
-          <span id="steering-label" class="steering-label" hidden></span>
           <!-- The steering: chips for what the next sentence is asked to be
                about and to bring back, and a field that turns what is typed
                into another chip. Each chip goes with its ×. -->
           <div class="topic-box" id="topic-box">
-            <span class="chips" id="chips" role="list" aria-labelledby="steering-label"></span>
+            <span class="chips" id="chips" role="list"></span>
+            <button type="button" id="auto-chips-toggle" class="chip-add auto-chips-toggle" aria-expanded="false" aria-controls="auto-chips" hidden>...</button>
+            <span class="chips" id="auto-chips" role="list" hidden></span>
             <!-- The + opens the field for one more chip; it closes again once
                  the chip is made or the field is left. -->
             <button type="button" id="add-chip" class="chip-add" aria-label="Legg til tema" title="Legg til tema">+</button>
@@ -224,33 +225,6 @@
         <div id="forms-body"></div>
       </section>
 
-      <section id="bank">
-        <header>
-          <h2 class="chest-wrap">
-            <!-- The chest itself is the toggle: closed shows the newest few
-                 words, open shows a whole chest at a time. -->
-            <button type="button" id="chest-toggle" class="chest-toggle" aria-expanded="false" aria-controls="bank-list"></button>
-            <span class="fireworks" id="fireworks" aria-hidden="true"></span>
-            <!-- The tally sits on the front of the chest, so the body is kept
-                 clear: bands only on the lid, and a small latch at its edge. -->
-            <!-- Painted like the rest: ink outline with a little wobble, flat
-                 gouache fills, and a hard cut-out shadow from CSS. -->
-            <svg class="chest" id="chest" viewBox="0 0 60 50" width="66" height="55" aria-hidden="true" focusable="false">
-              <use href="#chest-shape" />
-            </svg>
-            <span class="sr-only">Ordbank</span>
-            <span class="chest-stars" id="chest-stars"></span>
-            <span class="bank-count" id="bank-count"></span>
-          </h2>
-          <!-- Every chest, one small chest each, the newest last; a click
-               opens the bank on that chest, and the one open is raised.
-               The more there are, the smaller each is drawn. Shown once
-               there is more than one chest. -->
-          <div id="group" class="chests" role="group" aria-label="Kiste" hidden></div>
-        </header>
-        <ul class="bank-list" id="bank-list"></ul>
-        <p class="bank-empty" id="bank-empty" hidden></p>
-      </section>
 
       <!-- The sentences seen so far, newest first. A row reopens its sentence
            in the card at the top, to be done again. -->
@@ -266,6 +240,14 @@
     </main>
 
 
+    <dialog id="level-game" class="level-game" aria-labelledby="game-title">
+      <header><h2 id="game-title"></h2><button type="button" id="game-skip" class="ghost"></button></header>
+      <p id="game-instructions"></p>
+      <p id="game-progress" class="game-progress"></p>
+      <div id="game-board"></div>
+      <p id="game-feedback" role="status" aria-live="polite"></p>
+      <button type="button" id="game-next" hidden></button>
+    </dialog>
     <script type="module" src="/learn.js"></script>
   </body>
 </html>
